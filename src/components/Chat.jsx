@@ -15,10 +15,6 @@ import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 // what's coming" line worth surfacing as a popup.
 export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
 
-// See the embedded-minimized branch below for what this clears and why it
-// is relative to the content area (position: absolute), not the viewport.
-const CONCIERGE_PILL_TOP = 108
-
 // Plain-language employment mentions. Deliberately conservative: it gates only
 // WHETHER to offer the save prompt (all three options are always shown, so the
 // user picks the real value). Misses some phrasings on purpose — the on-open
@@ -60,7 +56,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -1405,63 +1401,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     </div>
   )
 
-  // Embedded variant, minimized: a small top-right PILL, not a full-width
-  // strip inside a reserved column (2026-09-09 -- Bob's screenshot: the old
-  // strip still lived inside App.jsx's fixed-width concierge column, so
-  // minimizing left the right third of the screen empty and the playbook
-  // stuck narrow next to it). App.jsx now collapses that column's width to
-  // 0 whenever presence is 'minimized', so main content reflows to fill the
-  // freed space -- this pill has to hold its OWN screen position rather
-  // than living in that now-zero-width box, or it would collapse away with
-  // it.
-  //
-  // position: 'absolute', not 'fixed'. A fixed pixel offset from the
-  // viewport top does not clear the app header reliably: the header can
-  // carry an extra banner (the one-time "New: My Coach" announcement, an
-  // auth toast, a stale-build notice), each of which pushes the whole
-  // content area -- and the Focus/Opportunity Playbook's own sticky
-  // breadcrumb + Saved badge inside it -- further down, while a
-  // viewport-fixed pill would not move to follow it (caught live: a
-  // screenshot with the "New: My Coach" banner showing had the pill sitting
-  // on top of the breadcrumb it was supposed to clear). `absolute` anchors
-  // instead to the nearest positioned ancestor, which is the
-  // `position:relative` flex row in App.jsx holding the sidebar, the
-  // content column and this (collapsing) panel column -- i.e. the content
-  // area itself, below every banner whatever the current stack is. The top
-  // offset only has to clear the content column's own fixed 40px top
-  // padding plus the breadcrumb's own rendered height (measured, not
-  // guessed: ~59px including its margin), not anything above the content
-  // area, so 108 (with a small buffer) holds regardless of how many
-  // banners are stacked above the row it is anchored to -- that is what
-  // keeps it in the same spot on every screen, not a hardcoded distance
-  // from the very top of the viewport.
-  if (embedded && setPresence && presence === 'minimized') {
-    const lastMsg = messages && messages.length ? messages[messages.length - 1] : null
-    const firstLine = lastMsg && typeof lastMsg.content === 'string' ? lastMsg.content.trim().split('\n')[0] : ''
-    const preview = firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine
-    return (
-      <button
-        data-print="hide"
-        onClick={() => setPresence('open')}
-        aria-label="Open My Coach"
-        style={{
-          position: 'absolute', top: CONCIERGE_PILL_TOP, right: 24, zIndex: 1000,
-          display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 280,
-          background: '#fff', border: '1px solid #E2E5EA', borderRadius: 999,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.12)', padding: '10px 16px',
-          fontFamily: 'inherit', fontSize: 16, color: '#4A5568', cursor: 'pointer', textAlign: 'left',
-        }}
-      >
-        <CoachMark C={C}/>
-        <span style={{ fontWeight: 600, color: '#1A2540', flexShrink: 0, fontSize: 16 }}>My Coach</span>
-        {preview && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#8A9BB8', fontSize: 16 }}>{preview}</span>}
-      </button>
-    )
-  }
+  // Embedded variant, minimized (2026-09-09, header dock): the pill that
+  // used to render here as a position:absolute strip now lives in the
+  // header bar instead (App.jsx, the coachHeaderSlotRef button), so the
+  // embedded column simply renders nothing while minimized -- App.jsx's own
+  // wrapper around this component already collapses that column's width to
+  // 0 in that state (src/App.jsx, the conciergeEmbedded wrapper div).
+  if (embedded && presence === 'minimized') return null
 
   if (embedded) {
     return (
-      <div ref={panelRef} data-print="hide" style={{
+      <div ref={el => { panelRef.current = el; if (outerRef) outerRef.current = el }} data-print="hide" style={{
         display: 'flex', flexDirection: 'column',
         minHeight: 360,
         maxHeight: panelMaxH ? `${panelMaxH}px` : 'min(72dvh, 720px)',
@@ -1496,7 +1446,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {setPresence && (
               <button
-                onClick={() => setPresence('minimized')}
+                onClick={onMinimize || (() => setPresence('minimized'))}
                 style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
                 aria-label="Minimize My Coach"
               >

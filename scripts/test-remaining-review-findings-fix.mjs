@@ -53,8 +53,10 @@ check(removeFromListHits === 2,
   `${APP}: expected both the Assessment and Reputation "remove from list" buttons at the 16px floor -- found ${removeFromListHits}`)
 check(app.includes("Or start fresh (delete everything and begin again)</button>}") && app.includes("padding:'4px 0',fontSize:16,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh"),
   `${APP}: the "Or start fresh" destructive account-delete button is still below the 16px tappable floor`)
-check(app.includes("borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>"),
-  `${APP}: the "Start Fresh" destructive account-delete button is still below the 16px tappable floor`)
+// 2026-09-09: Start Fresh moved from a standalone header button into the
+// Account menu (coach header-dock brief) -- same 16px-floor guard, new markup.
+check(app.includes("style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Start Fresh</button>"),
+  `${APP}: the "Start Fresh" destructive account-delete button (now in the Account menu) is still below the 16px tappable floor`)
 
 // Fix 12: the two copy passages no longer read as the banned constructions
 // they were evading, and the old text is gone (not duplicated).

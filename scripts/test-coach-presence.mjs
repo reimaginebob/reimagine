@@ -60,10 +60,18 @@ check(app.includes('presence={coachPresence} setPresence={setCoachPresence}'), `
 check(app.includes('coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity}') && app.includes('opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture}'),
   `${APP}: the embedded mount must carry the same capture props the floating mount does now that it also covers Opportunity Playbook / My Pipeline screens -- omitting them would silently drop working Coach capabilities on those screens`)
 
-check(chat.includes("presence = 'open', setPresence = null, onSaveNote,"), `${CHAT}: presence/setPresence props are missing from Chat's destructure`)
-check(chat.includes("if (embedded && setPresence && presence === 'minimized') {"), `${CHAT}: the minimized-state branch is missing`)
-check(chat.includes("onClick={() => setPresence('open')}"), `${CHAT}: the collapsed strip's tap-to-reopen handler is missing`)
-check(chat.includes("onClick={() => setPresence('minimized')}"), `${CHAT}: the minimize button is missing`)
+// 2026-09-09 (coach header-dock brief): the minimized pill moved out of
+// Chat.jsx entirely into App.jsx's header bar, with a FLIP ghost overlay
+// bridging the two. Chat.jsx's own job while minimized is now just to
+// render nothing; App.jsx owns the pill, the tap-to-reopen handler
+// (beginCoachRestore), and Minimize routes through onMinimize so App.jsx
+// can play the fly-to-header animation instead of jumping straight to
+// hidden.
+check(chat.includes("presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote,"), `${CHAT}: presence/setPresence/outerRef/onMinimize props are missing from Chat's destructure`)
+check(chat.includes('if (embedded && presence === \'minimized\') return null'), `${CHAT}: the minimized-state branch (render nothing, the pill now lives in App.jsx's header) is missing`)
+check(chat.includes("onClick={onMinimize || (() => setPresence('minimized'))}"), `${CHAT}: the minimize button no longer routes through onMinimize`)
+check(app.includes('const beginCoachRestore=()=>{'), `${APP}: beginCoachRestore (the header pill's tap-to-reopen handler) is missing`)
+check(app.includes("conciergeEmbedded&&coachPresence==='minimized'&&<button ref={coachHeaderSlotRef} data-print=\"hide\" onClick={beginCoachRestore}"), `${APP}: the header pill is missing or no longer wired to beginCoachRestore`)
 check(!chat.includes("'not on this screen'") && !/I'?m good for now/i.test(chat),
   `${CHAT}: the dismissal-affordance copy must NOT appear yet -- both affordances are held for Phase 2`)
 

@@ -45,6 +45,7 @@ import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
 import Chat, { INTRO_MSG } from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
+import CoachMark from "./components/CoachMark"
 import SpeechBtn, { hasSpeech } from "./components/SpeechBtn"
 import MD, { normalizeItalicUnderscores } from "./components/MD"
 import { parseMoney, monetizeBenefits, bonusModel, totalCompModel } from "./offer-valuation"
@@ -7340,6 +7341,22 @@ export default function PivotEngine(){
   // so it can be toggled off without touching the panel markup.
   const SHOW_CONTEXT_NOTE=true
   const[feedbackOpen,setFeedbackOpen]=useState(false)
+  // Account menu (2026-09-09): Start Fresh moved out of the header's primary
+  // row (that slot is Coach's now) into a small menu next to Sign out, per
+  // CLAUDE.md's own framing of it -- deleteAccount() is a genuine, permanent
+  // profile reset (DELETE the users row + chat_messages, verified against
+  // api/account/delete.js), not retired code, so it stays reachable rather
+  // than being removed outright. No client analytics event ever wrapped this
+  // button (grepped every track('...') call site; none reference it), so
+  // there is no usage data to report beyond that absence.
+  const[accountMenuOpen,setAccountMenuOpen]=useState(false)
+  const accountMenuRef=useRef(null)
+  useEffect(()=>{
+    if(!accountMenuOpen)return
+    const onDocClick=(e)=>{if(accountMenuRef.current&&!accountMenuRef.current.contains(e.target))setAccountMenuOpen(false)}
+    document.addEventListener('mousedown',onDocClick)
+    return()=>document.removeEventListener('mousedown',onDocClick)
+  },[accountMenuOpen])
   const[feedbackText,setFeedbackText]=useState('')
   const[feedbackSent,setFeedbackSent]=useState(false)
   const[feedbackSending,setFeedbackSending]=useState(false)
@@ -8788,6 +8805,84 @@ export default function PivotEngine(){
   // yet (that ships in Phase 2 alongside the Moments engine it would gate),
   // so it is deliberately absent rather than a dead state nothing can reach.
   const[coachPresence,setCoachPresence]=useState('open')
+  // Docking animation (2026-09-09, header dock): minimize/restore fly the
+  // panel between the content column and the header pill slot instead of
+  // jumping straight to the end state. The panel and the pill live in two
+  // completely different parts of the tree -- the panel inside the
+  // concierge column, the pill inside the navy header bar -- so CSS alone
+  // cannot animate one element between them. This is a FLIP: flip the real
+  // presence state immediately (the panel/pill mount or unmount and the
+  // concierge column's own width transition, already in place, starts
+  // right away), measure both endpoints on the next frame, then run a
+  // single fixed-position "ghost" (rendered near the end of this
+  // component) across those two rects while the real elements underneath
+  // finish settling. coachDock is null when idle.
+  const coachPanelBoxRef=useRef(null)
+  const coachHeaderSlotRef=useRef(null)
+  const[coachDock,setCoachDock]=useState(null)
+  // Armed flips true one paint after coachDock is set, so the ghost's FIRST
+  // render commits at the FROM rect and only THEN moves to the TO rect --
+  // the CSS transition only plays on a style change after an initial paint,
+  // not on the element's very first render. Both coachDock and coachDockArmed
+  // are React state (never mutated on the DOM node directly), so an unrelated
+  // re-render elsewhere in this component can never revert an in-flight
+  // animation frame the way a raw style mutation could.
+  const[coachDockArmed,setCoachDockArmed]=useState(false)
+  const coachDockRaf2Ref=useRef(null)
+  useEffect(()=>{
+    if(!coachDock||coachDockArmed)return
+    const raf1=requestAnimationFrame(()=>{
+      coachDockRaf2Ref.current=requestAnimationFrame(()=>setCoachDockArmed(true))
+    })
+    return()=>{cancelAnimationFrame(raf1);if(coachDockRaf2Ref.current)cancelAnimationFrame(coachDockRaf2Ref.current)}
+  },[coachDock,coachDockArmed])
+  // Preview-line clearing: the header pill only shows a preview once Coach
+  // has actually spoken since arriving at the CURRENT step, not whatever
+  // was last said on a different screen. coachPreviewBaseline is the
+  // chatMessages length at the moment `step` last changed; the preview
+  // only shows once chatMessages has grown past it, and only for an
+  // assistant turn. Under quietUntilReload ("I'm good for now") nothing
+  // pushes a new message, so the baseline is never cleared past --
+  // exactly the "stays cleared" behavior, with no extra state needed.
+  const coachPreviewStepRef=useRef(step)
+  const[coachPreviewBaseline,setCoachPreviewBaseline]=useState(chatMessages.length)
+  useEffect(()=>{
+    if(coachPreviewStepRef.current!==step){coachPreviewStepRef.current=step;setCoachPreviewBaseline(chatMessages.length)}
+  },[step,chatMessages.length])
+  const coachHeaderPreview=(()=>{
+    if(chatMessages.length<=coachPreviewBaseline)return ''
+    const last=chatMessages[chatMessages.length-1]
+    if(!last||last.role!=='assistant'||typeof last.content!=='string')return ''
+    const firstLine=last.content.trim().split('\n')[0]
+    return firstLine.length>60?`${firstLine.slice(0,60)}…`:firstLine
+  })()
+  const coachPrefersReducedMotion=()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch{return false}}
+  const beginCoachMinimize=()=>{
+    const panelEl=coachPanelBoxRef.current
+    if(!panelEl||coachPrefersReducedMotion()){setCoachPresence('minimized');return}
+    const startRect=panelEl.getBoundingClientRect()
+    setCoachDockArmed(false)
+    setCoachPresence('minimized')
+    requestAnimationFrame(()=>{
+      const slotEl=coachHeaderSlotRef.current
+      const endRect=slotEl?slotEl.getBoundingClientRect():startRect
+      setCoachDock({phase:'minimizing',from:startRect,to:endRect})
+      setTimeout(()=>{setCoachDock(null);setCoachDockArmed(false)},320)
+    })
+  }
+  const beginCoachRestore=()=>{
+    const slotEl=coachHeaderSlotRef.current
+    if(!slotEl||coachPrefersReducedMotion()){setCoachPresence('open');return}
+    const startRect=slotEl.getBoundingClientRect()
+    setCoachDockArmed(false)
+    setCoachPresence('open')
+    requestAnimationFrame(()=>{
+      const panelEl=coachPanelBoxRef.current
+      const endRect=panelEl?panelEl.getBoundingClientRect():startRect
+      setCoachDock({phase:'restoring',from:startRect,to:endRect})
+      setTimeout(()=>{setCoachDock(null);setCoachDockArmed(false)},320)
+    })
+  }
   // Arriving at the dedicated My Coach step counts as opening the coach, so the
   // floating panel that remounts on the way back out is already open rather
   // than collapsed -- otherwise someone who reached My Coach straight from the
@@ -17360,10 +17455,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </>:<>
             {typeof prog==='number'&&<div style={{width:80,height:3,background:C.border,borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:2,transition:'width 0.5s'}}/></div>}
           </>}
+          {/* Coach's header dock slot (2026-09-09). Left of Share feedback, same
+              position on every screen conciergeEmbedded applies to. Only rendered
+              while minimized -- while open, the panel itself is the surface, and
+              coachHeaderSlotRef is read live by beginCoachMinimize/beginCoachRestore
+              (src/App.jsx, near coachDock) to fly the ghost overlay to/from this
+              exact spot, so this button's own position is what "the header slot"
+              means, not a separate reserved box. */}
+          {conciergeEmbedded&&coachPresence==='minimized'&&<button ref={coachHeaderSlotRef} data-print="hide" onClick={beginCoachRestore} aria-label="Open My Coach" style={{display:'inline-flex',alignItems:'center',gap:8,maxWidth:isMobile?180:280,background:'#24304E',border:'1px solid #3A4A6B',borderRadius:999,padding:'8px 14px',fontFamily:'inherit',fontSize:16,color:'#E6EAF2',cursor:'pointer',textAlign:'left'}}>
+            <CoachMark C={C}/>
+            <span style={{fontWeight:600,color:'#FFFFFF',flexShrink:0,fontSize:16}}>My Coach</span>
+            {coachHeaderPreview&&<span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#AEB9CE',fontSize:16}}>{coachHeaderPreview}</span>}
+          </button>}
           {!isDemo&&<button onClick={()=>setFeedbackOpen(true)} style={{background:'transparent',color:C.gold,border:'none',padding:'6px 10px',fontSize:17,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginLeft:8,display:'inline-flex',alignItems:'center',gap:6}}><MessageSquare size={16}/>Share feedback</button>}
-          {!isDemo&&signedInUser&&<button onClick={deleteAccount} title="Delete your profile and start over from scratch" style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Start Fresh</button>}
-          {!isDemo&&signedInUser&&<button onClick={signOut} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign out</button>}
-          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:15,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
+          {/* Account menu (2026-09-09): Start Fresh (deleteAccount -- a genuine,
+              permanent profile reset, verified against api/account/delete.js, not
+              retired code) moved out of the header's primary row into a small menu
+              beside Sign out, freeing that row for Coach's pill. No client analytics
+              event ever wrapped the old standalone button (grepped every track(...)
+              call site; none reference it), so there is no usage figure to report
+              here beyond that absence. */}
+          {!isDemo&&signedInUser&&<div ref={accountMenuRef} style={{position:'relative',marginLeft:8}}>
+            <button onClick={()=>setAccountMenuOpen(o=>!o)} aria-haspopup="true" aria-expanded={accountMenuOpen} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Account<ChevronDown size={14}/></button>
+            {accountMenuOpen&&<div role="menu" style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'#FFFFFF',border:'1px solid #E2E5EA',borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.18)',minWidth:190,overflow:'hidden',zIndex:50}}>
+              <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);deleteAccount()}} title="Delete your profile and start over from scratch" style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Start Fresh</button>
+              <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);signOut()}} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:'1px solid #F0F1F4',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
+            </div>}
+          </div>}
+          {!isDemo&&!signedInUser&&<button onClick={()=>{setSignedUp(false);setMagicLinkSentTo(null)}} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',marginLeft:8}}>Sign in</button>}
         </div>
       </div>
       {authToast&&<div data-print="hide" style={{background:authToast==='ok'?'#7AB87A':'#C8924A',color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexShrink:0}}>
@@ -17454,24 +17573,26 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             with the panel shrunk to a one-line strip inside it, leaving the
             right third of the screen empty next to a still-narrow playbook)
             so contentColumnRef's own flex:1 reflows to fill the freed
-            width. The transition is on this wrapper, not the Chat panel
-            inside it -- Chat's own minimized render is a `position:absolute`
-            pill (see Chat.jsx) anchored to the flex row below (the
-            `position:relative` div a few lines up), not to this box, so it
-            holds a stable spot in the CONTENT AREA regardless of what this
-            box's own width animates to. Deliberately no overflow:hidden
-            here: an absolutely-positioned descendant is still clipped by an
-            ancestor's overflow even when that ancestor is not its
-            containing block, and this box is exactly such an ancestor once
-            its own width collapses to 0. */}
+            width. Minimized (2026-09-09, header dock): the pill that used
+            to render in-column here (a `position:absolute` strip anchored
+            to the flex row below) now lives in the header bar instead --
+            Chat itself renders null while presence is 'minimized' (see
+            Chat.jsx), and this wrapper collapses to 0 width exactly as it
+            already did. onMinimize routes the Minimize button through
+            beginCoachMinimize (src/App.jsx, near coachDock) so leaving this
+            column plays the fly-to-header animation rather than jumping
+            straight to hidden; outerRef gives that same code a live
+            measurement of this panel's box for the animation's start/end
+            rect. Transition duration matches the ~250ms dock animation so
+            the column's own reflow and the ghost overlay settle together. */}
         {conciergeEmbedded&&<div data-print="hide" style={{
           width:coachPresence==='minimized'?0:'min(38vw,460px)',
           minWidth:coachPresence==='minimized'?0:340,
           flexShrink:0,
           padding:coachPresence==='minimized'?0:'40px 56px 28px 24px',
-          transition:'width 0.2s ease, min-width 0.2s ease, padding 0.2s ease',
+          transition:'width 0.25s ease, min-width 0.25s ease, padding 0.25s ease',
         }}>
-          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} messages={chatMessages} setMessages={setChatMessages} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
+          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
         </div>}
       </div>
     </div>
@@ -17533,6 +17654,48 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       build: {String(versionCheck.buildSha||'').slice(0,7)||'unknown'} · live: {versionCheck.liveSha?String(versionCheck.liveSha).slice(0,7):'unknown'} · last check: {versionCheck.lastCheckAt?new Date(versionCheck.lastCheckAt).toISOString().slice(11,16)+' UTC':'never'} · status: {versionCheck.lastCheckStatus==='update-available'?'update available':versionCheck.lastCheckStatus==='check-failed'?'check failed':versionCheck.lastCheckStatus}
       {BUILT_AT?` · built: ${BUILT_AT.slice(0,16).replace('T',' ')} UTC`:''}
     </div>}
+    {/* Coach docking ghost (2026-09-09). A FLIP overlay bridging the panel
+        (concierge column) and the pill (header slot) -- two different
+        subtrees CSS alone cannot animate between. coachDock carries the
+        measured from/to rects; coachDockArmed flips true one paint after
+        mount so the browser commits the FROM rect before the transition to
+        TO plays. Two absolutely-positioned "face" layers cross-fade instead
+        of literally scaling the real panel (which would render its content
+        illegibly small mid-flight) -- a plain white panel-like face and a
+        navy pill-like face, whichever is departing fading out as whichever
+        is arriving fades in. Never rendered under prefers-reduced-motion:
+        beginCoachMinimize/beginCoachRestore skip setCoachDock entirely then
+        and jump straight to the end state. */}
+    {coachDock&&(()=>{
+      const{phase,from,to}=coachDock
+      const rect=coachDockArmed?to:from
+      const startsAsPanel=phase==='minimizing'
+      const panelOpacity=coachDockArmed?(startsAsPanel?0:1):(startsAsPanel?1:0)
+      const pillOpacity=1-panelOpacity
+      return (
+        <div aria-hidden="true" data-print="hide" style={{
+          position:'fixed',top:rect.top,left:rect.left,width:rect.width,height:rect.height,
+          zIndex:2000,pointerEvents:'none',overflow:'hidden',
+          // 28, not the pill's true 999-style full round -- on the LARGE
+          // panel-sized box early in the transition, interpolating all the
+          // way to 999 clamps against half the box's still-large width/
+          // height and balloons into a giant circle for a chunk of the
+          // animation (confirmed in a screenshot pass). 28 already renders
+          // as a fully rounded pill once the box reaches its real ~44px
+          // final height (any radius >= half the final height clamps the
+          // same way), without ever overshooting mid-flight.
+          borderRadius:coachDockArmed?(startsAsPanel?28:14):(startsAsPanel?14:28),
+          boxShadow:'0 8px 24px rgba(0,0,0,0.18)',
+          transition:'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, border-radius 0.25s ease',
+        }}>
+          <div style={{position:'absolute',inset:0,background:'#FFFFFF',border:'1px solid #E2E5EA',borderRadius:'inherit',opacity:panelOpacity,transition:'opacity 0.25s ease'}}/>
+          <div style={{position:'absolute',inset:0,background:'#24304E',border:'1px solid #3A4A6B',borderRadius:'inherit',display:'flex',alignItems:'center',gap:8,padding:'8px 14px',opacity:pillOpacity,transition:'opacity 0.25s ease'}}>
+            <CoachMark C={C}/>
+            <span style={{fontWeight:600,color:'#FFFFFF',fontSize:16,whiteSpace:'nowrap'}}>My Coach</span>
+          </div>
+        </div>
+      )
+    })()}
     <CookieBanner/>
   </>
 }
