@@ -66,7 +66,7 @@ The Copy All works for all generated sections, including the Bridge Story, the G
 
 ## Start over from scratch
 
-If you want to redo your entire journey, the **Start Fresh** option in the top-right header permanently deletes your profile, outputs, and chat history. You can sign back in with the same email and start over from the Welcome screen.
+If you want to redo your entire journey, the **Start Fresh** option under the **Account** menu in the top-right header permanently deletes your profile, outputs, and chat history. You can sign back in with the same email and start over from the Welcome screen.
 
 Use this when:
 - Your initial inputs were wrong and you want a clean slate.
