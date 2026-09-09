@@ -13,6 +13,13 @@
 // makes the "loop" (react again after someone acts on a suggestion) work for
 // free: a rebuild produces a new brand string, which is a new combined
 // value, which the existing dedupe fires on again automatically.
+//
+// Rubric wording rewritten 2026-09-09 by the voice review (Output/handoff/
+// 2026-09-09_coach-voice-review.md, Section 6) -- RELEVANCE/DIFFERENTIATION
+// product shorthand became two plain questions, the illustrative "gasoline"
+// metaphor was dropped, and the agency phrasing moved to "If you want, we
+// could add..." to match Choice/Delivery. Checks below assert the new
+// wording and the same structural guarantees, not the old literal strings.
 import fs from 'node:fs'
 
 let failures = 0
@@ -31,29 +38,42 @@ check(coach.includes('function buildBrandRichnessCheckText(text) {'),
 const fnIdx = coach.indexOf('function buildBrandRichnessCheckText(text) {')
 const fnBlock = fnIdx !== -1 ? coach.slice(fnIdx, fnIdx + 3500) : ''
 
-// The two-axis rubric itself -- not a presence checklist.
-check(fnBlock.includes('RELEVANCE') && fnBlock.includes('DIFFERENTIATION'),
-  `${COACH}: buildBrandRichnessCheckText does not name both axes explicitly`)
-check(fnBlock.includes('gasoline'),
-  `${COACH}: the relevance-strong/differentiation-thin failure case (Bob's own example) is missing`)
-check(fnBlock.includes('never invent a gap that is not there'),
+// The two-axis rubric itself -- not a presence checklist. Wording tightened
+// 2026-09-09 by the voice review (Output/handoff/2026-09-09_coach-voice-
+// review.md, Section 6): RELEVANCE/DIFFERENTIATION (product-internal
+// shorthand) replaced by the two plain questions the rubric now asks in the
+// user's own words.
+check(fnBlock.includes('Does it show you can do the job?') && fnBlock.includes('Does it show who you are, not just what you\'ve done?'),
+  `${COACH}: buildBrandRichnessCheckText does not name both plain-language questions explicitly`)
+// The illustrative "gasoline" metaphor (one of the AI-speak examples Bob
+// flagged) was deliberately removed by the rewrite -- there is no substring
+// equivalent by design. The structural guarantee that either axis can
+// legitimately be the thinner one is what this checks instead.
+check(fnBlock.includes('Decide which of the two questions the brand answers less well'),
+  `${COACH}: the rubric no longer lets either plain question be the thinner one -- this was the point of the two-axis framework, just without the removed "gasoline" illustration`)
+check(fnBlock.includes('Never invent a gap.'),
   `${COACH}: the rubric does not forbid manufacturing a gap when the material does not show one`)
 
 // The "genuinely strong, say so, stop" branch -- mirrors
 // buildReflectiveDepthCheckText's own proven discipline rather than always
-// forcing a suggestion.
-check(fnBlock.includes('genuinely strong on both') && fnBlock.includes('Do not manufacture a suggestion where none is warranted'),
+// forcing a suggestion. The explicit "do not manufacture" caveat was
+// dropped by the rewrite in favor of the branch just structurally ending in
+// "stop" -- same outcome, plainer words.
+check(fnBlock.includes('If it answers both well') && fnBlock.includes('say it works, and stop'),
   `${COACH}: the rubric is missing the branch for a genuinely strong brand -- without it, this always forces a suggestion, which is exactly the "grading homework" failure mode this feature was designed to avoid`)
 
 // ONE-thread discipline, reused from the reflective-depth check rather than
 // re-litigated: one real suggestion, two at most, not padded to a fixed count.
-check(fnBlock.includes('one thing, two at most'),
+check(fnBlock.includes('(two at most)'),
   `${COACH}: the rubric does not cap suggestions -- risks padding to a fixed count instead of following the actual substance`)
 
-// Agency-preserving voice, locked to Bob's own wording pattern.
-check(fnBlock.includes('if you\\u2019d like, one thing') || fnBlock.includes("if you'd like, one thing"),
-  `${COACH}: the suggestion is not framed with the agency-preserving "if you'd like" shape Bob specified`)
-check(fnBlock.includes('never as something missing or wrong'),
+// Agency-preserving voice. Reworded 2026-09-09 by the voice review to the
+// same "If you want, we could add..." offer shape the Choice and Delivery
+// templates now use consistently, replacing Bob's earlier "if you'd like"
+// draft phrasing.
+check(fnBlock.includes('If you want, we could add...'),
+  `${COACH}: the suggestion is not framed with the agency-preserving "If you want, we could add..." offer shape`)
+check(fnBlock.includes('Never say something is missing or wrong.'),
   `${COACH}: the suggestion framing does not explicitly forbid reading as a correction`)
 
 // The six-fields-capture-here vs three-fields-honest-pointer distinction.
@@ -61,13 +81,13 @@ for (const field of ['Values', 'passions', 'reputation', 'skills', 'priorities',
   check(fnBlock.toLowerCase().includes(field.toLowerCase()),
     `${COACH}: buildBrandRichnessCheckText does not name ${field} among the fields that capture directly through chat`)
 }
-check(fnBlock.includes('Resume or LinkedIn side, or in Where You Think You Fit') && fnBlock.includes('do not imply it can be added by just telling you, when it cannot yet'),
+check(fnBlock.includes('Resume or LinkedIn screens, or in Where You Think You Fit') && fnBlock.includes('do not imply it can be added by telling you'),
   `${COACH}: buildBrandRichnessCheckText does not honestly distinguish Resume/LinkedIn/Fit (no chat-capture yet) from the six fields that do`)
 
 // The closing invitation that replaces the old static delivery line -- both
 // affordances (reply here, or the Does this feel right box) still get said,
 // just as part of a real reaction instead of a fixed message.
-check(fnBlock.includes('rework the brand directly') && fnBlock.includes('Does this feel right?'),
+check(fnBlock.includes('update the brand') && fnBlock.includes('Does this feel right?'),
   `${COACH}: buildBrandRichnessCheckText no longer closes by naming both ways to act on the reaction -- this was real discoverability the old static line carried`)
 
 // Rebuild awareness: honest, not a fabricated before/after.

@@ -326,10 +326,16 @@ export function stripSincerityQualifiers(text) {
 // voice-allow-end
 
 // --- stripRoomsPlaceholder -------------------------------------------------
-// Audience-placeholder "rooms where / rooms in which" -> "conversation(s)".
+// Audience-placeholder "rooms where / rooms in which" -> "interview(s)".
 // Moved here from src/App.jsx (My Coach PoC, 2026-06-09) so the coach path
 // can share it. (Em-dash stripping was removed 2026-05-27 when Bob dropped
 // the em-dash ban; em dashes are now normal punctuation the model uses freely.)
+//
+// Retargeted from "conversation(s)" to "interview(s)" per the 2026-09-09
+// voice review (Output/handoff/2026-09-09_coach-voice-review.md, Section
+// 9): "the conversations that matter" was itself product shorthand: when
+// the model reaches for "rooms" here it means interviews and hiring
+// conversations specifically, so the replacement should say that plainly.
 //
 // voice-allow
 // Cover-letter anti-AI-tell stripper (op-cover-letter reshape 2026-06-29). The
@@ -369,15 +375,20 @@ export function stripRoomsPlaceholder(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
   let hits = 0
-  // Form 1: "rooms where / in which / that matter / that count" -> conversation(s).
+  // Form 1: "rooms where / in which / that matter / that count" -> interview(s).
   // Broadened 2026-06-11: "rooms that matter" leaked live ("rooms that matter for
   // your search"). Preserves singular vs plural and capitalization of the noun.
+  // "where"/"in which" keep their tail ("interviews where..."); "that matter"/
+  // "that count" drop it instead of carrying it forward -- "interviews that
+  // matter" is the same shorthand this review is retargeting away from, so the
+  // fix is to say the noun plainly and stop, not just swap it in place.
   out = out.replace(/\b(rooms?)\s+(where|in\s+which|that\s+matter|that\s+count)\b/gi, (_m, noun, tail) => {
     hits++
     const isPlural = /s$/i.test(noun)
-    let repl = isPlural ? 'conversations' : 'conversation'
+    const dropTail = /^that\s+(matter|count)$/i.test(tail.trim())
+    let repl = isPlural ? 'interviews' : 'interview'
     if (/^[A-Z]/.test(noun)) repl = repl.charAt(0).toUpperCase() + repl.slice(1)
-    return `${repl} ${tail.toLowerCase().replace(/\s+/g, ' ')}`
+    return dropTail ? repl : `${repl} ${tail.toLowerCase().replace(/\s+/g, ' ')}`
   })
   // Form 2: abstract plural "rooms" as audience after a motion/presence verb with
   // no qualifier ("get into rooms", "walk into the rooms", "be in rooms"). Plural-
@@ -386,7 +397,7 @@ export function stripRoomsPlaceholder(text) {
   // matter" is already handled (the negative lookahead also guards against it).
   out = out.replace(/\b(get(?:ting)?\s+in(?:to)?|walk(?:ing)?\s+in(?:to)?|be(?:ing)?\s+in|step(?:ping)?\s+in(?:to)?)\s+(?:the\s+)?rooms\b(?!\s+(?:where|in\s+which|that\s+matter|that\s+count))/gi, (_m, lead) => {
     hits++
-    return `${lead} the conversations that matter`
+    return `${lead} interviews`
   })
   // Form 3: singular "in/into the room" used for the interview audience (Bob
   // flagged "into the room" as AI-speak, 2026-06-11). Only bare "the room" (no
@@ -394,7 +405,7 @@ export function stripRoomsPlaceholder(text) {
   // room" are untouched; the "elephant in the room" idiom is excluded.
   out = out.replace(/(?<!\belephant\s)\b(into|in)\s+the\s+room\b/gi, (_m, prep) => {
     hits++
-    return `${prep} the conversation`
+    return `${prep} the interview`
   })
   // Form 4: plural "rooms" as audience after in/into + an audience determiner
   // ("in those rooms", "into the right rooms"). Replace the noun, keep the
@@ -402,7 +413,7 @@ export function stripRoomsPlaceholder(text) {
   // ("in conference rooms", "in meeting rooms") — those determiners are not in it.
   out = out.replace(/\b(in|into)\s+((?:(?:the|those|these|any|certain|all|important|key|senior|right|wrong|decision-making)\s+)+)rooms\b(?!\s+(?:where|in\s+which|that\s+matter|that\s+count))/gi, (_m, prep, det) => {
     hits++
-    return `${prep} ${det}conversations`
+    return `${prep} ${det}interviews`
   })
   if (hits) console.warn(`[stripRoomsPlaceholder] rewrote ${hits} audience-placeholder noun phrase${hits === 1 ? '' : 's'} from LLM output`)
   return out

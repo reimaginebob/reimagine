@@ -799,33 +799,38 @@ assertEq('stripFrameworkNames: "the SCOPE framework" -> "this approach"',
 assertEq('stripFrameworkNames: lowercase "scope" untouched',
   stripFrameworkNames('That is outside the scope of this chat.'), 'That is outside the scope of this chat.')
 
-// Item 9: broadened rooms stripper.
-assertEq('stripRoomsPlaceholder: "rooms that matter" -> "conversations that matter"',
+// Item 9: broadened rooms stripper. Retargeted "conversation(s)" ->
+// "interview(s)" per the 2026-09-09 voice review (Output/handoff/2026-09-09_
+// coach-voice-review.md, Section 9) -- "the conversations that matter" was
+// itself product shorthand. The "that matter"/"that count" tail is now
+// dropped rather than carried forward (Form 1), since "interviews that
+// matter" would just be the same shorthand under a new noun.
+assertEq('stripRoomsPlaceholder: "rooms that matter" -> "interviews" (tail dropped)',
   stripRoomsPlaceholder('Get ready for rooms that matter for your search.'),
-  'Get ready for conversations that matter for your search.')
-assertEq('stripRoomsPlaceholder: "get into rooms" -> "the conversations that matter"',
+  'Get ready for interviews for your search.')
+assertEq('stripRoomsPlaceholder: "get into rooms" -> "interviews"',
   stripRoomsPlaceholder('You need to get into rooms.'),
-  'You need to get into the conversations that matter.')
-assertEq('stripRoomsPlaceholder: "rooms where" still handled',
-  stripRoomsPlaceholder('the rooms where decisions happen'), 'the conversations where decisions happen')
+  'You need to get into interviews.')
+assertEq('stripRoomsPlaceholder: "rooms where" still handled, tail kept',
+  stripRoomsPlaceholder('the rooms where decisions happen'), 'the interviews where decisions happen')
 assertEq('stripRoomsPlaceholder: "waiting room" untouched',
   stripRoomsPlaceholder('Sit in the waiting room.'), 'Sit in the waiting room.')
 assertEq('stripRoomsPlaceholder: "interview room" untouched',
   stripRoomsPlaceholder('Walk into the interview room confidently.'), 'Walk into the interview room confidently.')
 assertEq('stripRoomsPlaceholder: "room to grow" untouched',
   stripRoomsPlaceholder('There is room to grow here.'), 'There is room to grow here.')
-assertEq('stripRoomsPlaceholder: "into the room" (audience) -> "into the conversation"',
-  stripRoomsPlaceholder('Bring that warmth into the room.'), 'Bring that warmth into the conversation.')
-assertEq('stripRoomsPlaceholder: "in the room" (audience) -> "in the conversation"',
-  stripRoomsPlaceholder('Be yourself in the room.'), 'Be yourself in the conversation.')
+assertEq('stripRoomsPlaceholder: "into the room" (audience) -> "into the interview"',
+  stripRoomsPlaceholder('Bring that warmth into the room.'), 'Bring that warmth into the interview.')
+assertEq('stripRoomsPlaceholder: "in the room" (audience) -> "in the interview"',
+  stripRoomsPlaceholder('Be yourself in the room.'), 'Be yourself in the interview.')
 assertEq('stripRoomsPlaceholder: "elephant in the room" idiom untouched',
   stripRoomsPlaceholder('Name the elephant in the room.'), 'Name the elephant in the room.')
 assertEq('stripRoomsPlaceholder: "the interview room" (physical) untouched',
   stripRoomsPlaceholder('Walk into the interview room calmly.'), 'Walk into the interview room calmly.')
-assertEq('stripRoomsPlaceholder: "in those rooms" (plural audience) -> "in those conversations"',
-  stripRoomsPlaceholder("what's happening in those rooms"), "what's happening in those conversations")
-assertEq('stripRoomsPlaceholder: "into the right rooms" -> "into the right conversations"',
-  stripRoomsPlaceholder('Get into the right rooms.'), 'Get into the right conversations.')
+assertEq('stripRoomsPlaceholder: "in those rooms" (plural audience) -> "in those interviews"',
+  stripRoomsPlaceholder("what's happening in those rooms"), "what's happening in those interviews")
+assertEq('stripRoomsPlaceholder: "into the right rooms" -> "into the right interviews"',
+  stripRoomsPlaceholder('Get into the right rooms.'), 'Get into the right interviews.')
 assertEq('stripRoomsPlaceholder: "in conference rooms" (physical plural) untouched',
   stripRoomsPlaceholder('Meet in conference rooms downtown.'), 'Meet in conference rooms downtown.')
 
