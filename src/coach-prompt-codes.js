@@ -22,6 +22,13 @@ export const PROMPT_CODES = [
   'choice_role',
   'delivery_p5',
   'delivery_p6',
+  'delivery_p9',
+  'delivery_comp_read',
+  'delivery_p11',
+  'delivery_p_res',
+  'delivery_p8',
+  'delivery_p7',
+  'delivery_income',
 ]
 
 // The MECHANISM that caused one particular firing of a prompt_code.
