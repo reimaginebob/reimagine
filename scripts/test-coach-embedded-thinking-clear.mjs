@@ -24,10 +24,12 @@ const chat = fs.readFileSync(CHAT, 'utf8')
 
 const embeddedIdx = chat.indexOf('if (embedded) {')
 check(embeddedIdx !== -1, `${CHAT}: the embedded branch is missing`)
-// 3300, not 2900: Phase 1b (Coach-as-Concierge presence, 2026-09-08) added a
-// Minimize button to this same header row, ahead of Clear -- legitimate new
-// content in the window this check already reads, not creep to paper over.
-const embeddedBlock = embeddedIdx !== -1 ? chat.slice(embeddedIdx, embeddedIdx + 3300) : ''
+// 3600, not 3300: the composer-visible structural fix (2026-09-09) replaced
+// the panel's JS-measured maxHeight with a flex:'1 1 auto' sizing comment
+// explaining the CSS containment strategy it replaced -- legitimate new
+// content ahead of Clear in the window this check already reads, not creep
+// to paper over.
+const embeddedBlock = embeddedIdx !== -1 ? chat.slice(embeddedIdx, embeddedIdx + 3600) : ''
 
 // Thinking indicator: its own keyframe injection (the closed-bubble branch's
 // copy is unreachable from here) and a visible dot + status text gated on

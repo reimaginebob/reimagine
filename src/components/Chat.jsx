@@ -155,37 +155,34 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // Capped so a long message cannot eat the reply thread; past the cap it
   // scrolls. The CSS min-height holds the resting two-row size.
   const inputTaRef = useRef(null)
-  // Embedded panel sizing. It used a FIXED height of min(72dvh, 720px), which
-  // was wrong in both directions: with a short conversation most of the panel
-  // was empty scroll area, and because the height took no account of the page
-  // header sitting above it (title, description, the never-looks-you-up note —
-  // roughly 200px, more when the back button shows or the text wraps further),
-  // header plus panel ran past the bottom of the viewport and pushed the input
-  // box off screen at 100% zoom.
+  // Embedded panel sizing (2026-09-09, structural rewrite). Two earlier
+  // approaches both proved unreliable: a FIXED height of min(72dvh, 720px)
+  // took no account of the page header sitting above the panel, and the JS
+  // measurement that replaced it (window.innerHeight - the panel's own
+  // measured top, re-run on mount and on window `resize`) went stale
+  // whenever anything ABOVE the panel changed height without the window
+  // itself resizing -- and had no way to know about a sibling fixed to the
+  // bottom of the window overlapping the space it computed as free (the
+  // global playbook footer did exactly that: Bob's screenshot on `7bb7f91`
+  // showed a long reply pushing the composer -- input, mic, Send -- under
+  // it). That footer is gone (src/App.jsx, the coach header-dock brief), but
+  // a measurement that only refreshes on window resize is fragile on its
+  // own merits, not just because of what it used to need to dodge.
   //
-  // Now the panel sizes to its content between a floor and a measured ceiling.
-  // The ceiling is whatever room is left below the panel's own top edge, so it
-  // adapts to however tall the header happens to render rather than assuming.
-  // Measured on mount and on resize; rect.top is taken against an unscrolled
-  // page, which is self-correcting — once the panel fits, the page stops
-  // scrolling, so the measurement stays true.
+  // The fix is CSS layout containment instead of JS math: the panel is now
+  // `flex:'1 1 auto'` inside a flex-column parent that the CALLER gives a
+  // genuine, definite height (App.jsx: the concierge column stretches to
+  // the height of the flex row it sits in; the dedicated My Coach page
+  // wraps its heading + this panel in a flex column of its own). A flex
+  // item sized this way can never be pushed off past its parent's actual
+  // box -- there is no snapshot to go stale, and nothing needs telling it
+  // about anything else in the layout. minHeight stays as the floor for a
+  // very short window (a usable panel rather than a sliver); overflow:
+  // hidden on this same element clips the panel's own header/transcript/
+  // composer stack to that box, and the transcript's own flex:1 +
+  // overflowY:auto (below) is what actually scrolls -- the composer, as
+  // the LAST flex child, can never be pushed out of view by content growth.
   const panelRef = useRef(null)
-  const [panelMaxH, setPanelMaxH] = useState(null)
-  useEffect(() => {
-    if (!embedded) return
-    const measure = () => {
-      const el = panelRef.current
-      if (!el) return
-      const top = el.getBoundingClientRect().top + (window.scrollY || 0)
-      // 24px of breathing room below the panel so it does not sit flush on the
-      // viewport edge. Floored so a very short window still gets a usable panel
-      // rather than a sliver.
-      setPanelMaxH(Math.max(360, Math.round(window.innerHeight - top - 24)))
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [embedded])
   // Coach doors (PR-3, item H): when opened with a seed (e.g. "Help me prep for
   // my interview with Renata…"), prefill the input once so the user can review
   // and send. seedAuto flips that to fire-immediately — the My Pipeline "read"
@@ -1413,8 +1410,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     return (
       <div ref={el => { panelRef.current = el; if (outerRef) outerRef.current = el }} data-print="hide" style={{
         display: 'flex', flexDirection: 'column',
+        // flex:1 (not a fixed/measured height) so the panel fills exactly
+        // whatever its parent's own definite height is -- see the sizing
+        // comment above panelRef. minHeight is the floor for a very short
+        // window; there is no ceiling to set, since overflow:hidden below
+        // plus the transcript's own internal scroll (further down) mean
+        // content can never push this box taller than its flex parent allows.
+        flex: '1 1 auto',
         minHeight: 360,
-        maxHeight: panelMaxH ? `${panelMaxH}px` : 'min(72dvh, 720px)',
         // Fills the content column. The old 820px cap was doing two jobs at
         // once -- keeping the READING measure sane and, as a side effect,
         // leaving most of a wide screen empty. The measure is a property of the

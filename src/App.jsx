@@ -15653,12 +15653,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     }
-    case'myCoach':return <div>
-      {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
+    // height:'100%',display:'flex',flexDirection:'column' (2026-09-09,
+    // composer-visible structural fix): gives the embedded Chat panel below
+    // a genuine, definite height to fill via its own flex:'1 1 auto' rather
+    // than a JS window-measurement -- see Chat.jsx's panelRef sizing
+    // comment. Resolves against contentColumnRef's own height, which is
+    // itself definite (a flex-row item under App's outer 100dvh/overflow:
+    // hidden shell). The back-button + header block above keep their
+    // natural height; Chat takes what's left.
+    case'myCoach':return <div style={{height:'100%',display:'flex',flexDirection:'column'}}>
+      {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12,flexShrink:0}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
       {/* The header is deliberately thin. Everything above the panel pushes it
-          down, and the panel measures its own top to fill the rest of the
-          viewport — so a paragraph here is a paragraph of conversation gone, on
-          every visit, forever. What used to sit here introduced the coach
+          down, and the panel fills the rest of the flex column -- so a
+          paragraph here is a paragraph of conversation gone, on every visit,
+          forever. What used to sit here introduced the coach
           ("ask anything: where to focus, how to tell your story, how to prepare
           for a conversation") directly above the coach's own first message,
           which says the same thing in the same order. Saying it twice cost
@@ -15666,7 +15674,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           The privacy line is a first-run reassurance rather than a standing
           fact, so it shows while the conversation is empty and steps out of the
           way once there is one to read. */}
-      <div style={{marginBottom:8}}>
+      <div style={{marginBottom:8,flexShrink:0}}>
         <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
         {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
       </div>
@@ -17608,8 +17616,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             straight to hidden; outerRef gives that same code a live
             measurement of this panel's box for the animation's start/end
             rect. Transition duration matches the ~250ms dock animation so
-            the column's own reflow and the ghost overlay settle together. */}
+            the column's own reflow and the ghost overlay settle together.
+            display:flex/flexDirection:column (2026-09-09, composer-visible
+            structural fix) is what gives the embedded Chat panel inside a
+            genuine, definite height to size its own flex:'1 1 auto' against
+            -- this wrapper itself gets that height for free by stretching
+            to the surrounding flex row's height (that row's own default
+            align-items is stretch; see Chat.jsx's panelRef sizing comment
+            for why a real height chain replaced a JS window-measurement). */}
         {conciergeEmbedded&&<div data-print="hide" style={{
+          display:'flex',flexDirection:'column',
           width:coachPresence==='minimized'?0:'min(38vw,460px)',
           minWidth:coachPresence==='minimized'?0:340,
           flexShrink:0,
