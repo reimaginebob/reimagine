@@ -64,7 +64,9 @@ check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneM
   `${COACH}: buildCoachRequest does not accept milestoneMentions as a parameter`)
 check(coach.includes("return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }"),
   `${COACH}: buildCoachRequest does not return inFocusRecordId`)
-check(/let inFocusRecordId = null[\s\S]{0,600}inFocusRecordId = inFocus\.id/.test(coach),
+// Window widened 2026-09-09 (engine guardrails brief, rule 4): the
+// situationBlockChars comment/declaration sits between the two anchors now.
+check(/let inFocusRecordId = null[\s\S]{0,950}inFocusRecordId = inFocus\.id/.test(coach),
   `${COACH}: inFocusRecordId is not set from the resolved in-focus record`)
 
 // Handler: reads existing mentions gated on the same flag as the note itself,

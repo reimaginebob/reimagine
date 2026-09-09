@@ -968,6 +968,17 @@ export function ensureDistressSupport(userMessage, output) {
   console.warn('[ensureDistressSupport] distress trigger matched and reply lacked a human-pointer; appended one')
   return output.replace(/\s*$/, '') + '\n\n' + DISTRESS_POINTER.trim()
 }
+// Coach engine guardrails (2026-09-09, Output/handoff/2026-09-09_coach-
+// engine-guardrails-brief.md, rule 1): a boolean twin of the trigger check
+// above, needed because ensureDistressSupport's own contract is "return the
+// (possibly modified) output string," which is unchanged when
+// SUPPORT_POINTER_RE already found a pointer -- so the caller cannot tell
+// whether the trigger matched from the output alone. The distress hold
+// needs to fire in that case too (the reply already handled it once; the
+// Moments engine still must not pile a proactive nudge on top).
+export function matchesDistressTrigger(userMessage) {
+  return typeof userMessage === 'string' && DISTRESS_TRIGGER_RE.test(userMessage)
+}
 // voice-allow-end
 
 // --- detectResidualVoice ---------------------------------------------------
