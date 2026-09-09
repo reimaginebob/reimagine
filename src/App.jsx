@@ -6220,6 +6220,30 @@ const INDEPENDENT_SECTION_LABELS = {
 }
 const focusGroupsFor = (independent) => independent ? FOCUS_GROUPS_INDEPENDENT : FOCUS_GROUPS
 const focusLabelFor = (id, independent) => (independent && INDEPENDENT_SECTION_LABELS[id]) || NAV_LABELS[id] || id
+// The Focus Playbook's own build sequence -- was inline in the 'focus' render
+// case; lifted to module scope (Coach-as-Concierge Phase 3a, Next move) so
+// the Moments evaluator can find "the next unbuilt section after this one"
+// outside the render closure, the same way the screen itself already does.
+const focusOrderFor = (independent) => independent ? [
+  {id:'p6',label:INDEPENDENT_SECTION_LABELS.p6,load:'Writing the pitch you say out loud…'},
+  {id:'income',label:INDEPENDENT_SECTION_LABELS.income,load:'Working out what you sell and what it costs…'},
+  {id:'p8',label:INDEPENDENT_SECTION_LABELS.p8,load:'Drafting your LinkedIn updates…'},
+  {id:'p_res',label:INDEPENDENT_SECTION_LABELS.p_res,load:'Rewriting your background as a one-sheet…'},
+  {id:'p7',label:INDEPENDENT_SECTION_LABELS.p7,load:'Researching companies that fit who you help…'},
+  {id:'p11',label:INDEPENDENT_SECTION_LABELS.p11,load:'Preparing you for the questions a prospect asks…'},
+] : [
+  {id:'p5',label:NAV_LABELS.p5,load:'Reading this role against your background…'},
+  {id:'p6',label:NAV_LABELS.p6,load:'Writing your bridge story for this direction…'},
+  {id:'p9',label:NAV_LABELS.p9,load:'Building the Industry Background for this role…'},
+  {id:'salaryRead',label:NAV_LABELS.salaryRead,load:'Building your Compensation Read…'},
+  {id:'p11',label:NAV_LABELS.p11,load:'Preparing you for the questions ahead…'},
+  {id:'p_res',label:NAV_LABELS.p_res,load:'Rewriting your resume for this direction…'},
+  {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
+  {id:'p7',label:NAV_LABELS.p7,load:'Researching companies and building outreach…'},
+  {id:'groups',label:NAV_LABELS.groups,load:'Finding where this profession gathers…'},
+  {id:'recruiters',label:NAV_LABELS.recruiters,load:'Finding recruiters who specialize in this path…'},
+  {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
+]
 
 function SectionExplainer({subhead, detail}) {
   return <div style={{margin:'0 0 16px'}}>
@@ -7905,7 +7929,9 @@ export default function PivotEngine(){
       if(entry&&entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',quiet?'declined':'accepted')
       if(value==='moment-quiet-session'){setQuietUntilReload(true);return true}
       if(value==='moment-quiet-screen'){setQuietScreens(s=>({...s,[step]:true}));return true}
-      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance})
+      // genSec added for Next move (Phase 3a): its onTap starts a build the
+      // same way the Focus Playbook screen's own Generate button does.
+      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})
       return true
     }
     // Search intake: the coach judged this answer worth carrying and showed the
@@ -9119,7 +9145,12 @@ export default function PivotEngine(){
         const reply=raw&&raw.trim()
         if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
         if(reply){
-          const quickReplies=entry.dismissible?[{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:[]
+          // actionReply: Next move's own extension (Phase 3a) -- a generated
+          // entry can now ALSO carry one real action tap ahead of the two
+          // dismissal ones, not just reflect. Every other generated entry
+          // (Choice, Delivery) still has nothing here, so this is additive.
+          const action=entry.actionReply?[entry.actionReply(ctx)]:[]
+          const quickReplies=entry.dismissible?[...action,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:action
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
         }
@@ -9148,7 +9179,29 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     if(!signedInUser)return
     if(quietUntilReload||quietScreens[step])return
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance}
+    // nextMoveTarget (Phase 3a, Next move): the delivery-* entry with the
+    // latest firedAt for the current identity is "the one just built" --
+    // anchoring on most-recently-reacted-to rather than first-unbuilt-
+    // overall matches sections built out of order, same as the Focus
+    // Playbook's own inline "Next: {label}" cue (case'focus':). Resolved
+    // once here, not inside the catalog entry, so next-move's own
+    // eligible/dedupeKey/dedupeValue/momentContext/actionReply all just
+    // read the result instead of re-deriving it.
+    const nextMoveTarget=(()=>{
+      if(!chosen)return null
+      const idKey=`${selectedLane}::${chosen}`
+      const order=focusOrderFor(isIndependent)
+      let anchorIdx=-1,anchorFiredAt=null
+      order.forEach((s,i)=>{
+        const rec=coachMoments[`delivery-${s.id}`]&&coachMoments[`delivery-${s.id}`][idKey]
+        if(rec&&(!anchorFiredAt||rec.firedAt>anchorFiredAt)){anchorFiredAt=rec.firedAt;anchorIdx=i}
+      })
+      if(anchorIdx<0)return null
+      const nextSec=order.slice(anchorIdx+1).find(s=>!done.includes(s.id))
+      if(!nextSec)return null
+      return{anchorLabel:order[anchorIdx].label,nextId:nextSec.id,nextLabel:nextSec.label}
+    })()
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec}
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
       if(entry.screen!==step)continue
@@ -9186,7 +9239,7 @@ export default function PivotEngine(){
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest])
+  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and
@@ -12626,6 +12679,28 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
     generateSection('salaryRead',()=>focusSalaryPrompt()+corrTail,FOCUS_SALARY_OPTS)
   }
+  // gp/go/genSec: lifted out of the 'focus' render case (Coach-as-Concierge
+  // Phase 3a, Next move) so the Moments evaluator's tap handler can start a
+  // build the same way the screen's own Generate button does -- both call
+  // this same genSec now, not two separate copies. Track 2: each section
+  // assembles from outputs with its stale upstreams excluded, so a
+  // single-section refresh never re-inherits out-of-date upstream prose (the
+  // Option-B leak fix).
+  const gp=(id)=>{const O=sanitizeUpstreamForSection(id,outputs);const laneLbl=laneLabelFor(selectedLane);return({
+    p5:()=>P.p5(pc,O,chosen,laneLbl),
+    p6:()=>P.p6(pc,O,chosen,laneLbl,isIndependent),
+    p9:()=>P.p9(pc,O,chosen),
+    salaryRead:()=>focusSalaryPrompt(),
+    p11:()=>P.p11(pc,O,chosen),
+    p_res:()=>P.p_res(pc,O,chosen),
+    p8:()=>P.p8(pc,O,chosen),
+    p7:()=>P.p7(pc,O,chosen,laneLbl),
+    income:()=>P.income(pc,O,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),
+  }[id])}
+  // Migrated surfaces send the canonical profile as a cached block; profileBlock
+  // is built lazily (only at generation time) and step tags telemetry per surface.
+  const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:16000},p_res:{maxTokens:5000},p9:{maxTokens:4000},salaryRead:FOCUS_SALARY_OPTS,p11:{maxTokens:16000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
+  const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
   // Fixed UI copy, not model output — the same disclaimer the Opportunity cards
   // carry, so the caveat reads identically wherever a range appears.
   const compDisclaimer=<div style={{marginTop:10,fontSize:15,color:C.gray,lineHeight:1.55,fontStyle:'italic'}}>Compensation figures come from public salary sources, which routinely disagree and can lag the market. Treat this as a starting range for your own research, not a definitive number — click through to the sources and weigh them against your specific company, level, and total package.</div>
@@ -14876,47 +14951,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     }
     case'focus':{
       // Section labels join from NAV_LABELS (src/nav-labels.js) — same single
-      // source the sidebar and the coach nav map read.
-      const FOCUS_ORDER=(isIndependent?[
-        {id:'p6',label:INDEPENDENT_SECTION_LABELS.p6,load:'Writing the pitch you say out loud…'},
-        {id:'income',label:INDEPENDENT_SECTION_LABELS.income,load:'Working out what you sell and what it costs…'},
-        {id:'p8',label:INDEPENDENT_SECTION_LABELS.p8,load:'Drafting your LinkedIn updates…'},
-        {id:'p_res',label:INDEPENDENT_SECTION_LABELS.p_res,load:'Rewriting your background as a one-sheet…'},
-        {id:'p7',label:INDEPENDENT_SECTION_LABELS.p7,load:'Researching companies that fit who you help…'},
-        {id:'p11',label:INDEPENDENT_SECTION_LABELS.p11,load:'Preparing you for the questions a prospect asks…'},
-      ]:[
-        {id:'p5',label:NAV_LABELS.p5,load:'Reading this role against your background…'},
-        {id:'p6',label:NAV_LABELS.p6,load:'Writing your bridge story for this direction…'},
-        {id:'p9',label:NAV_LABELS.p9,load:'Building the Industry Background for this role…'},
-        {id:'salaryRead',label:NAV_LABELS.salaryRead,load:'Building your Compensation Read…'},
-        {id:'p11',label:NAV_LABELS.p11,load:'Preparing you for the questions ahead…'},
-        {id:'p_res',label:NAV_LABELS.p_res,load:'Rewriting your resume for this direction…'},
-        {id:'p8',label:NAV_LABELS.p8,load:'Drafting your LinkedIn updates…'},
-        {id:'p7',label:NAV_LABELS.p7,load:'Researching companies and building outreach…'},
-        {id:'groups',label:NAV_LABELS.groups,load:'Finding where this profession gathers…'},
-        {id:'recruiters',label:NAV_LABELS.recruiters,load:'Finding recruiters who specialize in this path…'},
-        {id:'income',label:NAV_LABELS.income,load:'Building your Income Now plan…'},
-      ])
+      // source the sidebar and the coach nav map read. FOCUS_ORDER itself,
+      // and gp/go/genSec below, are the module/component-scope versions
+      // (focusOrderFor above; gp/go/genSec near generateFocusSalaryRead) --
+      // lifted out of this render case (Coach-as-Concierge Phase 3a) so the
+      // Moments evaluator can reach them too. Aliased locally so every
+      // existing usage site in this case block is unchanged.
+      const FOCUS_ORDER=focusOrderFor(isIndependent)
       const FOCUS_GROUPS_ACTIVE=focusGroupsFor(isIndependent)
       const laneLbl=laneLabelFor(selectedLane)
-      // Track 2: each section assembles from outputs with its stale upstreams
-      // excluded, so a single-section refresh never re-inherits out-of-date
-      // upstream prose (the Option-B leak fix).
-      const gp=(id)=>{const O=sanitizeUpstreamForSection(id,outputs);return({
-        p5:()=>P.p5(pc,O,chosen,laneLbl),
-        p6:()=>P.p6(pc,O,chosen,laneLbl,isIndependent),
-        p9:()=>P.p9(pc,O,chosen),
-        salaryRead:()=>focusSalaryPrompt(),
-        p11:()=>P.p11(pc,O,chosen),
-        p_res:()=>P.p_res(pc,O,chosen),
-        p8:()=>P.p8(pc,O,chosen),
-        p7:()=>P.p7(pc,O,chosen,laneLbl),
-        income:()=>P.income(pc,O,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent),
-      }[id])}
-      // Migrated surfaces send the canonical profile as a cached block; profileBlock
-      // is built lazily (only at generation time) and step tags telemetry per surface.
-      const go=(id)=>{const base={p5:{maxTokens:4000},p6:{maxTokens:7000},p7:{webSearch:true,maxTokens:16000},p8:{maxTokens:16000},p_res:{maxTokens:5000},p9:{maxTokens:4000},salaryRead:FOCUS_SALARY_OPTS,p11:{maxTokens:16000},income:{maxTokens:7000}}[id]||{};return ['p5','p7','p8','p11','p_res','income'].includes(id)?{...base,profileBlock:buildUserProfileBlock(pc,sanitizeUpstreamForSection(id,outputs)),step:id}:base}
-      const genSec=(id)=>id==='p6'?generateP6():generateSection(id,gp(id),go(id))
       const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         // Legacy tolerance: object-shape outputs.p6 from pre-2026-05-31 records is preserved by normalizeProfileState (no migration). Do not delete this branch.

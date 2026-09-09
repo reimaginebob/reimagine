@@ -16,11 +16,13 @@ Answer questions about any part of your search, grounded in what it knows about 
 
 It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands, how your search itself is going — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
 
+On your Focus Playbook, once you build one section, it often follows with a quick word on what naturally comes next and a one-tap offer to build that section too — the same build the screen's own button would start, just offered where you are.
+
 Early on it may ask what's going well in your search and what you'd like to improve. Answer as fully or as briefly as you like: it's a conversation, so it will talk through what you say before it moves on, and it only offers to keep an answer that had something in it. Whatever you keep shows up on the Your Current Situation screen in Orientation, and your coach treats it as background on where things stood when you said it, not as a fixed read on you.
 
 ## What it won't do, and why that helps
 
-It won't change your work on its own. The only things it writes are the ones you tap to accept, and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
+It won't change your work on its own. The only things it writes or builds are the ones you tap to accept — a profile update it offers to save, or the next Focus Playbook section it offers to build — and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
 
 ## Getting the most from it
 

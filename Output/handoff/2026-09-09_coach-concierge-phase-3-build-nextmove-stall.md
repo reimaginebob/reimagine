@@ -66,3 +66,26 @@ The general capability — Coach naming a build opportunity **during an ordinary
 ## Next step
 
 Confirm the narrower 3a (Next move only), or say the general BUILD tap should ship alongside it after all. I'll finalize file-level specifics for whichever scope you confirm and send that back for one more review pass before any code, same as every prior phase.
+
+## Resolved 2026-09-09 (second pass)
+
+Bob confirmed the narrower scope: Next move only, general BUILD tap deferred to its own future phase.
+
+## Finalized specifics for Next move, pending copy sign-off
+
+Working out the exact shape surfaced one thing the brief's "same shape as ptw-arrival's onTap" line understates: Next move needs BOTH a model-generated reaction (pre-flight #4's "why it follows from this one," which needs a real model call to say something specific rather than restate the section order the Focus Playbook screen already shows via its own inline "Next: {label} → Go" cue) AND a real action tap that starts a build. Every existing generated entry (Choice, Delivery) is reflection-only — no `onTap`, no entry-specific quick reply, just the two dismissal taps `fireMoment` already appends. Next move is the first entry that needs both at once. That is a real, if small, extension to two places, not just a new catalog row:
+
+1. **`fireMoment`** (`src/App.jsx:9107-9123`): the `quickReplies` it builds for a fired reply are currently always just the two dismissal taps for a `dismissible` entry. Next move's entry needs to contribute one more, entry-specific, action reply (`Build {label}`) ahead of those two — a new optional field, e.g. `actionReply: (ctx) => ({label, value})`, that `fireMoment` includes when present.
+2. **The moment tap handler** (`src/App.jsx:7901-7908`): `entry.onTap(value, ctx)` is currently called with a small fixed object, `{markDone, addNewOpportunity, advance}` — Next move's `onTap` needs a way to call the refactored `genSec` for the *specific record* the moment fired on, so that object gains one more function.
+
+Everything else matches the brief as written: the refactored `genSec`/`gp`/`go` at component scope (currently closed over inside the `case 'focus':` render block, `src/App.jsx:14905-14919`), eligibility keyed on "a Delivery moment already fired for the most recently built section, and `FOCUS_ORDER` has an unbuilt section after it," no `BUILD` trailer, no server-side `situation.notBuilt` validation, no `SYSTEM_PROMPT_STABLE` change — the model never names the section, `App.jsx` already knows it.
+
+**Draft copy, for sign-off before any of this is built** (written with `PLAIN_ENGLISH` applied from the start rather than needing a second pass):
+
+Server-side reaction prompt (`buildNextMoveReactionText`, same `[bracketed instruction]` shape as the other reaction builders in `api/coach.js`):
+
+> `[They just finished ${justBuiltLabel}. The next section Reimagine builds, in order, is ${nextLabel}. Write one sentence saying why ${nextLabel} follows well from ${justBuiltLabel} -- name one specific thing ${justBuiltLabel} gave them that ${nextLabel} will use. Do not explain what ${nextLabel} is in general terms. End by asking if they want you to build it now. ${PLAIN_ENGLISH} Do not mention that this is an automated check.]`
+
+The action quick-reply label: **"Build {nextLabel}"** (e.g. "Build Bridge Story"), `value: 'build_next'`. Dismissal pair unchanged ("I'm good for now" / "Stay quiet on this screen").
+
+**Open call for Bob:** generated reasoning (above, costs one model call per fire, says something specific each time) versus a fully static, ptw-arrival-shaped template with no model call and no extension to `fireMoment`/the tap handler (faster to ship, but says less than the Focus Playbook's own "Next: {label}" cue already shows on the page). Recommend generated — the whole point of Next move over the page's existing cue is Coach naming the actual connection, and that is the one thing a template can't do.

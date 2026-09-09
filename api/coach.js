@@ -661,7 +661,7 @@ export function buildOrientationCheckTurnText(step, text) {
 // built/not-built rendering and the "[The user is currently looking at...]"
 // context line below, so these templates only need to say what just
 // happened, not re-embed what's already on the table.
-const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income']
+const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income', 'next-move']
 // Per-key required-field check, same reasoning as orientationCheckShapeOk's
 // text requirement above: each reaction template needs specific fields
 // present as non-empty strings before it is safe to build (an absent
@@ -673,6 +673,7 @@ function momentPayloadOk(key, m) {
   if (key === 'choice-lane') return typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
   if (key === 'choice-role') return typeof m.roleTitle === 'string' && !!m.roleTitle.trim() && typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
   if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()
+  if (key === 'next-move') return typeof m.justBuiltLabel === 'string' && !!m.justBuiltLabel.trim() && typeof m.nextLabel === 'string' && !!m.nextLabel.trim()
   return false
 }
 function buildChoiceLaneReactionText(laneLabel) {
@@ -684,6 +685,14 @@ function buildChoiceRoleReactionText(roleTitle, laneLabel) {
 function buildFocusDeliveryReactionText(sectionLabel, text) {
   return `[They just built ${sectionLabel} for this role. Here is what was built:\n\n${clip(text)}\n\nWrite a few sentences, no list. First: point to one specific thing in what was built that is strong, quote or name it, and say in plain words why it helps them (what it shows a hiring manager, what it proves). Second, only if there is one: say the one thing that would make it better and what they could add, as an offer: "If you want, we could add..." If nothing would make it better, say it is good as it is and stop. No praise without a specific thing behind it. This is the first thing they see after the build. ${PLAIN_ENGLISH} Do not mention that this is an automated check.]`
 }
+// Next move (Phase 3a, Output/handoff/2026-09-09_coach-concierge-phase-3-
+// build-nextmove-stall.md): the target section is resolved deterministically
+// client-side (the next unbuilt Focus Playbook section after the one most
+// recently reacted to by Delivery) before this is ever called, so the model
+// only has to say why it follows -- it never names the section itself.
+function buildNextMoveReactionText(justBuiltLabel, nextLabel) {
+  return `[They just finished ${justBuiltLabel}. The next section Reimagine builds, in order, is ${nextLabel}. Write one sentence saying why ${nextLabel} follows well from ${justBuiltLabel} -- name one specific thing ${justBuiltLabel} gave them that ${nextLabel} will use. Do not explain what ${nextLabel} is in general terms. End by asking if they want you to build it now. ${PLAIN_ENGLISH} Do not mention that this is an automated check.]`
+}
 // Exported for scripts/eval-plain-english-live.mjs, same reason as
 // buildOrientationCheckTurnText just above.
 export function buildMomentTurnText(key, ctx) {
@@ -694,6 +703,7 @@ export function buildMomentTurnText(key, ctx) {
   // "Your Pitch" vs "Bridge Story" for the same p6 section) and sends it
   // directly, rather than this file looking it up per key from NAV_LABELS.
   if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text)
+  if (key === 'next-move') return buildNextMoveReactionText(ctx.justBuiltLabel, ctx.nextLabel)
   return ''
 }
 // Post-capture coaching follow-up (2026-09-06). OPPORTUNITY_UPDATE_CAPTURE_NOTE's
