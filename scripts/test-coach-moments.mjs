@@ -64,7 +64,9 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // line loop did. Widened again Phase 3a (2026-09-09): the nextMoveTarget
 // computation sits between the quiet-state check and evalIdx too. Widened
 // again Phase 3b: stallEligible sits between nextMoveTarget and evalIdx.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 2300) : ''
+// Widened again for the engine guardrails brief: the mood-hold skip sits
+// inside the loop body now, ahead of the static-branch checks.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 2700) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),

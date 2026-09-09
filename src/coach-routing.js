@@ -213,3 +213,28 @@ export function parseSelfcheck(text) {
   const out = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '')
   return { feature, text: out }
 }
+
+// Coach engine guardrails (2026-09-09, Output/handoff/2026-09-09_coach-
+// engine-guardrails-brief.md, rule 2): strips a MOOD: low trailer the same
+// way parseSelfcheck strips SELFCHECK: -- a bare line, dropped wherever it
+// appears, read up to the first `<` or `|`. Deliberately smaller than
+// SELFCHECK_TOKEN_RE's XML-wrapper tolerance: that tolerance was earned
+// from real production drift on SELFCHECK over months (see the comment
+// above); MOOD is new with no observed drift yet, so it starts simple and
+// grows the same way SELFCHECK did, if and when drift shows up.
+const MOOD_TOKEN_RE = /\bMOOD:\s*([^\n|<]*?)\s*(?:[|<].*)?$/i
+export function parseMood(text) {
+  if (typeof text !== 'string' || !text) return { mood: null, text: text || '' }
+  let mood = null
+  const kept = []
+  for (const line of text.split('\n')) {
+    const m = line.match(MOOD_TOKEN_RE)
+    if (m) {
+      if (m[1].trim().toLowerCase() === 'low') mood = 'low'
+      continue
+    }
+    kept.push(line)
+  }
+  const out = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '')
+  return { mood, text: out }
+}

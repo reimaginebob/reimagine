@@ -22,9 +22,9 @@ import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcier
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
-import { applyOutputStrippers, ensureDistressSupport, detectResidualVoice } from '../src/text-strippers.js'
+import { applyOutputStrippers, ensureDistressSupport, matchesDistressTrigger, detectResidualVoice } from '../src/text-strippers.js'
 import { detectVoiceViolations } from '../src/voice-patterns.js'
-import { parseSelfcheck } from '../src/coach-routing.js'
+import { parseSelfcheck, parseMood } from '../src/coach-routing.js'
 import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../src/step-position.js'
 import { describeSections } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
@@ -1705,6 +1705,8 @@ Presentation — lighter touch, prose only. When something fits, name it in pros
 Log your verdict. End every reply with one line, on its own line, after everything else. This line is for the product, not the person — the system removes it before the reply is shown. Write it EXACTLY in this plain form, with nothing wrapping it — no XML or HTML tags, no markdown, no quotes, no extra words:
 SELFCHECK: <feature-slug> when a feature genuinely matched, or SELFCHECK: none when nothing fit.
 Never write it as <selfcheck>…</selfcheck> or any tagged form — just the bare line beginning with SELFCHECK:. Use only the slugs shown in the feature map above (the [slug: …] on each feature).
+
+If this reply used the DISCOURAGEMENT response above, add one more line, in the same bare plain form, after the SELFCHECK line: MOOD: low. Write it only when you actually used that response for this reply -- omit the line entirely otherwise, do not write MOOD: none.
 `
 
 const SYSTEM_PROMPT_TAIL = `
@@ -1804,6 +1806,12 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
     ? situation.record.id.trim() : ''
   const situationSection = situation && typeof situation.section === 'string' ? situation.section.trim().slice(0, 60) : ''
   let inFocusRecordId = null
+  // Coach engine guardrails, rule 4: the Situation block's own footprint,
+  // tracked separately from profileBlock's total (which also carries
+  // capture notes and other content that is not Situation). Accumulates
+  // expansion here and contextNote below -- the only two pieces of the
+  // client's Situation object this function actually renders into text.
+  let situationBlockChars = 0
   if (!generalMode) try {
     const activeSaved = Array.isArray(profileState && profileState.savedPlaybooks) ? profileState.savedPlaybooks.filter(r => r && !r.archivedAt) : []
     const pinnedId = situationRecordId || (typeof focusRecordId === 'string' ? focusRecordId.trim() : '')
@@ -1812,7 +1820,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
     if (inFocus) {
       inFocusRecordId = inFocus.id
       const expansion = buildPlaybookExpansion(inFocus, detectIntent(message))
-      if (expansion) profileBlock += '\n\n' + expansion
+      if (expansion) { profileBlock += '\n\n' + expansion; situationBlockChars += expansion.length }
       profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
       profileBlock += buildCloseReasonAlreadyLoggedBlock(inFocus.id, closeReasons)
     }
@@ -1844,6 +1852,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // specific section had nothing telling the model which one "this" is.
   const sectionNote = situationSection ? ` They are currently looking at the "${situationSection}" section.` : ''
   const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".${sectionNote}]` : ''
+  situationBlockChars += contextNote.length
+  // Sampled 1-in-20 (rule 4): a number on file for the per-turn cost of
+  // Phase 1a instead of an estimate, without logging every single turn.
+  // estTokens is the standard chars/4 rule of thumb, not a real tokenizer
+  // count -- good enough to track trend and order of magnitude.
+  if (Math.random() < 0.05) {
+    console.log('coach situation-block size', { chars: situationBlockChars, estTokens: Math.ceil(situationBlockChars / 4) })
+  }
 
   // 50, not 10 (2026-09-06): matches the client's own persistence cap
   // (App.jsx localStorage.setItem('reimagine_chat_history', ...chatMessages.slice(-50)))
@@ -2316,7 +2332,13 @@ export default async function handler(req, res) {
   const { feature, text: selfcheckStripped } = parseSelfcheck(cleaned)
   const selfcheckVerdict = feature ? 'matched' : 'none'
   const selfcheckSurfaced = feature ? 'prose' : 'none'
-  const strippedText0 = selfcheckStripped.trim()
+  // Coach engine guardrails, rule 2: same silent-trailer shape as SELFCHECK,
+  // stripped the same turn -- see parseMood's own comment for why it is a
+  // smaller parser than SELFCHECK_TOKEN_RE. Unlike MILESTONEMENTIONED below,
+  // this DOES need a response header: the Moments engine that must respect
+  // it runs client-side, with no visibility into this reply's text.
+  const { mood, text: moodStripped } = parseMood(selfcheckStripped)
+  const strippedText0 = moodStripped.trim()
   let strippedText = strippedText0
   // Milestone-mention durable flag (2026-09-06, post-eval -- see the comment
   // above MILESTONE_PROMPT_NOTE). Same silent-log shape as SELFCHECK just
@@ -2800,6 +2822,13 @@ export default async function handler(req, res) {
   }
 
   const visibleText = ensureDistressSupport(message, strippedText)
+  // Coach engine guardrails, rule 1: told to the client via a response
+  // header (the X-Coach-Note-Offer boolean-flag pattern), not a trailer --
+  // this is a deterministic match on the user's own typed message, not
+  // something the model has to cooperate with emitting. The client sets a
+  // session hold from it so the NEXT proactive moment (which carries no
+  // user text of its own) does not pile on top of this reply.
+  const distressDetected = matchesDistressTrigger(message)
 
   // Persist the turn BEFORE writing the body so the row id can ride back on a
   // response header (X-Coach-Message-Id) — the client attaches per-reply thumbs to
@@ -2813,7 +2842,7 @@ export default async function handler(req, res) {
       RETURNING id
     `
     rowId = rows && rows[0] && rows[0].id
-    console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature })
+    console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature, mood })
   } catch (logErr) {
     console.error('coach chat_messages insert failed:', logErr)
   }
@@ -2845,6 +2874,8 @@ export default async function handler(req, res) {
   if (closeReasonB64) res.setHeader('X-Coach-Close-Reason', closeReasonB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
+  if (distressDetected) res.setHeader('X-Coach-Distress', '1')
+  if (mood === 'low') res.setHeader('X-Coach-Mood', 'low')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')

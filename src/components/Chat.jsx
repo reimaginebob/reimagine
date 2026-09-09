@@ -55,7 +55,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, situation = null, presence = 'open', setPresence = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, bottomOffset = 0, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, situation = null, presence = 'open', setPresence = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -231,6 +231,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     } catch {}
     if (already) return
     try { sessionStorage.setItem('reimagine_session_recap_fired', '1') } catch {}
+    // Coach engine guardrails, rules 1 and 2: this is "the next session open"
+    // both holds are documented to clear at -- same silent side-effect shape
+    // as onVoiceViolation, fired once per actual new session, not once per
+    // mount (guarded by the sessionStorage check just above).
+    if (onSessionOpen) onSessionOpen()
     if (sendRef.current) sendRef.current(null, { silent: true })
   }, [sessionOpenEligible, embedded, open])
   useEffect(() => {
@@ -637,6 +642,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
+        const distressHeader = res.headers.get('X-Coach-Distress') || null
+        const moodHeader = res.headers.get('X-Coach-Mood') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -664,6 +671,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // not correction -- the server already had its one shot at that.
         const voiceViolations = detectVoiceViolations(fullText, { scope: 'runtime' }).filter(v => v.severity === 'hard')
         if (voiceViolations.length && onVoiceViolation) onVoiceViolation(voiceViolations)
+        // Coach engine guardrails (2026-09-09, rules 1 and 2): silent side-effect
+        // callbacks, same shape as onVoiceViolation just above -- nothing renders
+        // in the chat itself, they only set session-scoped holds the Moments
+        // engine reads before it fires its next proactive turn.
+        if (distressHeader === '1' && onDistressDetected) onDistressDetected()
+        if (moodHeader === 'low' && onMoodLow) onMoodLow()
         // One-time in-conversation offer to persist a stated employment status.
         // Only when the value is unset, we have not offered this session, and no
         // employment prompt is already pending — so the on-open prompt and this
