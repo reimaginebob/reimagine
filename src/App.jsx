@@ -63,7 +63,7 @@ import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MAT
 import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
 import { isTrack, TRACK_PARAM, TRACK_INDEPENDENT } from "./tracks.js"
 import BrandChangeNote from "./components/BrandChangeNote"
-import { brandProse, diffBrandProse } from "./brand-diff.js"
+import { brandProse, diffBrandProse, checkBrandPreservation, describeBrandPreservationGap, mergeProofPoints, patchUnrelatedRegressions } from "./brand-diff.js"
 
 // voice-allow
 const SYS_BASE = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -10526,8 +10526,8 @@ export default function PivotEngine(){
   // previousBrand anchors STAGE ONE. Stage two is a compositor and already
   // preserves its input verbatim, so anchoring it would change nothing; the
   // re-derivation that loses accepted wording happens in the analysis.
-  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='')=>{
-    const corr=correctionsBlock(profile.corrections)
+  const runP3TwoStage=async(analysisExtra='',previousBrand='',changeMode='none',changedInputs='',prevLayout='',retryNote='')=>{
+    const corr=(retryNote?retryNote+'\n\n':'')+correctionsBlock(profile.corrections)
     setLoadingStage('Reading your inputs')
     // Stage one runs at LOW, measured on a real profile 2026-08-28 rather than
     // assumed. Same prompt, same inputs: low returned 8196 characters in 43
@@ -10590,6 +10590,65 @@ export default function PivotEngine(){
     const brand=hasLifeHistory?brand0:stripUnfoundedBiographicalOrigin(brand0).text
     return {brand,structured:structuredP3}
   }
+  // Rework guard (2026-09-10, production regression): runP3TwoStage's amend
+  // instructions are necessary but not sufficient -- a real correction ("agree
+  // that my background points towards mid-size organizations...") came back
+  // as a wholesale rewrite (21 new lines, 27 gone, three stat tiles emptied)
+  // despite them. This wraps every amend-mode call (a correction from the
+  // "Does this feel right?" box AND an input-edit rebuild both anchor on
+  // previousBrand and share this same failure mode) in a deterministic check:
+  // every number and every capitalized proper-noun-shaped token from the
+  // previous brand must still be in the new one, and the sentence-level diff
+  // must not touch more than a handful of lines (checkBrandPreservation,
+  // src/brand-diff.js). On failure, retry once, naming exactly what the model
+  // needs to restore. If the retry still fails, fall back section by section:
+  // keep the previous version's wording except where the new draft's actual
+  // changes overlap the correction's own words -- the nearest deterministic
+  // proxy for "the passage the correction names" available without a third
+  // model call. A first build (no previousBrand) has nothing to preserve and
+  // skips all of this, same as it always has.
+  const runP3Amend=async(analysisExtra,previousBrand,previousStructured,changeMode,changedInputs,prevLayout)=>{
+    const previousPresentation=previousStructured&&previousStructured.presentation
+    const attempt1=await runP3TwoStage(analysisExtra,previousBrand,changeMode,changedInputs,prevLayout)
+    if(!previousBrand)return attempt1
+    const check1=checkBrandPreservation(previousBrand,attempt1.brand)
+    if(check1.ok)return finalizeP3Amend(attempt1,previousPresentation)
+    const gapNote=describeBrandPreservationGap(check1)
+    const attempt2=await runP3TwoStage(analysisExtra,previousBrand,changeMode,changedInputs,prevLayout,gapNote)
+    const check2=checkBrandPreservation(previousBrand,attempt2.brand)
+    if(check2.ok)return finalizeP3Amend(attempt2,previousPresentation)
+    // Second failure: reconcile part by part rather than hand back a draft we
+    // already know lost ground. No structured previous version (a
+    // pre-migration prose-only brand) or a second attempt that itself failed
+    // to lay out means there is nothing safe to reconcile against -- keep
+    // what they already have, in full, rather than gamble on an unreviewed
+    // rewrite.
+    const nextPresentation=attempt2.structured&&attempt2.structured.presentation
+    if(!previousPresentation||!nextPresentation){
+      return {brand:previousBrand,structured:previousStructured||null,reworkKept:true}
+    }
+    // What actually changed, for the overlap check below: a typed correction
+    // carries it in analysisExtra, but an input-edit rebuild carries nothing
+    // there at all (the change lives in changedInputs instead) -- falling back
+    // to analysisExtra alone would find zero overlap for every input-edit
+    // rebuild and revert the whole thing back to reworkKept in effect.
+    const correctionNote=analysisExtra||changedInputs
+    const patchedPresentation=patchUnrelatedRegressions(previousPresentation,nextPresentation,correctionNote)
+    const patchedBrand=presentationToProse(patchedPresentation)
+    return finalizeP3Amend({brand:patchedBrand,structured:{...attempt2.structured,presentation:patchedPresentation}},previousPresentation)
+  }
+  // Belt-and-suspenders for the stat strip specifically: even once the body
+  // text is guaranteed to keep every number (above), stage two's separate
+  // "extract these into proof points" step is its own model call and can miss
+  // one that the body still plainly states. Never shows a tile whose number
+  // is not actually in the final text (see mergeProofPoints's own doc).
+  const finalizeP3Amend=(result,previousPresentation)=>{
+    if(!(result.structured&&result.structured.presentation))return result
+    const prevPoints=previousPresentation&&previousPresentation.proofPoints
+    if(!prevPoints)return result
+    const merged=mergeProofPoints(prevPoints,result.structured.presentation.proofPoints,result.brand)
+    return {...result,structured:{...result.structured,presentation:{...result.structured.presentation,proofPoints:merged}}}
+  }
   // Thin-input heads-up (2026-08-11): true only when the person is essentially
   // bare across all four high-value inputs, measured by word count so a stub
   // resume counts as bare (resume is combined with the what-changed delta).
@@ -10612,9 +10671,10 @@ export default function PivotEngine(){
       // covers both.
       const prevPres=outputs.p3_structured&&outputs.p3_structured.presentation
       const changes=changedP3Fields(profile,outputs.p3_inputs)
-      const {brand,structured}=await runP3TwoStage('',outputs.p3||'','inputs',describeP3InputChanges(profile,outputs.p3_inputs),describeP3Layout(prevPres))
+      const {brand,structured,reworkKept}=await runP3Amend('',outputs.p3||'',outputs.p3_structured,'inputs',describeP3InputChanges(profile,outputs.p3_inputs),describeP3Layout(prevPres))
       out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile),p3_change:buildP3Change(outputs.p3||'',prevPres,brand,structured,askedForLine('',changes))})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
+      if(reworkKept)setErr('We could not update your brand for this change without disturbing other parts of it, so nothing changed. Try again in a moment, or narrow what you changed.')
     }catch(e){setErr(e.message);putBackP3AfterFailure()}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
@@ -10659,10 +10719,17 @@ export default function PivotEngine(){
       // materials, so this is the same situation generateChain is in.
       const inputsMoved=pbNeedsUpdate||inputEditedRef.current||sectionStaleUpstreams('p3').includes('resume')
       const changes=inputsMoved?changedP3Fields(profile,outputs.p3_inputs):[]
-      const {brand,structured}=await runP3TwoStage(extraContext,prevBrand,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'',prevLayout)
+      // refreshP3's callers only ever have the previous PRESENTATION in scope
+      // (never the full structured object -- prevPres is what the p3 RefineBox
+      // and the brand-rework checkin both already captured before clearing
+      // outputs.p3), so the guard's fallback path carries forward only that;
+      // dimensionalFit/topAnchors/throughLine are not read anywhere outside
+      // the structured object's own creation, so this loses nothing visible.
+      const {brand,structured,reworkKept}=await runP3Amend(extraContext,prevBrand,prevPres?{presentation:prevPres}:null,extraContext?'stated':(inputsMoved?'inputs':'none'),inputsMoved?describeP3InputChanges(profile,outputs.p3_inputs):'',prevLayout)
       out('p3',brand,{structured,p3_inputs:snapshotP3Inputs(profile),p3_change:buildP3Change(prevBrand,prevPres,brand,structured,askedForLine(extraContext,changes))})
       inputEditedRef.current=false;setPbNeedsUpdate(false)
       cascadeInvalidate('p3')
+      if(reworkKept)setErr('We could not make just that change without disturbing other parts of your brand, so nothing changed. Try rephrasing the correction to name the exact passage, or ask My Coach for help wording it.')
     }catch(e){setErr(e.message);putBackP3AfterFailure()}
     finally{setLoading(false);setLoadingStage('');scrollToOutput('p3')}
   }
