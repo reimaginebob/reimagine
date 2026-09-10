@@ -47,7 +47,10 @@ check(chat.includes('opportunityArchiveCaptureActive = false'),
   `${CHAT}: opportunityArchiveCaptureActive prop is missing from Chat's destructured props`)
 check(chat.includes("const oaHeader = res.headers.get('X-Coach-Opportunity-Archive')"),
   `${CHAT}: Chat does not read the X-Coach-Opportunity-Archive header`)
-check(chat.includes("checkinKey: 'opportunity-archive'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'opportunity-archive', ["),
   `${CHAT}: the opportunity-archive one-tap offer is missing`)
 check(chat.includes('It moves to Archived, not gone — you can restore it any time in the next 90 days'),
   `${CHAT}: the opportunity-archive offer does not tell the person this is reversible before they tap`)

@@ -95,7 +95,10 @@ check(chat.includes('brandReworkCaptureActive = false'),
   `${CHAT}: the brandReworkCaptureActive prop is missing from Chat's destructured props`)
 check(chat.includes("res.headers.get('X-Coach-Brand-Rework')"),
   `${CHAT}: Chat no longer reads the X-Coach-Brand-Rework header`)
-check(chat.includes("checkinKey: 'brand-rework'") && chat.includes("label: 'Yes, rework it'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'brand-rework', [") && chat.includes("label: 'Yes, rework it'"),
   `${CHAT}: the brand-rework one-tap offer (checkinKey + confirm button) is missing`)
 check(chat.includes('Want me to rework it with that?'),
   `${CHAT}: the brand-rework offer no longer shows the note back before acting on it -- every sibling capture shows exactly what it is about to do before the tap`)

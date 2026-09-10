@@ -50,7 +50,10 @@ const chat = fs.readFileSync(CHAT, 'utf8')
 
 check(chat.includes("const skillsRemoveHeader = res.headers.get('X-Coach-Skills-Remove') || null"),
   `${CHAT}: Chat does not read the X-Coach-Skills-Remove header`)
-check(chat.includes("checkinKey: 'skills-remove'") && chat.includes("label: 'Remove it'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'skills-remove', [") && chat.includes("label: 'Remove it'"),
   `${CHAT}: the skills-remove one-tap offer (checkinKey + confirm button) is missing`)
 // Deliberately reuses the SAME gate as the add offer -- one account
 // eligibility governs both directions, not a separate prop.

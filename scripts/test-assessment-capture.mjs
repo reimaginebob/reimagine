@@ -63,7 +63,10 @@ check(chat.includes('assessmentCaptureActive = false'),
   `${CHAT}: the assessmentCaptureActive prop is missing from Chat's destructured props`)
 check(chat.includes("res.headers.get('X-Coach-Assessment')"),
   `${CHAT}: Chat no longer reads the X-Coach-Assessment header`)
-check(chat.includes("checkinKey: 'assessment-capture'") && chat.includes("label: 'Add it'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'assessment-capture', [") && chat.includes("label: 'Add it'"),
   `${CHAT}: the assessment-capture one-tap offer (checkinKey + confirm button) is missing`)
 check(chat.includes('It adds to whatever is already there'),
   `${CHAT}: the assessment-capture offer no longer tells the person it adds rather than replaces`)

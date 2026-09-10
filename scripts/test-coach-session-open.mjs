@@ -54,7 +54,10 @@ check(coach.includes('${sessionOpenNote}'),
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
 
-check(/const send = async \(explicit, \{ silent = false, postCaptureUpdate = null \} = \{\}\) =>/.test(chat),
+// prefixText added by batch item 17 (2026-09-10): the post-capture coaching
+// turn seeds its own confirmation prefix -- see Chat.jsx's send() header
+// comment.
+check(/const send = async \(explicit, \{ silent = false, postCaptureUpdate = null, prefixText = null \} = \{\}\) =>/.test(chat),
   `${CHAT}: send() lost its silent option -- the session-open trigger calls send(null, { silent: true })`)
 check(chat.includes('sessionOpen: true'),
   `${CHAT}: send() no longer sends sessionOpen: true on a silent turn`)

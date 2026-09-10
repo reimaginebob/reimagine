@@ -55,7 +55,10 @@ check(/returnSection: sectionReworkTarget \|\| undefined/.test(chat),
   `${CHAT}: returnSection is not threaded into the /api/coach request body`)
 check(/const secHeader = res\.headers\.get\('X-Coach-Section-Rework'\)/.test(chat),
   `${CHAT}: X-Coach-Section-Rework response header is not read`)
-check(chat.includes("checkinKey: 'section-rework'") && chat.includes("label: 'Yes, rework it'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'section-rework', [") && chat.includes("label: 'Yes, rework it'"),
   `${CHAT}: the section-rework one-tap offer (checkinKey + confirm button) is missing`)
 check(/if \(sectionReworkTarget && secHeader\)/.test(chat),
   `${CHAT}: the section-rework offer is not gated on sectionReworkTarget being active`)

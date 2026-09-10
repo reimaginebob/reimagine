@@ -99,9 +99,28 @@ check(app.includes("saveError==='stale'?"),
 check(app.includes("saveError!=='signed_out'&&saveError!=='stale'&&"),
   `${APP}: the 'Try again' button still offers a blind retry on 'stale', which would resend the same stale precondition and fail identically -- it needs a reload, not a retry`)
 
+// Batch item 18 (2026-09-10, production report L8: a false "not being saved"
+// banner flashed during a build and cleared on its own). Root cause: the
+// autosave effect could fire a second, overlapping PUT before a prior one
+// resolved (a build's bursty state changes let a second 800ms debounce
+// elapse mid-flight), and both overlapping requests carried the same
+// profile_updated_at precondition -- so the server's own 'stale'
+// concurrency check (exercised just above) rejected one of the tab's OWN
+// two requests as if a different device had saved newer changes. Fixed by
+// serializing saves rather than preventing the real 409 path tested above.
+check(app.includes('const saveInFlightRef=useRef(false)') && app.includes('const saveRerunPendingRef=useRef(false)'),
+  `${APP}: the save-serialization refs are missing -- overlapping autosave PUTs could still race each other`)
+check(app.includes('if(saveInFlightRef.current){saveRerunPendingRef.current=true;return}') && app.includes('saveInFlightRef.current=true'),
+  `${APP}: save() no longer checks/sets the in-flight guard before starting its own PUT`)
+const saveFnIdx = app.indexOf('useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{')
+check(saveFnIdx !== -1, `${APP}: the autosave effect itself is missing`)
+const saveFnBlock = saveFnIdx !== -1 ? app.slice(saveFnIdx, saveFnIdx + 3800) : ''
+check(saveFnBlock.includes('finally{') && saveFnBlock.includes('saveInFlightRef.current=false') && saveFnBlock.includes('if(saveRerunPendingRef.current){saveRerunPendingRef.current=false;save()}'),
+  `${APP}: save()'s finally block no longer releases the in-flight guard and re-runs a queued rerun -- a dependency change that arrived mid-flight would be silently dropped instead of serialized`)
+
 if (failures) {
   console.error(`test-profile-save-staleness: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-profile-save-staleness: OK (parseIncomingUpdatedAt treats absent/malformed timestamps as "no precondition" and passes valid ones through unchanged; api/profile/save.js gates its UPDATE atomically on the staleness precondition and returns 409/the new updatedAt; the client only unlocks the PUT on an actual load success, sends profile_updated_at, tracks the server-returned updatedAt, and gives a stale save a Reload path instead of a doomed retry)')
+  console.log('test-profile-save-staleness: OK (parseIncomingUpdatedAt treats absent/malformed timestamps as "no precondition" and passes valid ones through unchanged; api/profile/save.js gates its UPDATE atomically on the staleness precondition and returns 409/the new updatedAt; the client only unlocks the PUT on an actual load success, sends profile_updated_at, tracks the server-returned updatedAt, gives a stale save a Reload path instead of a doomed retry, and serializes overlapping autosave PUTs instead of letting them race each other into a false stale rejection)')
 }

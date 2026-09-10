@@ -122,7 +122,11 @@ check(chat.includes("res.headers.get('X-Coach-Opportunity-Update')"),
   `${CHAT}: Chat no longer reads the merged X-Coach-Opportunity-Update header`)
 check(!chat.includes("X-Coach-Interviewers") && !chat.includes("X-Coach-Pipeline"),
   `${CHAT}: Chat still reads one of the old X-Coach-Interviewers/X-Coach-Pipeline headers`)
-check(chat.includes("checkinKey: 'opportunity-update'"),
+// Batch item 17 (2026-09-10): the offer used to push its own assistant
+// bubble with checkinKey as an object key; it now merges onto the reply's
+// own bubble via mergeOfferOntoReply(content, checkinKey, quickReplies), so
+// the checkinKey is this call's second positional argument.
+check(chat.includes("mergeOfferOntoReply(`Here's what I heard${where}:") && chat.includes("'opportunity-update', ["),
   `${CHAT}: Chat's merged offer no longer uses the opportunity-update checkinKey`)
 // Locked-in UX: a recap of what was heard, then a question that names the one
 // detectable gap (a move with no date) or asks generically -- never a flat

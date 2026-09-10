@@ -560,17 +560,31 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     try {
       const handled = onQuickReply ? await onQuickReply(checkinKey, opt.value) : false
       if (handled && typeof handled === 'object' && handled.content) {
-        setMessages(m => [...m, { role: 'assistant', ...handled, synthetic: true }])
         // Opportunity-update capture (2026-09-06): the tap just landed a real
         // write (a stage, a move, a meeting, a new interviewer), and the reply
         // that offered it was deliberately short and tactical -- coaching on
         // what was just confirmed is a separate, following turn, triggered
         // here now that the write has actually succeeded, not bundled into
         // the offer itself. See buildPostCaptureTurnText in api/coach.js.
+        //
+        // Batch item 17: this used to push handled.content ("Saved. On X,
+        // your Y.") as its own bubble, THEN trigger the follow-up coaching
+        // turn as a second, later bubble -- two more messages stacked on
+        // top of the two the pre-tap offer merge above already collapsed to
+        // one. The confirmation still needs to render the instant the tap
+        // resolves (the person needs to see the write landed without
+        // waiting on a full model round-trip), so it is seeded as the
+        // opening line of the coaching turn's own bubble via prefixText --
+        // send() writes it in immediately, then streams the coaching text in
+        // beneath it, rather than opening a second, separate message once
+        // the round-trip completes.
         if (checkinKey === 'opportunity-update') {
           let capturedData = null
           try { capturedData = JSON.parse(opt.value) } catch { /* dismiss, or malformed -- no follow-up */ }
-          if (capturedData && sendRef.current) sendRef.current(null, { postCaptureUpdate: capturedData })
+          if (capturedData && sendRef.current) sendRef.current(null, { postCaptureUpdate: capturedData, prefixText: handled.content })
+          else setMessages(m => [...m, { role: 'assistant', ...handled, synthetic: true }])
+        } else {
+          setMessages(m => [...m, { role: 'assistant', ...handled, synthetic: true }])
         }
       } else if (handled === true) {
         // synthetic: true (My Coach review finding #2.4) -- an
@@ -606,8 +620,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // know there is something to show (a 204 on the sessionOpen path means
   // there wasn't, and that renders nothing at all rather than a bubble that
   // briefly appears and vanishes).
-  const send = async (explicit, { silent = false, postCaptureUpdate = null } = {}) => {
+  const send = async (explicit, { silent = false, postCaptureUpdate = null, prefixText = null } = {}) => {
     const isSilentTurn = silent || !!postCaptureUpdate
+    // Batch item 17: a confirmation line ("Saved. On X, your Y.") the tap
+    // handler needs shown the instant the write lands, seeded onto this
+    // turn's own bubble instead of pushed as a separate message -- see the
+    // placeholder push and the streaming loop below, both of which read this.
+    const prefix = typeof prefixText === 'string' && prefixText.trim() ? prefixText.trim() : ''
     const text = isSilentTurn ? '' : (typeof explicit === 'string' ? explicit : input).trim()
     if (isSilentTurn) { if (loading || sendLockRef.current) return } else if (!text || loading || sendLockRef.current) return
     sendLockRef.current = true
@@ -716,7 +735,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // seed is still the sole, untouched message) does it take that
       // slot; any other silent turn (post-capture, or a recap firing after
       // a real conversation already exists) still appends as before.
-      if (isSilentTurn) setMessages(m => (silent && m.length === 1 && m[0] && m[0].role === 'assistant' && !m[0].banner && m[0].content === INTRO_MSG.content) ? [{ role: 'assistant', content: '' }] : [...m, { role: 'assistant', content: '' }])
+      if (isSilentTurn) setMessages(m => (silent && m.length === 1 && m[0] && m[0].role === 'assistant' && !m[0].banner && m[0].content === INTRO_MSG.content) ? [{ role: 'assistant', content: prefix }] : [...m, { role: 'assistant', content: prefix }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach
@@ -772,7 +791,31 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           // Prose-only: the wire carries no NAVIGATE trailer to strip.
           setMessages(m => {
             const copy = [...m]
-            copy[copy.length - 1] = { ...copy[copy.length - 1], content: fullText, id: msgId }
+            copy[copy.length - 1] = { ...copy[copy.length - 1], content: prefix ? `${prefix}\n\n${fullText}` : fullText, id: msgId }
+            return copy
+          })
+        }
+        // Batch item 17 (capture flow: "one reply, offer first, coaching
+        // after the tap"): every capture-offer branch below used to push a
+        // SECOND assistant bubble under the model's own just-streamed reply
+        // -- two stacked messages for one user turn. Because the offer push
+        // fires in its own later setMessages call, it was the offer push
+        // (not the reply) that first satisfied the scroll effect's `if
+        // (!pendingScrollBatchRef.current)` gate above, so the panel
+        // anchored on the offer and scrolled the reply itself out of view
+        // above it -- the "two stacked replies... the panel scrolls to the
+        // second" symptom. arbitrateOffers (api/coach.js) already keeps only
+        // the single highest-priority header per turn, so at most one of the
+        // branches below ever fires; merging its offer onto the SAME bubble
+        // the reply just streamed into -- offer text first, the model's own
+        // short reply trailing as supporting context -- is safe, and leaves
+        // one message, one scroll target, for the whole turn.
+        const mergeOfferOntoReply = (content, checkinKey, quickReplies) => {
+          setMessages(m => {
+            const copy = [...m]
+            const last = copy[copy.length - 1]
+            const trailing = last && typeof last.content === 'string' ? last.content.trim() : ''
+            copy[copy.length - 1] = { ...last, content: trailing ? `${content}\n\n${trailing}` : content, checkinKey, quickReplies }
             return copy
           })
         }
@@ -861,21 +904,23 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}`)
               if (move) heard.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
               if (meeting) heard.push(`Next scheduled meeting: ${fmt(meeting)}`)
-              if (people.length) heard.push(`Interview Team: ${people.map(p => p.name).join(', ')}`)
+              // Batch item 17: the title the model captured (already carried
+              // through validation and written to the interviewer record,
+              // api/coach.js's OPPORTUNITY_UPDATE_CAPTURE_NOTE/execOpportunityUpdate)
+              // never showed up in this recap, so a person had no way to see
+              // it was heard before accepting the tap -- read as "the title
+              // was not captured" during the demo even when the write itself
+              // carried it.
+              if (people.length) heard.push(`Interview Team: ${people.map(p => p.title ? `${p.name} (${p.title})` : p.name).join(', ')}`)
               if (removePeople.length) heard.push(`Remove from Interview Team: ${removePeople.join(', ')}`)
               const where = data.opportunity ? ` on ${data.opportunity}` : ''
               const ask = (move && !data.date)
                 ? "I didn't catch a date for that — anything else, or is that everything?"
                 : 'Anything else, or is that everything?'
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Here's what I heard${where}:\n\n${heard.join('\n')}\n\n${ask}`,
-                checkinKey: 'opportunity-update',
-                quickReplies: [
-                  { label: "That's everything — update it", value: JSON.stringify(data) },
-                  { label: 'Not yet', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Here's what I heard${where}:\n\n${heard.join('\n')}\n\n${ask}`, 'opportunity-update', [
+                { label: "That's everything — update it", value: JSON.stringify(data) },
+                { label: 'Not yet', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -891,15 +936,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const label = (OP_COUNTED_SECTIONS.find(s => s.key === section) || {}).label || section
             if (section && note) {
               const where = data.opportunity ? ` on ${data.opportunity}` : ''
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to update ${label}${where} with this: "${note}"?`,
-                checkinKey: 'op-card-rework',
-                quickReplies: [
-                  { label: `Update ${label}`, value: JSON.stringify(data) },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to update ${label}${where} with this: "${note}"?`, 'op-card-rework', [
+                { label: `Update ${label}`, value: JSON.stringify(data) },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -915,15 +955,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const text = data && typeof data.text === 'string' ? data.text.trim() : ''
             if (text) {
               const where = data.opportunity ? ` to ${data.opportunity}'s context` : " to this opportunity's context"
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to add this${where}? It adds to whatever's already there, and it'll shape Interview Prep the next time you build it.\n\n${text}`,
-                checkinKey: 'opportunity-context',
-                quickReplies: [
-                  { label: 'Add it', value: JSON.stringify(data), followUp: "Added to the opportunity's context." },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to add this${where}? It adds to whatever's already there, and it'll shape Interview Prep the next time you build it.\n\n${text}`, 'opportunity-context', [
+                { label: 'Add it', value: JSON.stringify(data), followUp: "Added to the opportunity's context." },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -937,15 +972,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const opportunity = data && typeof data.opportunity === 'string' ? data.opportunity.trim() : ''
             if (opportunity) {
               logPromptEngagement('opportunity_archive', 'model_detected', 'shown')
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to take ${opportunity} off your active pipeline? It moves to Archived, not gone — you can restore it any time in the next 90 days.`,
-                checkinKey: 'opportunity-archive',
-                quickReplies: [
-                  { label: `Archive ${opportunity}`, value: JSON.stringify(data), followUp: 'Archived.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to take ${opportunity} off your active pipeline? It moves to Archived, not gone — you can restore it any time in the next 90 days.`, 'opportunity-archive', [
+                { label: `Archive ${opportunity}`, value: JSON.stringify(data), followUp: 'Archived.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -963,15 +993,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (opportunity && label) {
               const parts = [`Category: ${label}`]
               if (detail) parts.push(`In your words: ${detail}`)
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to log this as why ${opportunity} ended?\n\n${parts.join('\n')}`,
-                checkinKey: 'close-reason',
-                quickReplies: [
-                  { label: 'Save it', value: JSON.stringify(data) },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to log this as why ${opportunity} ended?\n\n${parts.join('\n')}`, 'close-reason', [
+                { label: 'Save it', value: JSON.stringify(data) },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -981,7 +1006,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // already saves. No JSON to decode: there is nothing to carry beyond
         // the text already sitting in fullText.
         if (notesCaptureActive && noteHeader === '1' && fullText.trim()) {
-          setMessages(m => [...m, { role: 'assistant', content: "Want me to add this to the opportunity's notes?", checkinKey: 'coach-note-save', quickReplies: [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }] }])
+          mergeOfferOntoReply("Want me to add this to the opportunity's notes?", 'coach-note-save', [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }])
         }
         // Values capture: the server extracted what this turn settled for Values
         // and/or Passions & Causes onto X-Coach-Values. Show it back in full — the
@@ -994,7 +1019,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.values) parts.push(`Core Values: ${data.values}`)
             if (data && data.passions) parts.push(`Passions, Interests & Causes: ${data.passions}`)
             if (parts.length) {
-              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'values-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }] }])
+              mergeOfferOntoReply(`Want me to save this to your Values, Passions & Causes screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, 'values-capture', [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Values, Passions & Causes.' }, { label: 'Not now', value: 'dismiss' }])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1009,7 +1034,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.twoWords) parts.push(`How people describe your superpower: ${data.twoWords}`)
             if (data && data.other) parts.push(`Other reputation notes: ${data.other}`)
             if (parts.length) {
-              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Reputation screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'reputation-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Reputation screen.' }, { label: 'Not now', value: 'dismiss' }] }])
+              mergeOfferOntoReply(`Want me to save this to your Reputation screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, 'reputation-capture', [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Reputation screen.' }, { label: 'Not now', value: 'dismiss' }])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1022,15 +1047,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const CAT_LABEL = { technical: 'Technical and tools', systems: 'Systems and platforms', certifications: 'Certifications', languages: 'Languages', methodologies: 'Methodologies and frameworks' }
             const parts = Object.keys(CAT_LABEL).map(k => (data && Array.isArray(data[k]) && data[k].length) ? `${CAT_LABEL[k]}: ${data[k].join(', ')}` : null).filter(Boolean)
             if (parts.length) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to add this to your Skills screen? It adds to whatever is already there, and you can edit it any time.\n\n${parts.join('\n')}`,
-                checkinKey: 'skills-capture',
-                quickReplies: [
-                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Skills screen.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to add this to your Skills screen? It adds to whatever is already there, and you can edit it any time.\n\n${parts.join('\n')}`, 'skills-capture', [
+                { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Skills screen.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1046,15 +1066,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const CAT_LABEL = { technical: 'Technical and tools', systems: 'Systems and platforms', certifications: 'Certifications', languages: 'Languages', methodologies: 'Methodologies and frameworks' }
             const parts = Object.keys(CAT_LABEL).map(k => (data && Array.isArray(data[k]) && data[k].length) ? `${CAT_LABEL[k]}: ${data[k].join(', ')}` : null).filter(Boolean)
             if (parts.length) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to remove this from your Skills screen?\n\n${parts.join('\n')}`,
-                checkinKey: 'skills-remove',
-                quickReplies: [
-                  { label: 'Remove it', value: JSON.stringify(data), followUp: 'Removed from your Skills screen.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to remove this from your Skills screen?\n\n${parts.join('\n')}`, 'skills-remove', [
+                { label: 'Remove it', value: JSON.stringify(data), followUp: 'Removed from your Skills screen.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1073,7 +1088,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             if (data && data.riskTolerance) parts.push(`Stability vs upside: ${data.riskTolerance}`)
             if (data && data.dealBreakers) parts.push(`Hard deal-breakers: ${data.dealBreakers}`)
             if (parts.length) {
-              setMessages(m => [...m, { role: 'assistant', content: `Want me to save this to your Priorities & Non-Negotiables screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, checkinKey: 'priorities-capture', quickReplies: [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Priorities & Non-Negotiables.' }, { label: 'Not now', value: 'dismiss' }] }])
+              mergeOfferOntoReply(`Want me to save this to your Priorities & Non-Negotiables screen? It replaces whatever is in the ${parts.length > 1 ? 'fields' : 'field'} now, and you can edit it there any time.\n\n${parts.join('\n\n')}`, 'priorities-capture', [{ label: 'Save it', value: JSON.stringify(data), followUp: 'Saved to your Priorities & Non-Negotiables.' }, { label: 'Not now', value: 'dismiss' }])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1084,15 +1099,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(lifeStoryHeader), c => c.charCodeAt(0))))
             const text = data && typeof data.text === 'string' ? data.text.trim() : ''
             if (text) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to add this to your Story screen? It adds a new paragraph to what's already there, and you can edit it any time.\n\n${text}`,
-                checkinKey: 'life-story-capture',
-                quickReplies: [
-                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Story.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to add this to your Story screen? It adds a new paragraph to what's already there, and you can edit it any time.\n\n${text}`, 'life-story-capture', [
+                { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your Story.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1106,15 +1116,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(assessHeader), c => c.charCodeAt(0))))
             const text = data && typeof data.text === 'string' ? data.text.trim() : ''
             if (text) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to add this to your assessment field? It adds to whatever is already there, and you can edit it any time.\n\n${text}`,
-                checkinKey: 'assessment-capture',
-                quickReplies: [
-                  { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your assessment field.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to add this to your assessment field? It adds to whatever is already there, and you can edit it any time.\n\n${text}`, 'assessment-capture', [
+                { label: 'Add it', value: JSON.stringify(data), followUp: 'Added to your assessment field.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1127,15 +1132,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(brHeader), c => c.charCodeAt(0))))
             const note = data && typeof data.note === 'string' ? data.note.trim() : ''
             if (note) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to rework it with that?\n\n${note}`,
-                checkinKey: 'brand-rework',
-                quickReplies: [
-                  { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to rework it with that?\n\n${note}`, 'brand-rework', [
+                { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1149,15 +1149,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(secHeader), c => c.charCodeAt(0))))
             const note = data && typeof data.note === 'string' ? data.note.trim() : ''
             if (note) {
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to rework it with that?\n\n${note}`,
-                checkinKey: 'section-rework',
-                quickReplies: [
-                  { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to rework it with that?\n\n${note}`, 'section-rework', [
+                { label: 'Yes, rework it', value: JSON.stringify(data), followUp: 'Reworking it now — give it a moment.' },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1182,18 +1177,13 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 : st === 'declined'
                   ? `Remember: not interested in ${label}${detail} — I won't bring it up again`
                   : `Remember: ${label} is still open${detail}`
-              setMessages(m => [...m, {
-                role: 'assistant',
-                content: `Want me to remember that? It stays with your profile so I am not asking you twice.\n\n${line}`,
-                checkinKey: 'activity-fact',
-                quickReplies: [
-                  // No canned follow-up: it is pushed optimistically, before the
-                  // write is attempted, so a failed save would still read "Got
-                  // it." The handler confirms only once the write has landed.
-                  { label: 'Remember it', value: JSON.stringify(data) },
-                  { label: 'Not now', value: 'dismiss' },
-                ],
-              }])
+              mergeOfferOntoReply(`Want me to remember that? It stays with your profile so I am not asking you twice.\n\n${line}`, 'activity-fact', [
+                // No canned follow-up: it is pushed optimistically, before the
+                // write is attempted, so a failed save would still read "Got
+                // it." The handler confirms only once the write has landed.
+                { label: 'Remember it', value: JSON.stringify(data) },
+                { label: 'Not now', value: 'dismiss' },
+              ])
             }
           } catch { /* malformed header — no offer */ }
         }
@@ -1215,7 +1205,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               // on content already given -- see PROMPT_ENGAGEMENT_META_BY_
               // CHECKIN's comment in App.jsx for why that one is not logged.
               logPromptEngagement('search_intake', 'hub_arrival', 'accepted')
-              setMessages(m => [...m, { role: 'assistant', content: `Want me to keep this on your profile? I'd read it as background on where things stand, not as a fixed picture, and it lives on your Your Current Situation screen if you want to change it.\n\n${label}: ${body}`, checkinKey: 'search-intake', quickReplies: [{ label: 'Keep it', value: JSON.stringify(data), followUp: 'Kept.' }, { label: 'Not now', value: 'dismiss' }] }])
+              mergeOfferOntoReply(`Want me to keep this on your profile? I'd read it as background on where things stand, not as a fixed picture, and it lives on your Your Current Situation screen if you want to change it.\n\n${label}: ${body}`, 'search-intake', [{ label: 'Keep it', value: JSON.stringify(data), followUp: 'Kept.' }, { label: 'Not now', value: 'dismiss' }])
             }
           } catch { /* malformed header — no offer */ }
         }

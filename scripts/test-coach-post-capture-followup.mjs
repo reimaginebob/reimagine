@@ -47,8 +47,10 @@ const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
 
 // send() must accept the new option and route it to the request body without
-// disturbing the existing silent (session-open) path.
-check(/const send = async \(explicit, \{ silent = false, postCaptureUpdate = null \} = \{\}\) =>/.test(chat),
+// disturbing the existing silent (session-open) path. prefixText added by
+// batch item 17 (2026-09-10) -- the post-capture turn's own confirmation
+// prefix; send()'s postCaptureUpdate handling itself is unchanged.
+check(/const send = async \(explicit, \{ silent = false, postCaptureUpdate = null, prefixText = null \} = \{\}\) =>/.test(chat),
   `${CHAT}: send() lost its postCaptureUpdate option`)
 check(chat.includes('const isSilentTurn = silent || !!postCaptureUpdate'),
   `${CHAT}: send() does not treat a postCaptureUpdate turn as silent (no user bubble, placeholder only pushed once a real response is in hand)`)
@@ -60,10 +62,15 @@ check(chat.includes('...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? {
 // never on dismiss or on an unrelated checkinKey.
 const tapIdx = chat.indexOf("if (handled && typeof handled === 'object' && handled.content) {")
 check(tapIdx !== -1, `${CHAT}: the quick-reply success branch in tapQuickReply is missing`)
-const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 1200) : ''
+// Widened for batch item 17 (2026-09-10): the "fold Saved into the coaching
+// turn's own bubble via prefixText" comment pushed the sendRef.current call
+// past the old 1200-char edge.
+const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 1700) : ''
 check(tapBlock.includes("checkinKey === 'opportunity-update'"),
   `${CHAT}: tapQuickReply does not scope the post-capture follow-up to the opportunity-update checkinKey`)
-check(tapBlock.includes('JSON.parse(opt.value)') && tapBlock.includes('sendRef.current(null, { postCaptureUpdate: capturedData })'),
+// prefixText added by batch item 17: the confirmation text rides along as
+// the coaching turn's own seeded opening line instead of a separate bubble.
+check(tapBlock.includes('JSON.parse(opt.value)') && tapBlock.includes('sendRef.current(null, { postCaptureUpdate: capturedData, prefixText: handled.content })'),
   `${CHAT}: tapQuickReply does not trigger the post-capture follow-up with the tap's own captured data`)
 
 if (failures) {

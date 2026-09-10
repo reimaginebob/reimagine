@@ -668,6 +668,22 @@ assertTruthy('ensureDistressSupport: "don\'t want to die" does NOT fire (affirmi
 // Idempotence: a reply that already names a genuine support pointer is not duplicated.
 assertTruthy('ensureDistressSupport: genuine "a friend or a counselor" pointer is NOT duplicated',
   !ensureDistressSupport('Some days I just want to die.', 'Please talk to a friend or a counselor about how heavy this feels.').includes(DP))
+// Batch item 19 (2026-09-10, production report L11): SYSTEM_PROMPT_STABLE
+// instructs the model itself to "add one natural line suggesting they reach
+// out to someone they trust" on this same trigger -- neither that exact
+// instructed phrasing nor a 988 mention satisfied the old, narrower guard,
+// so a reply that correctly followed the prompt still got DISTRESS_POINTER
+// appended on top of it (the double-pointer bug). Both are now recognized.
+assertTruthy('ensureDistressSupport: the model\'s own "reach out to someone you trust" line is NOT duplicated',
+  !ensureDistressSupport('Some days I just want to die.', 'That sounds heavy. Please reach out to someone you trust about it.').includes(DP))
+assertTruthy('ensureDistressSupport: a 988 mention is NOT duplicated',
+  !ensureDistressSupport('Some days I just want to die.', 'Please consider calling 988 if it gets to be too much.').includes(DP))
+// The narrowing this widening must not reopen: a bare, generic "someone" or
+// "trust" mention (the networking-suggestion shape the 2026-06-10 narrowing
+// was written to stop treating as a pointer) still does not satisfy the
+// guard on its own.
+assertTruthy('ensureDistressSupport: a bare networking "someone in your network" mention still does NOT satisfy the guard',
+  ensureDistressSupport('Some days I just want to die.', 'Maybe grab coffee with someone in your network this week.').includes(DP))
 // No-op on a plain question.
 assertTruthy('ensureDistressSupport: no-op on a non-distress message',
   ensureDistressSupport('How do I write my resume?', 'Here is how.') === 'Here is how.')

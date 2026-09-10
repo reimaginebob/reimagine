@@ -87,9 +87,12 @@ check(chat.includes('reputationCaptureActive = false, skillsCaptureActive = fals
   `${CHAT}: reputationCaptureActive/skillsCaptureActive props are missing from Chat's destructured props`)
 check(chat.includes("res.headers.get('X-Coach-Reputation')") && chat.includes("res.headers.get('X-Coach-Skills')"),
   `${CHAT}: Chat does not read both the X-Coach-Reputation and X-Coach-Skills headers`)
-check(chat.includes("checkinKey: 'reputation-capture'") && chat.includes('It replaces whatever is in the'),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'reputation-capture', [") && chat.includes('It replaces whatever is in the'),
   `${CHAT}: the reputation-capture one-tap offer is missing or does not warn it replaces`)
-check(chat.includes("checkinKey: 'skills-capture'") && chat.includes('It adds to whatever is already there'),
+check(chat.includes("'skills-capture', [") && chat.includes('It adds to whatever is already there'),
   `${CHAT}: the skills-capture one-tap offer is missing or does not say it adds rather than replaces`)
 
 const APP = 'src/App.jsx'

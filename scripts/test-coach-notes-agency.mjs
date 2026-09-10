@@ -97,7 +97,10 @@ check(chat.includes("const noteHeader = res.headers.get('X-Coach-Note-Offer') ||
   `${CHAT}: the X-Coach-Note-Offer header is no longer read`)
 check(chat.includes('if (notesCaptureActive && noteHeader === \'1\' && fullText.trim())'),
   `${CHAT}: the post-stream save offer is no longer gated on notesCaptureActive and a real header`)
-check(chat.includes("checkinKey: 'coach-note-save'") && chat.includes("{ label: 'Save it', value: fullText }"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'coach-note-save', [{ label: 'Save it', value: fullText }") && chat.includes("{ label: 'Save it', value: fullText }"),
   `${CHAT}: the save offer no longer carries the reply's own text as the value to save`)
 
 if (failures) {

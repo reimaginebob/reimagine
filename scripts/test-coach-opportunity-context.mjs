@@ -50,7 +50,10 @@ check(chat.includes("const occHeader = res.headers.get('X-Coach-Opportunity-Cont
   `${CHAT}: does not read the X-Coach-Opportunity-Context header`)
 check(chat.includes('if (opportunityContextCaptureActive && occHeader)'),
   `${CHAT}: the opportunity-context capture block is not gated on its capture-active prop`)
-check(chat.includes("checkinKey: 'opportunity-context',"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'opportunity-context', ["),
   `${CHAT}: the tap offer does not carry the opportunity-context checkinKey`)
 check(chat.includes("It adds to whatever's already there"),
   `${CHAT}: the tap offer does not tell the person this appends rather than replaces`)
