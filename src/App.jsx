@@ -6449,7 +6449,7 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 // specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
 // About This Company). Default false preserves existing behavior for the
 // Focus per-section, Personal Brand, and op v1 consumers.
-function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId,openSignal,anchorId}){
+function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId,anchorId}){
   const[open,setOpen]=useState(false)
   // Submit guard (2026-08-11 dead-button fix): the update/fresh regen is a multi-
   // minute call and the button gave no click feedback, so users re-clicked and
@@ -6459,15 +6459,20 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
   const submittingRef=useRef(false)
   const[submitting,setSubmitting]=useState(false)
   const clearSubmit=()=>{submittingRef.current=false;setSubmitting(false)}
-  // "Put that back" in the change note fills this box and needs it open;
-  // a prefilled field behind a collapsed header reads as a dead button.
-  useEffect(()=>{if(openSignal){setOpen(true);submittingRef.current=false;setSubmitting(false)}},[openSignal])
+  // Clearing happens once the correction actually proceeds, not on click: a
+  // guarded submit can stop at the conflict modal (Rephrase/Take it offline),
+  // and the person's typed text needs to survive that round trip. Clearing
+  // any earlier left stale text sitting in the box after every real
+  // submission (2026-09-10 incident: an unsubmitted "Put this line back"
+  // instruction stacked with whatever the person typed next, went out as one
+  // compound correction, and reproduced the same kind of rewrite the p3
+  // rework guard exists to catch).
   const submit=fresh=>{
     if(submittingRef.current)return
     submittingRef.current=true;setSubmitting(true)
     if(fresh){onChange('');setOpen(false);onRegenerate('')}
-    else if(guard&&value&&value.trim()){guard(sectionId,value,()=>{setOpen(false);onRegenerate(value)})}
-    else{setOpen(false);onRegenerate(value)}
+    else if(guard&&value&&value.trim()){const v=value;guard(sectionId,v,()=>{onChange('');setOpen(false);onRegenerate(v)})}
+    else{const v=value;onChange('');setOpen(false);onRegenerate(v)}
   }
   return <div id={anchorId} data-print="hide" style={{marginTop:28,marginBottom:28,border:`2px solid ${C.gold}`,borderRadius:12,overflow:'hidden',background:`${C.gold}10`}}>
     <button onClick={()=>setOpen(o=>{const n=!o;if(n)clearSubmit();return n})} style={{width:'100%',background:'transparent',border:'none',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
@@ -7125,6 +7130,14 @@ export default function PivotEngine(){
   const[step,setStep]=useState(initStep)
   const[profile,setProfile]=useState(isDemo?demoProfile:isTest?testProfile:IP)
   const[outputs,setOutputs]=useState(isDemo?demoOutputs:IO)
+  // Always-current mirror of outputs for code that reads it from inside a
+  // callback fired after a delay (the p3 rework queue below) -- the same
+  // staleness trap CLAUDE.md's Situation rule documents: a value closed over
+  // at render time and read later inside an async callback is a snapshot,
+  // not a measurement, and goes stale the moment something else changes it
+  // first.
+  const outputsRef=useRef(outputs)
+  outputsRef.current=outputs
   const[done,setDone]=useState(isDemo?[...demoDone]:[])
   const[deepOpts,setDeepOpts]=useState(isDemo?[...demoDeepOpts]:['','',''])
   const[chosen,setChosen]=useState(isDemo?demoChosen:'')
@@ -8370,13 +8383,7 @@ export default function PivotEngine(){
       let data;try{data=JSON.parse(value)}catch{return false}
       const note=data&&typeof data.note==='string'?data.note.trim():''
       if(!note)return false
-      submitCorrection('p3',note,()=>{
-        const prevBrand=outputs.p3||''
-        const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null
-        recordCorrection('p3',note)
-        out('p3','')
-        refreshP3(note,prevBrand,prevPres)
-      })
+      submitCorrection('p3',note,()=>queueP3Correction(note))
       return true
     }
     // Coach judged a chat reply as a real correction to one of the four
@@ -10685,21 +10692,66 @@ export default function PivotEngine(){
   // calls out('p3','') first to snapshot the prior version for Restore, so by the
   // time this runs outputs.p3 is empty. #515 read it here and silently anchored on
   // nothing, which is why a correction still produced a full rewrite.
-  const[refineOpenSignal,setRefineOpenSignal]=useState(0)
   const dismissP3Change=()=>setOutputs(o=>{const u={...o};delete u.p3_change;return u})
-  // "Put that back" hands the sentence to the correction box rather than
-  // splicing it into the brand directly. Two reasons: the text belongs where
-  // the analysis decides it belongs, not where it used to sit, and a
-  // correction is recorded so it survives every later rebuild -- which is the
-  // difference between fixing this version and fixing the problem.
+  // Every p3 correction -- the RefineBox's own Update button, "Put that
+  // back", and Coach's "brand-rework" checkin -- funnels through here so
+  // there is exactly one place that decides whether it runs now or waits.
+  // runP3Correction reads the previous brand from outputsRef (not a value
+  // closed over earlier) because a queued correction that finally runs must
+  // amend the version that just landed, not the one on screen when it was
+  // submitted.
+  const runP3Correction=(ask)=>{
+    const prevBrand=outputsRef.current.p3||''
+    const prevPres=(outputsRef.current.p3_structured&&outputsRef.current.p3_structured.presentation)||null
+    recordCorrection('p3',ask)
+    out('p3','')
+    refreshP3(ask,prevBrand,prevPres)
+  }
+  // A real array, not one slot: a single pending ref would let a second
+  // queued correction silently overwrite the first if both arrive before the
+  // in-flight rework finishes (Coach and the RefineBox are two independent
+  // ways to reach this). FIFO keeps every one of them and runs them as
+  // separate reworks, in the order they were asked for.
+  const p3QueueRef=useRef([])
+  // refreshP3 silently no-ops when a rework is already running (its own
+  // re-entrancy guard). That is fine when the only way to reach it was the
+  // RefineBox, which disables itself for the same duration -- but Coach's
+  // "brand-rework" checkin is not gated by the page's loading state, so a
+  // correction confirmed there while the RefineBox's own update is still in
+  // flight used to vanish with no sign anything was wrong. Queue it instead
+  // and run it the moment the current one finishes.
+  const queueP3Correction=(ask)=>{
+    if(loading||generatingSection){
+      p3QueueRef.current=[...p3QueueRef.current,ask]
+      const msg='Got it. This will apply as soon as the current update finishes.'
+      setToast(msg);setTimeout(()=>setToast(t=>t===msg?null:t),5000)
+      return
+    }
+    runP3Correction(ask)
+  }
+  useEffect(()=>{
+    if(!loading&&!generatingSection&&p3QueueRef.current.length){
+      const[ask,...rest]=p3QueueRef.current;p3QueueRef.current=rest
+      runP3Correction(ask)
+    }
+  },[loading,generatingSection])
+  // "Put that back" used to hand the sentence to the correction box rather
+  // than applying it, on the reasoning that the text belongs where the
+  // analysis puts it now (not where it used to sit) and that a recorded
+  // correction survives every later rebuild. Both of those still hold here --
+  // queueP3Correction routes through the identical submitCorrection ->
+  // refreshP3 path a RefineBox update does, so the placement and the
+  // permanence are unchanged. What changed (2026-09-10, live incident): a
+  // restore that was only ever written into the box and never submitted sat
+  // there until a later, unrelated correction got typed into the same field
+  // and the two went out as one compound ask -- the same kind of input that
+  // produces a wholesale rewrite. Applying immediately removes that box
+  // entirely from this path, so there is nothing left to stack onto.
   const restoreP3Line=(line)=>{
     const t=String(line||'').trim()
     if(!t)return
-    const existing=String(feedback.p3||'').trim()
     const ask=`Put this line back, in whatever place it belongs now: \u201c${t}\u201d`
-    setFb('p3',existing?existing+'\n\n'+ask:ask)
-    setRefineOpenSignal(n=>n+1)
-    setTimeout(()=>{const el=document.getElementById('p3-refine');if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'})},60)
+    submitCorrection('p3',ask,()=>queueP3Correction(ask))
   }
   const refreshP3=async(extraContext='',prevBrand='',prevPres=null)=>{
     const prevLayout=describeP3Layout(prevPres)
@@ -15191,7 +15243,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <Btn small secondary onClick={()=>printPersonalBrand(outputs.p3_structured&&outputs.p3_structured.presentation,deriveDisplayName(profile.resume),stripPersonalBrandTail(outputs.p3))}><Printer size={12}/>Save your Personal Brand as PDF</Btn>
         </div>
         {!isDemo&&<div data-print="hide" style={{marginBottom:18}}><Btn small secondary onClick={()=>openCoachWith(ASK_COACH_SEEDS.p3)}><MessageCircle size={13}/>Ask My Coach about this</Btn></div>}
-        {!isDemo&&<RefineBox anchorId="p3-refine" openSignal={refineOpenSignal} guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>{const prevBrand=outputs.p3||'';const prevPres=(outputs.p3_structured&&outputs.p3_structured.presentation)||null;recordCorrection('p3',v);out('p3','');refreshP3(v,prevBrand,prevPres)}}/>}
+        {!isDemo&&<RefineBox anchorId="p3-refine" guard={submitCorrection} sectionId="p3" value={feedback.p3} onChange={v=>setFb('p3',v)} hint="Does this sound like you? If the through-line or the dimensional fit misses the mark, tell us what is off and what would fit better." placeholder="e.g. 'My through-line is operating depth, not strategic vision.' Or: 'You called me a generalist; I am a specialist in supply chain.' Or: 'The Acme integration was a hostile take-under, not a friendly merger; rework the lead if it shifts.'" onRegenerate={v=>queueP3Correction(v)}/>}
         {/* The closing line of Personal Brand, which renders on both tracks. It
             promised Put It to Work by name and described Career Paths, neither of
             which exists over here: the practice track goes to the positioning
