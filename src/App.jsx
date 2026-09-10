@@ -8191,6 +8191,16 @@ export default function PivotEngine(){
       logPromptEngagement('life_events_thin','topic_close_tap','shown')
       setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-tap')])
     }
+    // Welcome message tap (batch item 1.1.7b, 2026-09-10): the framing
+    // message's first-open line ends "Let's start with where you are right
+    // now" with nothing to act on -- the person had to find the page's own
+    // "Let's get started" button on their own. [Let's go] does exactly what
+    // that button does; no auto-advance, since the Welcome screen also
+    // offers "Load a Saved Profile" and the choice stays with the person.
+    if(checkinKey==='welcome-framing'){
+      if(value==='welcome-lets-go')advance('welcome',isIndependent?'orientation-intro':'location')
+      return true
+    }
     if(checkinKey==='employment-status'){
       await saveEmployment(value)
       // A save-and-stop here was a dead end: the acknowledgment landed and the
@@ -9340,7 +9350,12 @@ export default function PivotEngine(){
     const whatComesNext=isIndependent
       ? 'Once it\'s built, we turn it into how you position yourself, which companies are worth pitching, and a plan for pricing your work while your client list grows.'
       : 'Once it\'s built, you get two ways to put it to work: a tailored playbook for one specific opportunity, or a map of directions if you\'re still deciding.'
-    const framingMsg={role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: where things stand for you right now, your resume, your LinkedIn, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with where you are right now.`}
+    // checkinKey/quickReplies added by batch item 1.1.7b (2026-09-10): the
+    // message used to end "Let's start with where you are right now" with
+    // nothing to act on. [Let's go] does exactly what the page's own "Let's
+    // get started" button does; no auto-advance (see the welcome-framing
+    // branch in handleEmploymentQuickReply).
+    const framingMsg={role:'assistant',banner:true,content:`Welcome — I'm glad you're here. I'll walk you through this: where things stand for you right now, your resume, your LinkedIn, an assessment if you have one, your values, your priorities, a few reputation questions, and your story. That's what builds your Personal Brand, the through-line of who you are at work. It takes about half an hour, and it saves as you go, so there's no rush. ${whatComesNext} Let's start with where you are right now.`,checkinKey:'welcome-framing',quickReplies:[{label:'Let\'s go',value:'welcome-lets-go'}]}
     // Two "hello" bubbles stacked (the generic intro, then this one) reads as
     // Coach not paying attention to itself. When the chat is still exactly
     // the untouched seed -- nothing sent, nothing else has happened yet --

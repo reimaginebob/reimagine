@@ -1314,7 +1314,10 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     const lines = []
     if (delta.addedOpportunities.length) lines.push(`Added since last time: ${delta.addedOpportunities.join('; ')}.`)
     if (delta.interviewsHappened.length) lines.push(`Interview(s) that happened: ${delta.interviewsHappened.map(x => x.title).join('; ')}.`)
-    if (delta.otherMovement.length) lines.push(`Other movement logged on an existing opportunity: ${delta.otherMovement.join('; ')}.`)
+    // Carries the current stage label (batch item 1.1.3, 2026-09-10) so the
+    // recap has a real fact to name -- "HOPE is at the offer stage" -- rather
+    // than a bare title it can only gesture vaguely around.
+    if (delta.otherMovement.length) lines.push(`Other movement logged on an existing opportunity: ${delta.otherMovement.map(x => `${x.title} is at the ${x.stage} stage`).join('; ')}.`)
     if (delta.addedDirections.length) lines.push(`New direction(s) saved: ${delta.addedDirections.join('; ')}.`)
     if (delta.newActivity.length) lines.push(`Search activity noted: ${delta.newActivity.map(a => a.activity).join('; ')}.`)
     const factsBlock = lines.length ? lines.join('\n') : 'Nothing changed in their pipeline or activity since their last session.'
