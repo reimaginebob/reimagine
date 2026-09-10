@@ -492,6 +492,12 @@ function sumUsage(a, b) {
 const STEP_MAX_SEARCH_USES = {
   'recruiters-leader-lookup': 2, 'gtm-contact-lookup': 2,
   'panel-interviewer-read': 2, 'openings-match': 2,
+  // Industry Insider ecosystem view (2026-09-10): the category hub and the
+  // per-category role list are illustrative-only, single-pass lookups --
+  // deliberately far below p7's 8, which is the real, actionable company
+  // list once a role is picked. See Output/handoff/2026-09-10_industry-
+  // ecosystem-view.md.
+  'ecosystem-categories': 2, 'ecosystem-roles': 2,
   'resources-verify': 12, 'groups-verify': 12,
   p7: 8, 'gtm-company-read': 8, 'op-company-read': 8,
   'op-salary-read': 6, salaryRead: 6, 'income-buyer-read': 6,
