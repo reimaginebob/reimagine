@@ -25,7 +25,12 @@ check(/import\s*\{\s*detectVoiceViolations\s*\}\s*from\s*'\.\.\/src\/voice-patte
 check(/const hardViolations = detectVoiceViolations\(strippedText, \{ scope: 'runtime' \}\)/.test(coach),
   `${COACH}: hardViolations is not computed from the completed, stripped reply before the retry trigger`)
 
-check(/flags\.citedStat \|\| hardViolations\.length\)/.test(coach),
+// Widened again by the live-side brief PR 2 production fix (2026-09-10):
+// sessionOpenTooLong/sessionOpenSaysINoticed (the session-open three-
+// sentence cap and "I noticed" ban) now trail hardViolations.length in the
+// same trigger condition -- see test-coach-session-open-cap.mjs for those
+// checks specifically.
+check(/flags\.citedStat \|\| hardViolations\.length \|\| sessionOpenTooLong \|\| sessionOpenSaysINoticed\)/.test(coach),
   `${COACH}: the retry trigger condition does not fold in hardViolations.length alongside the existing five flags`)
 
 check(/for \(const v of hardViolations\.slice\(0, 3\)\) wants\.push/.test(coach),
@@ -34,10 +39,12 @@ check(/for \(const v of hardViolations\.slice\(0, 3\)\) wants\.push/.test(coach)
 check(/const hardViolations2 = detectVoiceViolations\(cleaned2, \{ scope: 'runtime' \}\)/.test(coach),
   `${COACH}: the retry's re-check does not re-run detectVoiceViolations on the regenerated reply`)
 
-check(/const score = \(f, hv\) => .*\+ hv\.length/.test(coach),
+// score()'s signature grew two params for the same session-open production
+// fix (tooLong/saysINoticed) -- hv.length is still in there unchanged.
+check(/const score = \(f, hv, tooLong, saysINoticed\) => .*\+ hv\.length/.test(coach),
   `${COACH}: the before/after scoring function does not count hardViolations toward whether the retry wins`)
 
-check(/useRetry = score\(flags2, hardViolations2\) < score\(flags, hardViolations\)/.test(coach),
+check(/useRetry = score\(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2\) < score\(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed\)/.test(coach),
   `${COACH}: useRetry does not compare the widened score (deterministic flags + hard violations) before and after`)
 
 // Additive, not a replacement: detectResidualVoice's own five-category check
