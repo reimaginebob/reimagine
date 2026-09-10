@@ -9637,12 +9637,7 @@ export default function PivotEngine(){
       return(focusVisitCounts[idKey]||0)>=3||stallIdleReached
     })()
     const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}
-    // Industry Insider ecosystem view (2026-09-10): added via assignment,
-    // not folded into the literal above, so the drift guards in
-    // test-coach-moments-career-paths.mjs / -next-move.mjs / -stall.mjs
-    // (each doing an exact-string match on that literal) stay intact.
-    ctx.hasIndustryEcosystemView=hasIndustryEcosystemView
-    ctx.setSelectedLane=setSelectedLane
+    Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
       if(entry.screen!==step)continue
