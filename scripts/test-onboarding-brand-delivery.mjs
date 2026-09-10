@@ -110,29 +110,39 @@ check(chatMountHits === 3,
   `${APP}: expected brandReworkCaptureActive passed at all three <Chat> call sites -- found ${chatMountHits}`)
 
 // The write path: MUST route through submitCorrection (Track 6 conflict
-// detection) with a proceed callback that mirrors the REAL p3 "Does this
-// feel right?" box's onRegenerate exactly (recordCorrection -> out('p3','')
-// -> refreshP3). NOT the generic refineSec/gp/go machinery used by the
-// downstream Focus sections (p5/p6/p7/p8/p9/p11/p_res/income) -- gp has no
-// 'p3' case (it builds prompts FROM p3 for those sections, not p3 itself),
-// so calling refineSec('p3', ...) would throw. Personal Brand's own
-// build/regen path is refreshP3, called directly by its real RefineBox at
-// sectionId="p3" (src/App.jsx, onRegenerate).
+// detection) with a proceed callback. As of the 2026-09-10 box-stacking fix,
+// that callback is queueP3Correction(note) -- the single dispatch point all
+// three p3 correction paths now share (the real RefineBox's onRegenerate,
+// "Put that back", and this brand-rework checkin), so a rework already in
+// flight queues this one instead of it vanishing at refreshP3's re-entrancy
+// guard. queueP3Correction always bottoms out in runP3Correction, which is
+// checked separately below for calling refreshP3 (recordCorrection ->
+// out('p3','') -> refreshP3) rather than the generic refineSec/gp/go
+// machinery used by the downstream Focus sections (p5/p6/p7/p8/p9/p11/p_res/
+// income) -- gp has no 'p3' case (it builds prompts FROM p3 for those
+// sections, not p3 itself), so calling refineSec('p3', ...) would throw.
+// Personal Brand's own build/regen path is refreshP3.
 const brandReworkBranchIdx = app.indexOf("checkinKey==='brand-rework'")
 check(brandReworkBranchIdx !== -1, `${APP}: the checkinKey==='brand-rework' branch is missing from handleEmploymentQuickReply`)
 const brandReworkBranchBlock = app.slice(brandReworkBranchIdx, brandReworkBranchIdx + 500)
-check(brandReworkBranchBlock.includes("submitCorrection('p3',note,()=>{"),
+check(brandReworkBranchBlock.includes("submitCorrection('p3',note,()=>queueP3Correction(note))"),
   `${APP}: the brand-rework write no longer routes through submitCorrection with a proceed callback -- calling refreshP3 directly would skip the conflict-detection guard the DTFR box itself gets`)
-check(brandReworkBranchBlock.includes('refreshP3(note,prevBrand,prevPres)'),
-  `${APP}: the brand-rework proceed callback no longer calls refreshP3 -- this is Personal Brand's real build/regen path, not the generic refineSec used by downstream Focus sections`)
 check(!brandReworkBranchBlock.includes('refineSec('),
   `${APP}: the brand-rework branch calls refineSec -- gp() has no 'p3' case, so refineSec('p3', ...) throws; use refreshP3 (this is the actual bug the first draft of this feature shipped with)`)
 check(brandReworkBranchBlock.includes("if(value==='dismiss')return true"),
   `${APP}: the brand-rework branch no longer handles a decline ('Not now') as a no-op`)
 
+const runP3CorrectionIdx = app.indexOf('const runP3Correction=')
+check(runP3CorrectionIdx !== -1, `${APP}: runP3Correction (the shared p3 correction dispatcher queueP3Correction bottoms out in) is missing`)
+const runP3CorrectionBlock = app.slice(runP3CorrectionIdx, runP3CorrectionIdx + 400)
+check(runP3CorrectionBlock.includes('refreshP3('),
+  `${APP}: runP3Correction no longer calls refreshP3 -- this is Personal Brand's real build/regen path, not the generic refineSec used by downstream Focus sections`)
+check(!runP3CorrectionBlock.includes('refineSec('),
+  `${APP}: runP3Correction calls refineSec -- gp() has no 'p3' case, so refineSec('p3', ...) throws; use refreshP3 (this is the actual bug the first draft of this feature shipped with)`)
+
 if (failures) {
   console.error(`test-onboarding-brand-delivery: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-onboarding-brand-delivery: OK (trigger correctly gated, existing PB check-in untouched but pre-satisfied to prevent a back-to-back duplicate, dedupe threaded through both hydration paths and the autosave blob, brand-rework bridge routes through submitCorrection+refreshP3 -- not the generic refineSec -- at both Chat mounts)')
+  console.log('test-onboarding-brand-delivery: OK (trigger correctly gated, existing PB check-in untouched but pre-satisfied to prevent a back-to-back duplicate, dedupe threaded through both hydration paths and the autosave blob, brand-rework bridge routes through submitCorrection+queueP3Correction, which bottoms out in runP3Correction+refreshP3 -- not the generic refineSec -- at both Chat mounts)')
 }
