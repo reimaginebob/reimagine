@@ -63,8 +63,11 @@ check(!/\bquickReplies:/.test(nmBlock), `${MOMENTS}: next-move should not carry 
 // they define no actionReply) ---
 check(app.includes('const action=entry.actionReply?[entry.actionReply(ctx)]:[]'),
   `${APP}: fireMoment no longer computes an entry-specific action reply from actionReply(ctx)`)
-check(app.includes("const quickReplies=entry.dismissible?[...action,{label:'I\\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:action"),
-  `${APP}: fireMoment's quickReplies no longer lead with the entry's own action reply ahead of the two dismissal taps`)
+// Dismissal taps updated by batch item 1.1.1 (2026-09-10): Remind me later
+// + Minimize Coach for now replace the retired session/screen quiet taps,
+// still trailing the entry's own action reply.
+check(app.includes("const quickReplies=entry.dismissible?[...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:action"),
+  `${APP}: fireMoment's quickReplies no longer lead with the entry's own action reply ahead of the Remind me later / Minimize Coach for now taps`)
 
 // --- The tap handler: genSec threaded through so an actionable onTap can
 // actually start a build ---
