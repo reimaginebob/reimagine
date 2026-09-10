@@ -83,9 +83,12 @@ check(chat.includes('prioritiesCaptureActive = false, lifeStoryCaptureActive = f
   `${CHAT}: prioritiesCaptureActive/lifeStoryCaptureActive props are missing from Chat's destructured props`)
 check(chat.includes("res.headers.get('X-Coach-Priorities')") && chat.includes("res.headers.get('X-Coach-Life-Story')"),
   `${CHAT}: Chat does not read both the X-Coach-Priorities and X-Coach-Life-Story headers`)
-check(chat.includes("checkinKey: 'priorities-capture'") && chat.includes('It replaces whatever is in the'),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'priorities-capture', [") && chat.includes('It replaces whatever is in the'),
   `${CHAT}: the priorities-capture one-tap offer is missing or does not warn it replaces`)
-check(chat.includes("checkinKey: 'life-story-capture'") && chat.includes("It adds a new paragraph to what's already there"),
+check(chat.includes("'life-story-capture', [") && chat.includes("It adds a new paragraph to what's already there"),
   `${CHAT}: the life-story-capture one-tap offer is missing or does not say it adds a paragraph rather than replacing`)
 
 const APP = 'src/App.jsx'

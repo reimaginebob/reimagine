@@ -22,7 +22,10 @@ const app = fs.readFileSync(APP, 'utf8')
 // gated on handled===true, after the await.
 const tapIdx = chat.indexOf('const tapQuickReply = async (idx, opt, checkinKey) => {')
 check(tapIdx !== -1, `${CHAT}: could not find tapQuickReply`)
-const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 4400) : ''
+// Widened for batch item 17 (2026-09-10): the "fold Saved into the coaching
+// turn's own bubble via prefixText" comment on the opportunity-update branch
+// pushed everything after it past the old 4400-char edge.
+const tapBlock = tapIdx !== -1 ? chat.slice(tapIdx, tapIdx + 5100) : ''
 check(!tapBlock.slice(0, tapBlock.indexOf('await onQuickReply')).includes("if (opt.followUp) c.push"),
   `${CHAT}: opt.followUp is still pushed before onQuickReply is awaited -- this is the exact false-confirmation bug being fixed`)
 check(tapBlock.includes('} else if (handled === true) {') && tapBlock.includes('if (opt.followUp) setMessages(m => [...m, { role: \'assistant\', content: opt.followUp, synthetic: true }])'),

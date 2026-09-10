@@ -1027,7 +1027,21 @@ const DISTRESS_TRIGGER_RE = /\bkill(?:ing)? myself\b|\bend (?:my life|it all|my 
 // (read-only production battery, 2026-06-10). Kept narrow on purpose: the
 // DISTRESS_POINTER below names "a friend" and "a counselor", so appending it
 // once is still idempotent under this tighter guard.
-const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b/i
+//
+// Batch item 19 (2026-09-10, production report L11): the narrowing above left
+// a gap it did not anticipate. SYSTEM_PROMPT_STABLE (api/coach.js) instructs
+// the model itself to "add one natural line suggesting they reach out to
+// someone they trust" on this same trigger, and a reply followed that
+// instruction plus named 988 -- neither "someone you/they trust" (the exact
+// instructed phrasing) nor "988" matched this regex, so the guard concluded
+// the reply "lacked a human-pointer" and appended DISTRESS_POINTER on top of
+// a pointer that was already there. Both additions are narrow, specific
+// phrases (not the bare words "trust" or "someone" the 2026-06-10 narrowing
+// was written to avoid), and this check only ever runs on a reply to a
+// message that already matched DISTRESS_TRIGGER_RE -- a message a genuine
+// job-search/networking question would not -- so they do not reopen the
+// false-positive the narrowing fixed.
+const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b|\b988\b|\bsomeone (?:you|they) trust\b/i
 const DISTRESS_POINTER = " One more thing, and it matters more than any job-search tactic: what you're describing sounds heavier than a hard week of searching — please talk to someone you trust about it, a friend, someone close to you, or a counselor. You're not meant to carry that alone."
 export function ensureDistressSupport(userMessage, output) {
   if (typeof output !== 'string') return output

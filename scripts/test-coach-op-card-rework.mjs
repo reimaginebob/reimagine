@@ -71,7 +71,10 @@ check(chat.includes("const ocrHeader = res.headers.get('X-Coach-Op-Card-Rework')
   `${CHAT}: does not read the X-Coach-Op-Card-Rework header`)
 check(chat.includes('if (opCardReworkCaptureActive && ocrHeader)'),
   `${CHAT}: the op-card-rework capture block is not gated on its capture-active prop`)
-check(chat.includes("checkinKey: 'op-card-rework',"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'op-card-rework', ["),
   `${CHAT}: the tap offer does not carry the op-card-rework checkinKey`)
 check(chat.includes("const label = (OP_COUNTED_SECTIONS.find(s => s.key === section) || {}).label || section"),
   `${CHAT}: the tap offer does not name the card by its user-facing label via OP_COUNTED_SECTIONS`)

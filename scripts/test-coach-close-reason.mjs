@@ -149,7 +149,10 @@ check(chat.includes('closeReasonCaptureActive = false'),
   `${CHAT}: closeReasonCaptureActive prop is missing from Chat's destructured props`)
 check(chat.includes("const crHeader = res.headers.get('X-Coach-Close-Reason')"),
   `${CHAT}: Chat does not read the X-Coach-Close-Reason header`)
-check(chat.includes("checkinKey: 'close-reason'"),
+// Batch item 17 (2026-09-10): merged onto the reply's own bubble via
+// mergeOfferOntoReply(content, checkinKey, quickReplies); checkinKey is the
+// second positional argument now, not an object key.
+check(chat.includes("'close-reason', ["),
   `${CHAT}: the close-reason one-tap offer is missing`)
 check(chat.includes('Category: ${label}') || chat.includes('Category: ') ,
   `${CHAT}: the close-reason offer does not show the category before the tap`)

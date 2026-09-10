@@ -7491,6 +7491,26 @@ export default function PivotEngine(){
   const[saveError,setSaveError]=useState(null)
   const[toast,setToast]=useState(null)
   const saveRef=useRef(null)
+  // Batch item 18 (2026-09-10, production report L8: a false "not being
+  // saved" banner flashed during a build and cleared on its own). The
+  // autosave effect below reschedules its own 800ms debounce on every
+  // dependency change but never tracked whether a PREVIOUS save() call's
+  // fetch was still in flight -- a build's bursty state changes could let a
+  // second debounce elapse and fire a second, overlapping PUT before the
+  // first one resolved. Both read profileUpdatedAtRef.current at the same
+  // moment, so the server's optimistic-concurrency check (api/profile/
+  // save.js) accepts whichever of the tab's own two requests lands first and
+  // rejects the other with a genuine 409 -- read by the client as "another
+  // device saved newer changes," when it was really this tab racing itself.
+  // The next debounced save (the build kept changing state) then succeeded
+  // and cleared saveError unconditionally, so the banner flashed and
+  // self-healed with no real conflict ever having existed. saveInFlightRef
+  // and saveRerunPendingRef below serialize saves instead: a save() call
+  // that finds one already running marks a rerun pending and returns rather
+  // than starting a second fetch, and the in-flight call re-invokes itself
+  // once more on its own completion if a rerun was marked meanwhile.
+  const saveInFlightRef=useRef(false)
+  const saveRerunPendingRef=useRef(false)
   const playbookSavePendingRef=useRef(false)
   const afterSaveRunRef=useRef(null)
   // The app shell is height:100vh overflow:hidden; the actual scroll
@@ -10324,6 +10344,11 @@ export default function PivotEngine(){
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{
     if(deletingRef.current)return
+    // Batch item 18: never run two saves concurrently -- see the refs'
+    // declaration comment above. A save that finds one already in flight
+    // queues a rerun instead of starting a second, overlapping PUT.
+    if(saveInFlightRef.current){saveRerunPendingRef.current=true;return}
+    saveInFlightRef.current=true
     setSaveStatus('saving')
     try{
       // Phase 3: savedPlaybooks is NO LONGER written into the profile blob — it
@@ -10359,6 +10384,14 @@ export default function PivotEngine(){
       setSaveStatus('saved')
       setSaveError(null)
     }catch{setSaveStatus('error');setSaveError('device_full')}
+    finally{
+      saveInFlightRef.current=false
+      // A dependency change arrived while this save's fetch was still in
+      // flight and got queued above instead of firing its own overlapping
+      // PUT -- run it now, serially, so that change still reaches the
+      // server rather than being silently dropped.
+      if(saveRerunPendingRef.current){saveRerunPendingRef.current=false;save()}
+    }
   };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,seenOnboardingFraming,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
