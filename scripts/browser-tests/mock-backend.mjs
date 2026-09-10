@@ -12,14 +12,14 @@ import { buildProfileLoadResponse, buildMeResponse, DOOR1_RECORD, DOOR2_RECORD }
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
-export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.' } = {}) {
+export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.', employmentStatus = 'employed' } = {}) {
   const coachRequests = []
 
   // Catch-all first (lowest precedence): anything not explicitly mocked
   // below gets a harmless empty 200 rather than a real network attempt.
   await page.route('**/api/**', route => route.fulfill(json({})))
 
-  await page.route('**/api/me', route => route.fulfill(json(buildMeResponse({ flagged }))))
+  await page.route('**/api/me', route => route.fulfill(json(buildMeResponse({ flagged, employmentStatus }))))
   await page.route('**/api/profile/load', route => route.fulfill(json(buildProfileLoadResponse({ step }))))
   await page.route('**/api/saved-playbooks', route => route.fulfill(json({ playbooks: [DOOR1_RECORD, DOOR2_RECORD] })))
   // Nothing needs to persist for these tests -- accept any write silently.
