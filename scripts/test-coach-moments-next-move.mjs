@@ -71,7 +71,7 @@ check(app.includes("const quickReplies=entry.dismissible?[...action,{label:'Remi
 
 // --- The tap handler: genSec threaded through so an actionable onTap can
 // actually start a build ---
-check(app.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})'),
+check(app.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,'),
   `${APP}: the moment tap handler no longer passes genSec into onTap's ctx -- next-move's onTap could not start a build`)
 
 // --- genSec/gp/go lifted to component scope, and FOCUS_ORDER to a pure
@@ -102,11 +102,16 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // stallEligible appended Phase 3b -- next-move's own fields are still
 // present alongside it, not replaced; test-coach-moments-stall.mjs covers
 // stallEligible's own shape.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}'),
+// stallTarget appended by batch item 1.1.5; extended by live-side brief
+// PR 2, same day, with the op-side fields; next-move's own fields are
+// still present alongside both, not replaced.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}'),
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1): forces
-// a re-pick the instant an in-flight generated moment settles.
-check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])'),
+// a re-pick the instant an in-flight generated moment settles. savedPlaybooks/
+// activePlaybooks/pursuitStatus/connNetwork/connManual/connSearch appended by
+// live-side brief PR 2, same day, for the op-side ctx fields above.
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---

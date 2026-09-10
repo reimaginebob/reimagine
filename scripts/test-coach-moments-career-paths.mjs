@@ -52,8 +52,13 @@ check(moments.includes('generated: true,'), `${MOMENTS}: at least one entry shou
 // next-move, which scripts/test-coach-moments-next-move.mjs covers on its
 // own terms -- counted here as a total-catalog sanity check, not a claim
 // that all 12 belong to Career Paths' own scope.
+// 20 total as of live-side brief PR 2 (2026-09-10): the original 12 (2
+// Choice + 9 Delivery + next-move) plus 8 op-side generated entries (7
+// delivery-op-* + op-next-move) -- scripts/test-coach-moments-ordering.mjs
+// and this PR's own op-side coverage guard those on their own terms; this
+// stays a total-catalog sanity check, not a claim of scope.
 const generatedCount = (moments.match(/generated: true,/g) || []).length
-check(generatedCount === 12, `${MOMENTS}: expected 12 generated entries total (2 Choice + 9 Delivery + next-move), found ${generatedCount}`)
+check(generatedCount === 20, `${MOMENTS}: expected 20 generated entries total (2 Choice + 9 Delivery + next-move + 7 delivery-op-* + op-next-move), found ${generatedCount}`)
 
 // dedupeKey: Choice keys off role/lane identity alone; Delivery keys off
 // the same identity but ALSO compares content (dedupeValue), so a rebuild
@@ -104,16 +109,22 @@ check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: deliver
 // Phase 3b -- their own shapes are covered in test-coach-moments-next-
 // move.mjs and test-coach-moments-stall.mjs; this just confirms Career
 // Paths' own six fields are still present alongside them, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}'),
+// stallTarget appended by batch item 1.1.5 (2026-09-10); extended by live-
+// side brief PR 2, same day, with the op-side fields (savedPlaybooks,
+// opHasRecords, opNearestRecord, opPipelineArrivalCopy, opRecord,
+// opNextMoveTarget, opInterviewCloseTarget, opResumeJumpTarget) -- Career
+// Paths' own six fields are still present alongside both, not replaced.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}'),
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
 
 // --- Server: shape validation, authoritative gate, dispatch ---
 check(coach.includes("const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}"),
   `${COACH}: moment is not destructured from the request body`)
 // next-move appended Phase 3a -- its own payload/dispatch shape is covered
-// in test-coach-moments-next-move.mjs.
-check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income', 'next-move']"),
-  `${COACH}: MOMENT_KEYS is missing or has drifted from the 2 Choice + 9 Delivery keys plus next-move`)
+// in test-coach-moments-next-move.mjs. The op-side keys (7 delivery-op-* +
+// op-next-move) appended by live-side brief PR 2 (2026-09-10).
+check(coach.includes("const MOMENT_KEYS = ['choice-lane', 'choice-role', 'delivery-p5', 'delivery-p6', 'delivery-p9', 'delivery-salaryRead', 'delivery-p11', 'delivery-p_res', 'delivery-p8', 'delivery-p7', 'delivery-income', 'next-move', 'delivery-op-companyRead', 'delivery-op-salaryRead', 'delivery-op-p5', 'delivery-op-p_res', 'delivery-op-p_cover', 'delivery-op-p11', 'delivery-op-offerNegotiation', 'op-next-move']"),
+  `${COACH}: MOMENT_KEYS is missing or has drifted from the 2 Choice + 9 Delivery keys plus next-move plus the op-side keys`)
 check(/function momentPayloadOk\(key, m\) \{/.test(coach), `${COACH}: momentPayloadOk (per-key required-field validation) is missing`)
 check(coach.includes("if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()"),
   `${COACH}: Delivery's payload check does not require non-empty text AND sectionLabel fields for every delivery- key -- an absent one would reach clip() as undefined and throw, or leave the reaction unlabeled`)

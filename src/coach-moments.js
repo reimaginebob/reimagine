@@ -372,4 +372,230 @@ export const MOMENT_CATALOG = [
       return true
     },
   },
+  // Live-side brief PR 2 (Output/handoff/2026-09-10_concierge-live-side-brief.md):
+  // the same catalog shape, mirrored onto the Opportunity Playbook / My
+  // Pipeline. Taps: the shared "Remind me later" / "Minimize Coach for now"
+  // pair every dismissible entry gets by default (batch item 1.1.1,
+  // src/App.jsx) -- no op-specific override needed. significance follows
+  // the same two values the batch's item 1.1.7 established: 'open' for a
+  // reactive family (Delivery here) that should pop the panel open even
+  // from minimized, 'ordinary' for a self-initiated one (Arrival, Next
+  // move) that should not.
+  //
+  // Most of the copy below is composed in the evaluator (src/App.jsx), not
+  // here -- the same division of labor nextMoveTarget already established:
+  // ctx carries the resolved, ready-to-render strings/targets, and these
+  // entries stay declarative. This keeps per-card branching logic (what's
+  // built, what stage, which card follows) next to the state it reads
+  // instead of duplicated into this catalog file.
+  {
+    key: 'op-pipeline-arrival',
+    family: 'arrival',
+    screen: 'pipeline',
+    // Ordinary, not 'open' -- self-initiated (batch item 1.1.7): fires and
+    // lands in chatMessages while minimized without popping the panel open.
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 1,
+    promptCode: 'op_pipeline_arrival',
+    // Once per account, ever -- same flat shape as ptw-arrival (no dedupeKey
+    // needed; defaults to subKey '_').
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge,
+    message: (ctx) => ctx.opPipelineArrivalCopy,
+    quickReplies: (ctx) => ctx.opNearestRecord ? [{ label: `Open ${ctx.opNearestRecord.company}`, value: `op-open:${ctx.opNearestRecord.id}` }] : [],
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-open:')) ctx.openOpRecord(value.slice('op-open:'.length))
+      return true
+    },
+  },
+  {
+    key: 'op-playbook-arrival',
+    family: 'arrival',
+    screen: 'op',
+    // Ordinary, not 'open' -- see op-pipeline-arrival's comment above.
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 1,
+    promptCode: 'op_playbook_arrival',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord,
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    message: (ctx) => ctx.opRecord.arrivalCopy,
+    quickReplies: (ctx) => ctx.opRecord.arrivalTarget ? [{ label: `Build ${ctx.opRecord.arrivalTarget.label}`, value: `op-build:${ctx.opRecord.arrivalTarget.key}` }] : [],
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-build:')) ctx.generateOpSectionFor(value.slice('op-build:'.length))
+      return true
+    },
+  },
+  // One entry per buildable card, same pattern -- and the same literal,
+  // un-factored shape -- as the Focus side's delivery-p5/delivery-p6/etc:
+  // each has its own eligible/dedupeKey so a build on one card can never
+  // suppress or be confused with another. Bridge Story (p6) has no separate
+  // row here -- see OP_MOMENT_CARD_KEYS's own comment in src/App.jsx for why
+  // (it is p5's closing beat, not an independent card). dedupeKey is the
+  // record id; dedupeValue is the card's built text, so a rebuild (new
+  // content) re-fires the reaction the same way a Focus-side rebuild does.
+  {
+    key: 'delivery-op-companyRead',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_companyRead',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('companyRead'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('companyRead'),
+    momentContext: (ctx) => ({ section: 'companyRead', sectionLabel: ctx.opRecord.cardLabel('companyRead'), text: ctx.opRecord.cardText('companyRead') }),
+  },
+  {
+    key: 'delivery-op-salaryRead',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_salaryRead',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('salaryRead'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('salaryRead'),
+    momentContext: (ctx) => ({ section: 'salaryRead', sectionLabel: ctx.opRecord.cardLabel('salaryRead'), text: ctx.opRecord.cardText('salaryRead') }),
+  },
+  {
+    key: 'delivery-op-p5',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_p5',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p5'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('p5'),
+    momentContext: (ctx) => ({ section: 'p5', sectionLabel: ctx.opRecord.cardLabel('p5'), text: ctx.opRecord.cardText('p5') }),
+  },
+  {
+    key: 'delivery-op-p_res',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_p_res',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_res'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('p_res'),
+    momentContext: (ctx) => ({ section: 'p_res', sectionLabel: ctx.opRecord.cardLabel('p_res'), text: ctx.opRecord.cardText('p_res') }),
+  },
+  {
+    key: 'delivery-op-p_cover',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_p_cover',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_cover'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('p_cover'),
+    momentContext: (ctx) => ({ section: 'p_cover', sectionLabel: ctx.opRecord.cardLabel('p_cover'), text: ctx.opRecord.cardText('p_cover') }),
+  },
+  {
+    key: 'delivery-op-p11',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_p11',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p11'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('p11'),
+    momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.opRecord.cardText('p11') }),
+  },
+  {
+    key: 'delivery-op-offerNegotiation',
+    family: 'delivery',
+    screen: 'op',
+    significance: 'open',
+    dismissible: true,
+    priority: 3,
+    promptCode: 'delivery_op_offerNegotiation',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('offerNegotiation'),
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    dedupeValue: (ctx) => ctx.opRecord.cardText('offerNegotiation'),
+    momentContext: (ctx) => ({ section: 'offerNegotiation', sectionLabel: ctx.opRecord.cardLabel('offerNegotiation'), text: ctx.opRecord.cardText('offerNegotiation') }),
+  },
+  {
+    key: 'op-next-move',
+    family: 'next_move',
+    screen: 'op',
+    // Ordinary, not 'open' -- self-initiated, same as Focus's own next-move
+    // (batch item 1.1.7).
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_next_move',
+    generated: true,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opNextMoveTarget,
+    dedupeKey: (ctx) => ctx.opNextMoveTarget.recordId,
+    dedupeValue: (ctx) => `${ctx.opNextMoveTarget.anchorLabel}::${ctx.opNextMoveTarget.nextId}`,
+    momentContext: (ctx) => ({ justBuiltLabel: ctx.opNextMoveTarget.anchorLabel, nextLabel: ctx.opNextMoveTarget.nextLabel, company: ctx.opNextMoveTarget.company }),
+    actionReply: (ctx) => ({ label: ctx.opNextMoveTarget.tapLabel, value: `op-next:${ctx.opNextMoveTarget.nextId}` }),
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-next:')) ctx.opNextMoveOnTap(value.slice('op-next:'.length))
+      return true
+    },
+  },
+  {
+    key: 'op-interview-close',
+    family: 'check',
+    // Eligible from either hub screen -- My Pipeline (scanning every saved
+    // opportunity) or a specific opportunity's own playbook (that one
+    // record). See the evaluator's screen-array support (src/App.jsx),
+    // added for this row: every other entry above still names one screen.
+    screen: ['pipeline', 'op'],
+    significance: 'open',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_interview_close',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opInterviewCloseTarget,
+    dedupeKey: (ctx) => ctx.opInterviewCloseTarget.recordId,
+    // Re-fires per interview date, not just once per record -- a second
+    // interview later in the same pipeline record is worth its own check.
+    dedupeValue: (ctx) => ctx.opInterviewCloseTarget.dateIso,
+    message: (ctx) => ctx.opInterviewCloseTarget.copy,
+    quickReplies: (ctx) => [{ label: ctx.opInterviewCloseTarget.tapLabel, value: `op-interview-close:${ctx.opInterviewCloseTarget.recordId}` }],
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-interview-close:')) ctx.opInterviewCloseOnTap(value.slice('op-interview-close:'.length))
+      return true
+    },
+  },
+  {
+    key: 'op-resume-jump',
+    family: 'next_move',
+    screen: 'op',
+    // Ordinary, not 'open' -- self-initiated, same reasoning as op-next-move.
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_resume_jump',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opResumeJumpTarget,
+    // Once per direction (lane), not per record -- a second opportunity in
+    // the same direction should not repeat an offer already made or
+    // resolved.
+    dedupeKey: (ctx) => ctx.opResumeJumpTarget.lane,
+    message: (ctx) => ctx.opResumeJumpTarget.copy,
+    quickReplies: () => [{ label: 'Build Resume Refresh', value: 'op-resume-jump-build' }],
+    onTap: (value, ctx) => {
+      if (value === 'op-resume-jump-build') ctx.opResumeJumpOnTap()
+      return true
+    },
+  },
 ]
