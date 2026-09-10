@@ -8277,6 +8277,12 @@ export default function PivotEngine(){
         opNextMoveOnTap:(k)=>{
           if(k==='knownContacts'){scrollToOutput('knownContacts');return}
           if(k==='practice'){const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current);openCoachWith(`I want to practice my interview answers for ${(rec&&(rec.company||rec.title))||'this opportunity'}.`);return}
+          // Trade-off considerations (live-side brief PR 2 fix, 2026-09-10):
+          // reuses the exact seed text the Offer & Negotiation card's own
+          // "Talk through the trade-offs with My Coach" button sends
+          // (offer-card-review brief, 2026-08-08) -- same dialogue, just
+          // reachable from the Next move offer too, not a new one.
+          if(k==='tradeoff'){const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current);openCoachWith(`Walk me through the key trade-offs in my ${(rec&&rec.title)||'offer'} one at a time — for each, tell me what I'd gain and what I'd give up given my priorities, ask where I lean, then move to the next, so I can figure out what matters most to me. Don't decide for me.`,false,'offerNegotiation');return}
           generateOpSection(k)
         },
         opInterviewCloseOnTap:(recId)=>{
@@ -9784,19 +9790,23 @@ export default function PivotEngine(){
     // key, the pseudo-key 'knownContacts' (Who You Know Here -- matched, not
     // generated, so its tap scrolls to the card instead of building it), the
     // pseudo-key 'practice' (Interview Prep already built -- offer practice,
-    // not a rebuild), or null when nothing fits (silence is allowed). No
-    // 'referred' stage exists in PURSUIT_STAGES (src/pursuit-stages.js); the
-    // brief's "applied or referred" reads as 'applied' here -- see the PR
-    // description for this call. Offer-stage, Offer & Negotiation-already-built
-    // ("the trade-off drill", inventory row 21) has no discoverable built
-    // feature behind it in this codebase, so it resolves to null (no Next
-    // move) rather than inventing one -- flagged in the PR for a real answer.
+    // not a rebuild), the pseudo-key 'tradeoff' (Offer & Negotiation already
+    // built -- offer the card's own "Talk through the trade-offs with My
+    // Coach" hand-off, confirmed 2026-09-10; its onTap reuses that button's
+    // exact seed text), or null when nothing fits (silence is allowed).
+    //
+    // Keyed only on real PURSUIT_STAGES values (src/pursuit-stages.js):
+    // researching, applied, phone_screen, interviewing, final_round, offer,
+    // closed. 'referred' is not one of these -- it was the original brief's
+    // error, corrected 2026-09-10; this rule never referenced it in code, and
+    // no stage was renamed or added to fix this.
     const opPickByStage=(stage,cardBuilt,knownCount)=>{
       if(stage==='applied'&&!knownCount)return'knownContacts'
       if(stage==='applied'&&!cardBuilt('p_cover'))return'p_cover'
       if(stage==='interviewing'&&!cardBuilt('p11'))return'p11'
       if(stage==='interviewing'&&cardBuilt('p11'))return'practice'
       if(stage==='offer'&&!cardBuilt('offerNegotiation'))return'offerNegotiation'
+      if(stage==='offer'&&cardBuilt('offerNegotiation'))return'tradeoff'
       return null
     }
     const opCurrentRecordRaw=(()=>{
@@ -9814,9 +9824,10 @@ export default function PivotEngine(){
       const builtOnes=OP_MOMENT_CARD_KEYS.filter(cardBuilt)
       const builtSummary=builtOnes.length?`${builtOnes.map(cardLabel).join(' and ')} ${builtOnes.length===1?'is':'are'} built.`:'Nothing is built on it yet.'
       const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
-      const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice')?{key:pick,label:cardLabel(pick)}:null
+      const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice'&&pick!=='tradeoff')?{key:pick,label:cardLabel(pick)}:null
       const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
         :pick==='practice'?'Interview Prep is built — want to practice the answer that’s weakest?'
+        :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
       return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalCopy:`This is your playbook for ${opCurrentRecordRaw.title||'this role'} at ${company}. ${builtSummary} ${stageLine}`.trim()}
@@ -9837,8 +9848,8 @@ export default function PivotEngine(){
       if(!anchorKey)return null
       const pick=opPickByStage(opRecord.stage,opRecord.cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       if(!pick||pick===anchorKey)return null
-      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':opRecord.cardLabel(pick)
-      const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':`Build ${nextLabel}`
+      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
+      const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':pick==='tradeoff'?'Trade-off considerations':`Build ${nextLabel}`
       return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel}
     })()
     // Interview is close (Check family): scans every active opportunity, not

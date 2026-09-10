@@ -182,6 +182,41 @@ async function run() {
         await context.close()
       }
     }
+
+    // --- Scenario 5 (live-side brief PR 2 fix, 2026-09-10): offer stage with
+    // Offer & Negotiation already built offers "Trade-off considerations",
+    // not silence -- and the tap seeds My Coach with the exact same dialogue
+    // the Offer & Negotiation card's own "Talk through the trade-offs with
+    // My Coach" button sends. ---
+    {
+      const rec = opRecord({ sections: { ...EMPTY_SECTIONS, p5: { content: 'Built Where You Fit content.', builtAt: '2026-09-10T12:00:00.000Z' }, offerNegotiation: { content: 'Built Offer & Negotiation analysis.', builtAt: '2026-09-10T12:00:00.000Z' } } })
+      const coachMoments = {
+        'op-playbook-arrival': { [rec.id]: { value: 'fired', firedAt: '2026-09-01T12:00:00.000Z' } },
+        'delivery-op-p5': { [rec.id]: { value: 'Built Where You Fit content.', firedAt: '2026-09-01T12:05:00.000Z' } },
+      }
+      const pursuitStatusRows = [{ record_id: rec.id, stage: 'offer' }]
+      const { context, page } = await openPage(browser, { step: 'op', savedPlaybooksOverride: [DOOR1_RECORD, rec], chosenOverride: rec.title, coachMoments, pursuitStatusRows })
+      await page.route('**/api/coach', async route => {
+        let body = null
+        try { body = route.request().postDataJSON() } catch {}
+        const key = body && body.moment && body.moment.key
+        if (key === 'op-next-move') await route.fulfill({ status: 200, contentType: 'text/plain', body: 'NEXT_MOVE_TRADEOFF_REPLY' })
+        else await route.fulfill({ status: 200, contentType: 'text/plain', body: 'Got it.' })
+      })
+      await page.goto(DEV_URL)
+      await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
+      await page.locator(INPUT).waitFor({ state: 'visible', timeout: 10000 })
+
+      const nextMoveMsg = page.locator(ASSISTANT_MSG).filter({ hasText: 'NEXT_MOVE_TRADEOFF_REPLY' }).first()
+      await nextMoveMsg.waitFor({ state: 'attached', timeout: 10000 })
+      const tradeoffTap = nextMoveMsg.locator('button', { hasText: 'Trade-off considerations' })
+      check(await tradeoffTap.isVisible(), 'Next move offers "Trade-off considerations" for an offer-stage record with Offer & Negotiation already built, not silence')
+      await tradeoffTap.click()
+      await page.locator(INPUT).waitFor({ state: 'visible', timeout: 10000 })
+      const seeded = await page.locator(INPUT).inputValue()
+      check(seeded.includes('key trade-offs') && seeded.includes(rec.title), `Tapping it seeds My Coach with the Offer & Negotiation card's own trade-off dialogue, naming this opportunity (got: ${JSON.stringify(seeded.slice(0, 160))})`)
+      await context.close()
+    }
   } finally {
     await browser.close()
   }
@@ -190,7 +225,7 @@ async function run() {
     console.error(`test-coach-moments-op-side: ${failures} check(s) failed`)
     process.exit(1)
   } else {
-    console.log('test-coach-moments-op-side: OK (Opportunity Playbook arrival names the record; Delivery\'s request names both the record via Situation and the card via moment.section/sectionLabel; Next move picks the target by stage and built-state, not display order; Interview-close fires once per interview date and respects a reloaded dedupe record)')
+    console.log('test-coach-moments-op-side: OK (Opportunity Playbook arrival names the record; Delivery\'s request names both the record via Situation and the card via moment.section/sectionLabel; Next move picks the target by stage and built-state, not display order; Interview-close fires once per interview date and respects a reloaded dedupe record; offer-stage + Offer & Negotiation built offers Trade-off considerations, seeding the card\'s own trade-off dialogue)')
   }
 }
 
