@@ -7060,7 +7060,10 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
         const rows=[
           <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
             <Icon size={16}/>
-            <span style={{flex:1}}>{label}</span>
+            {/* Batch item 10 (2026-09-10): same mark as the header pill
+                (CoachMark, src/components/CoachMark.jsx), so the sidebar
+                entrance to My Coach shares an identity with the other one. */}
+            <span style={{flex:1,display:'flex',alignItems:'center',gap:6}}>{label}{id==='myCoach'&&<CoachMark C={C}/>}</span>
             {badge>0&&<span title={`${badge} past due`} style={{flexShrink:0,minWidth:20,textAlign:'center',fontSize:15,fontWeight:700,color:'#FFFFFF',background:'#D92D20',borderRadius:20,padding:'0 6px',lineHeight:'20px'}}>{badge}</span>}
           </div>,
         ]
@@ -7108,7 +7111,10 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   {signedIn&&(()=>{const active=step==='myCoach';return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
     <MessageCircle size={17} color={active?'#FFFFFF':C.gold}/>
     <div style={{flex:1}}>
-      <div style={{fontSize:17,fontWeight:active?700:600,color:active?'#FFFFFF':'#F1F5F9'}}>My Coach</div>
+      {/* Batch item 10 (2026-09-10): same mark as the header pill (CoachMark,
+          src/components/CoachMark.jsx), so this entrance to My Coach shares
+          an identity with the other one. */}
+      <div style={{fontSize:17,fontWeight:active?700:600,color:active?'#FFFFFF':'#F1F5F9',display:'flex',alignItems:'center',gap:6}}>My Coach<CoachMark C={C}/></div>
       <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>Ask anything, anytime</div>
     </div>
   </div>})()}
