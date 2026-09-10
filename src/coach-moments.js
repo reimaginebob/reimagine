@@ -101,6 +101,33 @@ export const MOMENT_CATALOG = [
     quickReplies: [],
   },
   {
+    // Industry Insider ecosystem view (2026-09-10). A separate flag from
+    // hasOnboardingConcierge on purpose -- this pilot is toggled
+    // independently of the onboarding-narration rollout the rest of this
+    // catalog gates on, so its own eligibility reads ctx.hasIndustryEcosystemView
+    // instead. Fires once, on arrival at Career Paths, only for an account
+    // that has not yet opened Industry Insider (outputs.p4.insider unset) --
+    // once they have, they already know how this lane works. Static, not
+    // generated: nothing here depends on a judged read of their content, so
+    // it needs no model call.
+    key: 'ecosystem-suggest',
+    family: 'arrival',
+    screen: 'laneSelect',
+    significance: 'open',
+    dismissible: true,
+    priority: 1,
+    promptCode: 'ecosystem_suggest',
+    eligible: (ctx) => !!ctx.hasIndustryEcosystemView && !(ctx.outputs && ctx.outputs.p4 && ctx.outputs.p4.insider),
+    message: 'One thing before you pick a direction: Industry Insider works differently here. Instead of a straight role list, it opens a map of your industry\'s categories, then the roles inside each one, so you can start broad and narrow in from there.',
+    quickReplies: [
+      { label: 'Show me the ecosystem view', value: 'ecosystem-open' },
+    ],
+    onTap: (value, ctx) => {
+      if (value === 'ecosystem-open') { ctx.setSelectedLane('insider'); ctx.advance('laneSelect', 'p4') }
+      return true
+    },
+  },
+  {
     key: 'choice-lane',
     family: 'choice',
     screen: 'p4',
