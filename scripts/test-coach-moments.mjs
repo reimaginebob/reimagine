@@ -81,8 +81,11 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // bit further still. Widened again for the live-side brief PR 1 ordering fix
 // (2026-09-10): the momentInFlightRef in-flight check (with its explanatory
 // comment) sits between "if(!picked)return" and the static-branch dispatch,
-// pushing everything after it further from evalIdx again.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 3900) : ''
+// pushing everything after it further from evalIdx again. Widened again for
+// batch item 1.1.5's Stall rewrite (2026-09-10): entryMessage/
+// entryQuickReplies (resolving message/quickReplies as either a plain value
+// or a function of ctx) sit ahead of the static-branch dispatch now.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 4600) : ''
 // The old quiet-states early return is retired (batch item 1.1.4/1.1.7,
 // 2026-09-10): it used to block the WHOLE evaluator from running, which was
 // also the significance bug (observed B4, confirmed L8/L9) -- an ordinary
@@ -115,7 +118,14 @@ check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMome
 // (session/screen quiet) are replaced by one decline (Remind me later) and
 // one presence control (Minimize Coach for now) -- superseding the
 // 2026-09-09 voice-review rename this comment used to describe.
-check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entry.quickReplies"),
+// entryMessage/entryQuickReplies added by batch item 1.1.5 (2026-09-10):
+// message/quickReplies resolved as either a plain value or a function of
+// ctx, since Stall's copy now names the actual target section.
+check(evalBlock.includes("const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message"),
+  `${APP}: the static branch no longer resolves entry.message as either a plain value or a function of ctx`)
+check(evalBlock.includes("const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies"),
+  `${APP}: the static branch no longer resolves entry.quickReplies as either a plain value or a function of ctx`)
+check(evalBlock.includes("entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies"),
   `${APP}: a dismissible static entry's message does not append the Remind me later / Minimize Coach for now taps`)
 check(evalBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)

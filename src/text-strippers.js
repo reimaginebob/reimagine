@@ -967,12 +967,32 @@ const MARKET_SUBS = [
   // "N companies are hiring ..."
   /(^|[.!?]\s+|\n+)[^.!?\n]*?\b\d+\s+companies\s+(?:are\s+)?(?:hiring|are\s+looking)\b[^.!?\n]*?[.!?]/gi,
 ]
+// Grounding fix (batch item 15, 2026-09-10, production report L4: a
+// Compensation Read reply "begins mid-sentence"). MARKET_SUBS[1] (the
+// "salary/compensation is/are/sits/ranges ... $X" shape) cannot tell a
+// genuinely fabricated figure from a GROUNDED one the model is properly
+// citing -- "Your compensation here sits around $118,700 based on
+// Comparably" matches the same shape as an invented number, and the whole
+// opening sentence was deleted, leaving the reply to open mid-thought on
+// whatever came next. looksSourcedMarketData is the same "skip it if it
+// names where the number came from" guard stripComparativeStanding already
+// uses for comparatives (looksSourced above), specialized to the named
+// salary-data providers and citation language a real Compensation Read
+// answer actually uses.
+function looksSourcedMarketData(s) {
+  return /\b(comparably|zip ?recruiter|glassdoor|levels\.fyi|payscale|salary\.com|linkedin salary|bureau of labor|\bbls\b|compensation read)\b/i.test(s) ||
+    /\b(based on|according to|sourced from|per your)\b/i.test(s)
+}
 export function stripFabricatedMarketData(text) {
   if (typeof text !== 'string' || !text) return text
   let out = text
   let count = 0
   for (const re of MARKET_SUBS) {
-    out = out.replace(re, (_m, lead) => { count++; return lead })
+    out = out.replace(re, (m, lead) => {
+      if (looksSourcedMarketData(m)) return m
+      count++
+      return lead
+    })
   }
   if (count > 0) {
     console.warn(`[stripFabricatedMarketData] removed ${count} fabricated market-data claim${count === 1 ? '' : 's'} from LLM output`)

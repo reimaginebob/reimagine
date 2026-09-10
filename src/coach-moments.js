@@ -339,8 +339,9 @@ export const MOMENT_CATALOG = [
     dismissible: true,
     // Lowest priority on 'focus' -- an absence signal, so anything real
     // (Choice, Delivery, Next move) always wins a same-pass tie. In
-    // practice they rarely compete: stallEligible requires nothing built at
-    // all, which Delivery and Next move's own eligibility already rule out.
+    // practice they rarely compete: stallEligible requires nothing beyond
+    // the free first section built, which Delivery and Next move's own
+    // eligibility already rule out.
     priority: 1,
     promptCode: 'stall',
     // Static, not generated: the design calls this "one question, not a
@@ -354,12 +355,20 @@ export const MOMENT_CATALOG = [
     // value). Nothing about a fresh visit some time later should be read as
     // new content worth reacting to again the way a Delivery rebuild is.
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
-    message: 'You\'ve come back to this a few times without building anything yet. What would make it worth doing right now — or would you rather look at something else?',
-    quickReplies: [
-      { label: 'Take me to Career Paths', value: 'stall-redirect' },
+    // Copy APPROVED (Bob, 2026-09-10, per 2026-09-09_coach-phase3-voice-
+    // review.md) -- replaces the earlier DRAFT wording. message/quickReplies
+    // are functions of ctx, not fixed values: ctx.stallTarget (the section
+    // right after the free first one -- see the D3 comment on stallEligible
+    // in App.jsx) names the actual section on offer, which a fixed string
+    // could not.
+    message: (ctx) => `Nothing is built for this role yet. Want me to build ${ctx.stallTarget.label} now, or would you rather look at other roles?`,
+    quickReplies: (ctx) => [
+      { label: `Build ${ctx.stallTarget.label}`, value: `stall-build:${ctx.stallTarget.id}` },
+      { label: 'Show me other roles', value: 'stall-redirect' },
     ],
     onTap: (value, ctx) => {
-      if (value === 'stall-redirect') ctx.advance('focus', 'laneSelect')
+      if (value.startsWith('stall-build:')) ctx.genSec(value.slice('stall-build:'.length))
+      else if (value === 'stall-redirect') ctx.advance('focus', 'laneSelect')
       return true
     },
   },

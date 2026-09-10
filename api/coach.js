@@ -1363,7 +1363,7 @@ const FOCUS_SECTION_CAP = 3000
 const FOCUS_INTENT_CAP = 6000
 const FOCUS_TOTAL_CAP = 15000
 const INTENT_SECTION = {
-  door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead', salary: 'salaryRead' },
+  door2: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'companyRead', salary: 'salaryRead', cover: 'p_cover' },
   door1: { interview: 'p11', pitch: 'p6', resume: 'p_res', company: 'p7', linkedin: 'p8', industry: 'p9', outreach: 'p7', income: 'income', salary: 'salaryRead' },
 }
 // The coaching-relevant sections to surface for the in-focus record, in priority
@@ -1383,6 +1383,15 @@ const SECTION_NAME = { p5: 'WHERE YOU FIT', p6: 'BRIDGE STORY', p_res: 'RESUME R
 
 function detectIntent(message) {
   const m = (typeof message === 'string' ? message : '').toLowerCase()
+  // Grounding fix (batch item 14, 2026-09-10): missing entirely before this --
+  // p_cover (Cover Letter) is in FOCUS_SECTIONS.door2 and gets its text
+  // included by buildPlaybookExpansion's loop regardless of intent, but
+  // with no intent bumping it to the front of that loop and no bigger cap,
+  // it sat near the end of a fixed section order and could be crowded out
+  // of the 15000-char FOCUS_TOTAL_CAP entirely by earlier, larger built
+  // sections on the same playbook -- reproduced L4: asked about the cover
+  // letter directly, Coach said it had no text in front of it.
+  if (/cover letter/.test(m)) return 'cover'
   if (/\bstar\b|\binterview/.test(m) || /tell me about a time/.test(m)) return 'interview'
   if (/tell me about yourself|elevator pitch|\bpitch\b|bridge story/.test(m)) return 'pitch'
   if (/\bresume\b|\bcv\b/.test(m)) return 'resume'

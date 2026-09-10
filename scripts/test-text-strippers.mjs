@@ -610,6 +610,23 @@ assertTruthy('stripFabricatedMarketData: drops hiring-odds percentage',
 assertTruthy('stripFabricatedMarketData: KEEPS profile numbers ($4.2M, 22% to 9%)',
   stripFabricatedMarketData('You saved $4.2M and cut declines from 22% to 9%.') === 'You saved $4.2M and cut declines from 22% to 9%.')
 
+// Grounding fix (batch item 15, 2026-09-10, production report L4): the
+// "salary/compensation is/are/sits/ranges ... $X" shape matched a genuinely
+// sourced Compensation Read citation as readily as a fabricated one, and the
+// whole opening sentence was deleted -- looksSourcedMarketData skips
+// stripping when the sentence names where the number came from.
+assertEq('stripFabricatedMarketData: KEEPS a sourced figure (named provider)',
+  stripFabricatedMarketData('Your compensation here sits around $118,700 based on Comparably. Let me know what stands out.'),
+  'Your compensation here sits around $118,700 based on Comparably. Let me know what stands out.')
+assertEq('stripFabricatedMarketData: KEEPS a sourced figure (Compensation Read + according to)',
+  stripFabricatedMarketData('Compensation Read shows salary here is around $110,000 according to ZipRecruiter data. Here is what that means.'),
+  'Compensation Read shows salary here is around $110,000 according to ZipRecruiter data. Here is what that means.')
+assertEq('stripFabricatedMarketData: KEEPS a sourced figure ("per your" citation)',
+  stripFabricatedMarketData('Per your Compensation Read, salary in this market sits around $130,000. That number reflects your target metros.'),
+  'Per your Compensation Read, salary in this market sits around $130,000. That number reflects your target metros.')
+assertTruthy('stripFabricatedMarketData: STILL drops an unsourced "salary ... sits around $X" claim',
+  !stripFabricatedMarketData('Salary for this role sits around $140,000 in most markets. That is a strong target range.').includes('$140,000'))
+
 // KEEL section + than/would comparatives.
 assertTruthy('stripFrameworkNames: "the KEEL section" neutralized',
   !stripFrameworkNames('Re-read the KEEL section now.').includes('KEEL'))
