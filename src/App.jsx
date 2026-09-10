@@ -5066,6 +5066,18 @@ const pipelineCheckinOpener=()=>({role:'assistant',content:"Before you dive in �
 const S={
   title:{fontFamily:'Georgia,serif',fontSize:38,fontWeight:700,color:"#1A2540",margin:'0 0 14px',lineHeight:1.2},
   sub:{fontSize:18,color:C.gray,margin:'0 0 28px',lineHeight:1.7,maxWidth:700},
+  // Batch item 9 (2026-09-10): the ONE token for page layout width --
+  // cards, the pipeline board, and the rail+content row it lives in all
+  // defer to this instead of each screen declaring its own maxWidth (which
+  // had drifted to a scatter of 760/820/860/900/920, and two of the
+  // busiest screens -- Focus Playbook and Opportunity Playbook -- had no
+  // cap at all). Applied to the content column itself (App.jsx's
+  // contentColumnRef), so every screen inherits it in one place. No
+  // margin:'0 auto' -- deliberately left-hugging, not centered, per the
+  // brief. Deliberately excludes running prose (S.sub and the handful of
+  // narrow, centered interstitial paragraphs scattered through the step
+  // views), which keeps its own narrower measure on purpose.
+  pageMax:{maxWidth:1440},
   card:{background:'#FFFFFF',border:`1px solid #E2E5EA`,borderLeft:`3px solid ${C.gold}`,borderRadius:10,padding:'var(--card-pad)',marginBottom:20,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'},
   label:{display:'block',fontSize:15,fontWeight:700,color:C.grayL,margin:'0 0 8px',letterSpacing:'1px',textTransform:'uppercase'},
   inp:{width:'100%',background:C.input,border:`1px solid ${C.border}`,borderRadius:8,padding:'12px 15px',color:C.cream,fontSize:18,fontFamily:'inherit',outline:'none',boxSizing:'border-box'},
@@ -14535,7 +14547,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       :archivedPlaybooks
     if(!archived.length)return null
     const daysLeft=(iso)=>{const ms=new Date(iso).getTime()+90*24*60*60*1000-Date.now();return Math.max(0,Math.ceil(ms/(24*60*60*1000)))}
-    return <div style={{maxWidth:860,margin:'28px 0 24px'}}>
+    return <div style={{margin:'28px 0 24px'}}>
       <h2 style={{...S.title,fontSize:22,marginBottom:6}}>Archived</h2>
       <CoachingCallout>Removed playbooks wait here for 90 days before they're deleted for good. Restore one any time, or delete it now if you're sure.</CoachingCallout>
       <div style={{border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
@@ -14562,7 +14574,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // an account, and the dismissal needs somewhere durable to land.
   const pipelineIntroCard=()=>{
     if(isDemo||isTest||!signedInUser||seenPipelineIntro)return null
-    return <div data-print="hide" style={{position:'relative',background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:14,padding:'20px 22px',margin:'0 0 20px',maxWidth:900}}>
+    return <div data-print="hide" style={{position:'relative',background:'#FFFFFF',border:`2px solid ${C.gold}`,borderRadius:14,padding:'20px 22px',margin:'0 0 20px'}}>
       <button type="button" onClick={dismissPipelineIntro} aria-label="Dismiss" style={{position:'absolute',top:10,right:12,background:'transparent',border:'none',color:C.gray,fontSize:20,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
       <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:'#1A2540',margin:'0 24px 10px 0',lineHeight:1.35}}>This is where you run your search day to day.</div>
       <p style={{fontSize:17,color:C.grayL,lineHeight:1.65,margin:'0 0 10px'}}>Every opportunity you've added is here, and you don't sort it yourself. It puts whatever needs you at the top: first anything whose next move has slipped past its date, flagged Overdue, then whatever has a date coming up, then the ones that have gone quiet.</p>
@@ -14575,7 +14587,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   }
   const mySearchPanel=(comparableCount=0)=>{
     const ops=activePlaybooks.filter(r=>r&&r.source==='door2')
-    const wrap=(inner)=><div style={{maxWidth:900,margin:'0 0 32px'}}>
+    const wrap=(inner)=><div style={{margin:'0 0 32px'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',margin:'0 0 6px'}}>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:0}}>My Pipeline</h2>
         {/* The practice track carries one gold button below the list instead.
@@ -14760,7 +14772,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const connectAssistantPanel=()=>{
     const mcpUrl=(typeof window!=='undefined'?window.location.origin:'https://reimagine.career.club')+'/api/mcp'
     const copyText=(t)=>{try{navigator.clipboard.writeText(t)}catch{};setToast('Copied');setTimeout(()=>setToast(x=>x==='Copied'?null:x),1500)}
-    return <div style={{maxWidth:900,margin:'8px 0 32px'}}>
+    return <div style={{margin:'8px 0 32px'}}>
       <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 6px'}}>Keep your pipeline current — automatically <span style={{fontSize:15,fontWeight:600,color:C.gold}}>· beta</span></h2>
       <CoachingCallout>Stop maintaining your pipeline by hand. Give your own Claude permission and it watches your email and calendar, notices when an opportunity moves, and keeps its stage, dates, and next step up to date for you. <strong>Reimagine never touches your inbox</strong> — your assistant does the reading and sends back only the status. Prefer to keep it by hand? That works too.</CoachingCallout>
       {!connectorSetupOpen?
@@ -15934,7 +15946,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <h1 style={S.title}>Put It to Work</h1>
       <p style={S.sub}>Your foundation is set. In this section, you decide how to explore your options: a wider look at the directions your background opens up, or a focused playbook for a job description you already have in hand. You can come back to this choice anytime from the sidebar.</p>
       {!hasOnboardingConcierge&&<CoachingCallout>If you have a current opportunity you're pursuing, start here. We'll build your playbook around that specific role.<br/><span style={{color:C.gray}}>No specific opportunity in play yet? Start with Career Paths to explore where you could go.</span></CoachingCallout>}
-      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:isMobile?14:20,maxWidth:920,marginTop:8}}>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:isMobile?14:20,marginTop:8}}>
         <button onClick={()=>{markDone('twoDoors');addNewOpportunity()}} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'28px 30px',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column'}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
             <Target size={28} color="#4F7CAC" strokeWidth={1.75}/>
@@ -15965,7 +15977,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
       <h1 style={S.title}>Three directions to consider.</h1>
       <p style={S.sub}>Pick the one you want to start with. You can come back to the others anytime — your Personal Brand stays the same regardless of which direction you pursue first.</p>
-      <div style={{display:'flex',flexDirection:'column',gap:18,maxWidth:860}}>
+      <div style={{display:'flex',flexDirection:'column',gap:18}}>
         {LANE_CARDS.map(L=><button key={L.id} onClick={()=>pickLane(L.id)} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:16,padding:'26px 30px',cursor:'pointer',fontFamily:'inherit'}}>
           <div style={{fontSize:22,fontWeight:700,color:'#1A2540',marginBottom:6}}>{L.label}</div>
           <div style={{fontSize:17,fontStyle:'italic',color:C.gold,marginBottom:10}}>{L.tagline}</div>
@@ -16018,7 +16030,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {!loading&&laneText&&<>
           {lo.umbrella&&<div style={{background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,padding:'14px 18px',borderRadius:8,margin:'0 0 22px',maxWidth:760}}><MD text={lo.umbrella}/></div>}
           {lo.optionCount<3&&<div style={{background:`${C.gold}12`,border:`1px solid ${C.gold}35`,borderRadius:10,padding:'18px 22px',marginBottom:20,fontSize:17,color:'#1A2540',lineHeight:1.7,maxWidth:760}}><strong>We're seeing fewer strong options at this level for you.</strong> Here {lo.optionCount===1?'is the 1':`are the ${lo.optionCount}`} we found. Tell us where else to look below and we'll generate more, or try another direction with one of the other paths.</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:820}}>
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
             {lo.options.map((blk,i)=>{const t=laneOptionTitle(blk);return <button key={i} onClick={()=>switchToRole(t,selectedLane)} disabled={loading||!!generatingSection} style={{textAlign:'left',background:'#FFFFFF',border:`1.5px solid ${C.border}`,borderRadius:14,padding:'22px 26px',cursor:'pointer',fontFamily:'inherit'}}>
               <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}><span>{t}</span><span style={{color:C.gold,fontSize:15,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>Open this role <ChevronRight size={14}/></span></div>
               <div style={{fontSize:16,color:'#4A5568',lineHeight:1.65}}><MD text={blk.replace(/^#{1,3}\s*OPTION:.*$/m,'').trim()}/></div>
@@ -16400,7 +16412,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>
         <div style={{margin:'40px 0 16px',fontSize:18,color:C.gray,lineHeight:1.65,fontStyle:'italic'}}>This is yours now. Take it where it makes sense, or consider one of these.</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:14,maxWidth:760}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:14}}>
           <div style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.gold}`,padding:'20px 24px',borderRadius:10}}>
             <h3 style={{fontSize:18,color:'#1A2540',margin:'0 0 8px'}}>See more roles in this direction.</h3>
             <p style={{fontSize:17,color:C.grayL,lineHeight:1.6,margin:'0 0 12px'}}>Look at the other roles within the same direction. The work you have already done carries forward; only the role-specific sections regenerate.</p>
@@ -16655,7 +16667,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:'0 0 12px'}}>Your brand, your bridge story, your target companies, your resume, your LinkedIn, your playbook. That is a substantial amount of career-strategy work, and it is all rooted in who you actually are.</p>
         <p style={{fontSize:18,color:C.grayL,lineHeight:1.7,margin:0}}>What you've built here belongs to you. None of it depends on the company you came from or the role you're leaving. The brand, the bridge story, the playbook all go with you into whatever comes next.</p>
       </div>}
-      {!isDemo&&activePlaybooks.length>0&&<div style={{maxWidth:860,margin:'0 0 24px'}}>
+      {!isDemo&&activePlaybooks.length>0&&<div style={{margin:'0 0 24px'}}>
         <SavedPlaybooks savedPlaybooks={activePlaybooks} onRestore={restoreFromSavedSlot} onDelete={deleteFromSavedSet} C={C} layout="complete" title={null}/>
       </div>}
       {!isDemo&&<>
@@ -18336,7 +18348,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
         {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
+        <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
               <h2 style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,color:'#1A2540',margin:0}}>{demoGuide.title}</h2>
