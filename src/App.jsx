@@ -5086,7 +5086,7 @@ const S={
   footnote:{fontSize:15,color:'#718096',lineHeight:1.5,margin:'8px 0 0'},
 }
 
-function Btn({onClick,disabled,secondary,small,prominent,children,style={}}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...(disabled?{cursor:'not-allowed'}:null),...style}} onClick={onClick} disabled={disabled}>{children}</button>}
+function Btn({onClick,disabled,secondary,small,prominent,children,style={},...rest}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...(disabled?{cursor:'not-allowed'}:null),...style}} onClick={onClick} disabled={disabled} {...rest}>{children}</button>}
 // Shared Human / ATS segmented control. Both versions render from the SAME record;
 // the flag only changes arrangement (renderResumeText/buildResumeDoc take `ats`).
 function ResumeVersionSeg({variant,setVariant}){
@@ -7406,6 +7406,13 @@ export default function PivotEngine(){
   // finished document and an empty screen -- and that document now takes a
   // couple of minutes and about a quarter to make.
   const[deleteBrandModal,setDeleteBrandModal]=useState(false)
+  // Batch item 8 (2026-09-10): Start Fresh (account deletion) used a
+  // browser-native window.confirm(), the one destructive action left on
+  // that path -- an in-app dialog matches the rest of the product (this
+  // same file's deleteBrandModal just above, opportunity/playbook deletion)
+  // and lets Cancel be the visual default the way a native confirm's OK/
+  // Cancel pair never reliably is across browsers.
+  const[startFreshModal,setStartFreshModal]=useState(false)
   // Progress for "Bring my playbook up to date". One piece of state for both
   // surfaces; `slot` is a saved-playbook id on the Opportunity side and the
   // string 'focus' on the other, so the right screen shows the progress line.
@@ -10341,7 +10348,7 @@ export default function PivotEngine(){
   // screen during this resolution.
   useEffect(()=>{if(step==='p1'||step==='p2')setStep('p3')},[step])
   useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);const authStatus=params.get('auth');if(authStatus){setAuthToast(authStatus);params.delete('auth');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);if(authStatus==='ok')setTimeout(()=>setAuthToast(null),4000)}},[])
-  useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);deleteAccount()},[signedInUser])
+  useEffect(()=>{if(typeof window==='undefined')return;const params=new URLSearchParams(window.location.search);if(params.get('reset')!=='1')return;if(!signedInUser)return;params.delete('reset');const newSearch=params.toString();const newUrl=window.location.pathname+(newSearch?'?'+newSearch:'')+window.location.hash;window.history.replaceState({},'',newUrl);setStartFreshModal(true)},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;const save=async()=>{
     if(deletingRef.current)return
     // Batch item 18: never run two saves concurrently -- see the refs'
@@ -11745,9 +11752,10 @@ export default function PivotEngine(){
     // window, and closes the cross-tab inconsistency implicitly.
     window.location.replace('/')
   }
+  // Batch item 8: the confirmation itself moved to the startFreshModal dialog
+  // (rendered near the app's other modals) -- this function is now the actual
+  // delete action, invoked only by that dialog's destructive button.
   const deleteAccount=async()=>{
-    const confirmed=window.confirm('This permanently deletes your profile, outputs, saved playbooks, and chat history.\n\nYou can sign back in with the same email to start over from scratch.\n\nContinue?')
-    if(!confirmed)return
     // Set before the await so any pending debounced save timer (scheduled
     // before the user clicked Start Fresh) sees the flag and bails out
     // instead of repopulating localStorage / PUTing to the server.
@@ -15290,7 +15298,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
           <Btn onClick={()=>{try{const r=localStorage.getItem('pe_v4');if(r){const d=JSON.parse(r);if(d.step&&d.step!=='welcome'){setStep(d.step)}else if(d.done&&d.done.length>0){setStep(d.done[d.done.length-1])}}}catch{}}} style={{background:C.gold}}>Continue Where I Left Off <ChevronRight size={14}/></Btn>
-          {signedInUser&&<button onClick={deleteAccount} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:16,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
+          {signedInUser&&<button onClick={()=>setStartFreshModal(true)} style={{background:'transparent',color:'#CBD5E0',border:'none',padding:'4px 0',fontSize:16,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline'}}>Or start fresh (delete everything and begin again)</button>}
         </div>
       </div>}
       <div style={{display:'flex',justifyContent:'flex-start',alignItems:'flex-start',marginBottom:16}}>
@@ -18173,6 +18181,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     </div>}
+    {/* Batch item 8 (2026-09-10): Start Fresh confirmation, replacing the old
+        window.confirm(). Cancel is the visual default (first, autoFocus);
+        the destructive action reads "Delete my account" and is styled apart
+        from the rest of the button set, since nothing else in the app is
+        this irreversible. */}
+    {startFreshModal&&<div data-print="hide" onClick={()=>setStartFreshModal(false)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Start Fresh" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',marginBottom:14}}>Start fresh?</h2>
+        <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>This permanently deletes your profile, outputs, saved playbooks, and chat history. You can sign back in with the same email to start over.</p>
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
+          <Btn secondary autoFocus onClick={()=>setStartFreshModal(false)}>Cancel</Btn>
+          <Btn onClick={()=>{setStartFreshModal(false);deleteAccount()}} style={{background:C.err,color:'#FFFFFF'}}>Delete my account</Btn>
+        </div>
+      </div>
+    </div>}
     {/* Track 6: pre-submit conflict modal. Surfaces before the correction is
         stored when it asks for a phrase Reimagine writes around. */}
     {conflictModal&&<div data-print="hide" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
@@ -18272,7 +18295,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           {!isDemo&&signedInUser&&<div ref={accountMenuRef} style={{position:'relative',marginLeft:8}}>
             <button onClick={()=>setAccountMenuOpen(o=>!o)} aria-haspopup="true" aria-expanded={accountMenuOpen} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Account<ChevronDown size={14}/></button>
             {accountMenuOpen&&<div role="menu" style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'#FFFFFF',border:'1px solid #E2E5EA',borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.18)',minWidth:190,overflow:'hidden',zIndex:50}}>
-              <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);deleteAccount()}} title="Delete your profile and start over from scratch" style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Start Fresh</button>
+              <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);setStartFreshModal(true)}} title="Delete your profile and start over from scratch" style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Start Fresh</button>
               <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);signOut()}} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:'1px solid #F0F1F4',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
             </div>}
           </div>}
