@@ -84,8 +84,13 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // pushing everything after it further from evalIdx again. Widened again for
 // batch item 1.1.5's Stall rewrite (2026-09-10): entryMessage/
 // entryQuickReplies (resolving message/quickReplies as either a plain value
-// or a function of ctx) sit ahead of the static-branch dispatch now.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 4600) : ''
+// or a function of ctx) sit ahead of the static-branch dispatch now. Widened
+// again for live-side brief PR 2 (2026-09-10): the op-side ctx computation
+// (My Pipeline arrival, Opportunity Playbook arrival, Delivery, Next move,
+// Interview-close, direction-resume-jump targets) sits between stallEligible
+// and the ctx object itself, ahead of evalIdx -- pushing the backward edge
+// well past the old -2400 edge.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 12500, evalIdx + 4900) : ''
 // The old quiet-states early return is retired (batch item 1.1.4/1.1.7,
 // 2026-09-10): it used to block the WHOLE evaluator from running, which was
 // also the significance bug (observed B4, confirmed L8/L9) -- an ordinary
@@ -120,7 +125,11 @@ check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMome
 // 2026-09-09 voice-review rename this comment used to describe.
 // entryMessage/entryQuickReplies added by batch item 1.1.5 (2026-09-10):
 // message/quickReplies resolved as either a plain value or a function of
-// ctx, since Stall's copy now names the actual target section.
+// ctx, since Stall's copy now names the actual target section -- the same
+// support live-side brief PR 2's op- rows need for their own per-user
+// interpolated copy (My Pipeline arrival's nearest-opportunity name, e.g.).
+// No op-specific override of the tap pair itself; every op- entry uses the
+// same shared Remind me later / Minimize Coach for now default.
 check(evalBlock.includes("const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message"),
   `${APP}: the static branch no longer resolves entry.message as either a plain value or a function of ctx`)
 check(evalBlock.includes("const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies"),
@@ -160,8 +169,11 @@ check(tapIdx !== -1, `${APP}: the generic moment: tap handler is missing`)
 // Widened again for batch item 1.1.1 (2026-09-10): the retired-taps
 // explanatory comment plus the new moment-minimize branch (surface-aware
 // dispatch to beginCoachMinimize/setCoachOpen) sit between the entry lookup
-// and the onTap dispatch line now.
-const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 2200) : ''
+// and the onTap dispatch line now. Widened again for live-side brief PR 2
+// (2026-09-10): the five op-side onTap ctx closures (openOpRecord,
+// generateOpSectionFor, opNextMoveOnTap, opInterviewCloseOnTap,
+// opResumeJumpOnTap) push the window further still.
+const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 2900) : ''
 check(tapBlock.includes("const key=checkinKey.slice(7)"), `${APP}: the tap handler does not parse the moment key out of the checkinKey`)
 check(tapBlock.includes('const entry=MOMENT_CATALOG.find(e=>e.key===key)'), `${APP}: the tap handler does not resolve the fired entry from the catalog`)
 check(tapBlock.includes("declined?'declined':'accepted'"), `${APP}: the tap handler does not log accept/decline based on which value was tapped`)
@@ -172,8 +184,9 @@ check(tapBlock.includes("if(value==='moment-remind-later')return true"),
 check(tapBlock.includes("if(conciergeEmbedded)beginCoachMinimize()") && tapBlock.includes('else setCoachOpen(false)'),
   `${APP}: the 'Minimize Coach for now' tap does not dispatch to beginCoachMinimize (embedded) / setCoachOpen(false) (floating)`)
 // genSec added Phase 3a (Next move): its onTap starts a build the same way
-// the Focus Playbook screen's own Generate button does.
-check(tapBlock.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})'),
+// the Focus Playbook screen's own Generate button does. Live-side brief PR
+// 2 extends the same ctx object with the op-side equivalents.
+check(tapBlock.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,'),
   `${APP}: the tap handler does not delegate to the entry's own onTap with the App-level actions it needs`)
 
 // --- Hydration (both paths) + autosave ---

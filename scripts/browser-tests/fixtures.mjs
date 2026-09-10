@@ -145,13 +145,13 @@ export const DOOR2_RECORD = {
 // records ride in savedPlaybooks either way -- the app just uses whichever
 // one chosen/selectedLane/step point it at, matching the real app's own
 // "many saved directions, one open at a time" shape.
-export function buildProfileLoadResponse({ step = 'focus', coachMoments } = {}) {
-  const forOp = step === 'op'
+export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPlaybooksOverride, chosenOverride } = {}) {
+  const forOp = step === 'op' || step === 'pipeline'
   return {
     updatedAt: '2026-09-01T12:00:00.000Z',
     profile: {
       step,
-      chosen: forOp ? DOOR2_TITLE : CHOSEN,
+      chosen: chosenOverride !== undefined ? chosenOverride : (forOp ? DOOR2_TITLE : CHOSEN),
       selectedLane: forOp ? 'specific' : SELECTED_LANE,
       exploredRoleTitles: [CHOSEN],
       // The Focus Playbook renders from this TOP-LEVEL outputs/done state
@@ -164,7 +164,12 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments } = {}) 
       outputs: forOp ? {} : DOOR1_RECORD.outputs,
       done: forOp ? [] : DOOR1_RECORD.done,
       profile: {},
-      savedPlaybooks: [DOOR1_RECORD, DOOR2_RECORD],
+      // Live-side brief PR 2 (2026-09-10): savedPlaybooksOverride lets a
+      // caller drive a differently-shaped door2 record (a different stage,
+      // built cards, or interview date) without mutating the shared
+      // DOOR1_RECORD/DOOR2_RECORD fixtures every other test in this suite
+      // also relies on.
+      savedPlaybooks: savedPlaybooksOverride || [DOOR1_RECORD, DOOR2_RECORD],
       // Optional: pre-seed the Moments evaluator's dedupe store (App.jsx's
       // coachMoments) via the same hydration path a real returning session
       // uses -- lets a test start already past one moment (e.g. delivery-p5
