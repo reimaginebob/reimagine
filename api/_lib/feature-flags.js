@@ -237,6 +237,20 @@ export function hasCoachPresence(user) {
   return flags.includes(COACH_PRESENCE_FLAG)
 }
 
+// PILOT -- Industry Insider ecosystem view, 2026-09-10. Category -> Role ->
+// Company exploration that replaces p4's role-suggestion step for the
+// Industry Insider lane only (Familiar Ground and Work That Matters keep p4
+// exactly as today). Gated because it replaces an existing lane's entire
+// suggestion surface for every account that reaches it, which is not a change
+// to make to 145 accounts before Bob has QC'd it himself.
+export const INDUSTRY_ECOSYSTEM_VIEW_FLAG = 'industry_ecosystem_view'
+
+export function hasIndustryEcosystemView(user) {
+  if (isInternalAccount(user)) return true
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(INDUSTRY_ECOSYSTEM_VIEW_FLAG)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -257,4 +271,5 @@ export const GRANTABLE_FLAGS = {
   [CLOSE_REASON_CAPTURE_FLAG]: { label: 'Coach close-reason capture' },
   [COACH_SITUATION_FLAG]: { label: 'Coach situational grounding' },
   [COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },
+  [INDUSTRY_ECOSYSTEM_VIEW_FLAG]: { label: 'Industry Insider ecosystem view' },
 }
