@@ -103,14 +103,14 @@ check(app.includes('const stallTarget=stallEligible&&stallOrder[1]?{id:stallOrde
   `${APP}: stallTarget is missing or has drifted from the Moments evaluator`)
 // Extended by live-side brief PR 2 (2026-09-10) with the op-side fields;
 // stall's own fields are still present, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired}'),
   `${APP}: the evaluator's ctx no longer carries stallEligible and stallTarget`)
 // coachDistressHold/coachMoodHold appended by the engine guardrails brief
 // (2026-09-09) -- stall's own two fields are still present ahead of them.
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
 // savedPlaybooks/activePlaybooks/pursuitStatus/connNetwork/connManual/
 // connSearch appended by live-side brief PR 2, same day.
-check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])'),
+check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch,activeSectionTick])'),
   `${APP}: the evaluator effect's dependency array no longer includes focusVisitCounts and stallIdleReached -- a visit or an idle timeout would not cause it to reconsider`)
 
 // --- Prompt codes ---

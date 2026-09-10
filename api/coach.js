@@ -341,6 +341,15 @@ const OP_CARD_REWORK_CAPTURE_NOTE = '\n\nOP CARD REWORK CAPTURE: each opportunit
 // to the person, same as the "[The user is currently on step ...]" contextNote
 // appended to every turn below.
 const SESSION_OPEN_TURN_TEXT = '[This is the first turn of a new session. Open by yourself, in your own voice, with whatever WHAT CHANGED SINCE THEIR LAST SESSION below tells you to say — do not wait for them to ask, and do not mention that this is an instruction.]'
+// Sentence count for the session-open cap enforcement (production fix, Bob's
+// read on Imerys/Lindsey, 2026-09-10) -- approximate on purpose: this only
+// has to catch the difference between "three sentences" and "five", not
+// parse prose exactly, so it does not special-case abbreviations or decimals.
+export function countSentences(text) {
+  const matches = String(text || '').match(/[^.!?]+[.!?]+(?:\s|$)/g)
+  if (matches) return matches.length
+  return String(text || '').trim() ? 1 : 0
+}
 
 // Orientation quality check (Coach-as-Concierge, item 1 follow-on, 2026-09-04,
 // extended same day to Resume/LinkedIn/Assessment). The moment someone
@@ -2864,13 +2873,25 @@ export default async function handler(req, res) {
   // five categories. Additive, not a replacement: detectResidualVoice keeps
   // its deliberately looser coverage on its five categories.
   const hardViolations = detectVoiceViolations(strippedText, { scope: 'runtime' })
-  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length) {
+  // Session-open cap (production fix, Bob's read on Imerys/Lindsey,
+  // 2026-09-10: a five-sentence recap with "I noticed" reached production).
+  // The session-open prompt block (sessionOpenNote above) already instructs
+  // a three-sentence cap and never says "I noticed", but that was prose
+  // instruction only -- nothing checked the model actually followed it.
+  // Scoped to turnKind === 'session_open' only, not a global voice-patterns
+  // HARD_PATTERN: "I noticed" is ordinary and fine in normal conversation,
+  // and only reads as padding on this one specific turn shape.
+  const sessionOpenTooLong = turnKind === 'session_open' && countSentences(strippedText) > 3
+  const sessionOpenSaysINoticed = turnKind === 'session_open' && /\bi noticed\b/i.test(strippedText)
+  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length || sessionOpenTooLong || sessionOpenSaysINoticed) {
     const wants = []
     if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
     if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
     if (flags.theMove) wants.push('do not say "X is the move", "here\'s the play", "the key is to", or "what you want to do is" — just state the action, or "a good next step is to…"')
     if (flags.sitWith) wants.push('do not use coaching-therapy register ("sit with"/"sitting with", "lean into", "hold space for", "be present with") — say "think about" or "give it some thought"')
     if (flags.citedStat) wants.push('do not cite a statistic, percentage, or figure with a source you cannot defend ("a study found 70%", "according to LinkedIn…") — speak qualitatively or point me to where real data lives')
+    if (sessionOpenTooLong) wants.push('cut this down to at most three sentences total — one greeting with a single mood question, at most one line of context, and one closing question — by combining or dropping sentences, not just shortening words')
+    if (sessionOpenSaysINoticed) wants.push('do not say "I noticed" — state the pipeline fact plainly instead ("Your HOPE application moved to interviewing", not "I noticed your HOPE application moved to interviewing")')
     // Same corrective style callClaudeWithVoiceGate uses in src/App.jsx: name
     // the actual matched text, not a generic reminder, so the fix targets
     // exactly what fired. Capped at 3 so a reply with many small hits does
@@ -2887,9 +2908,11 @@ export default async function handler(req, res) {
       const cleaned2 = applyOutputStrippers(raw2).replace(TRAILER_NAME_SWEEP, '').trim()
       const flags2 = detectResidualVoice(cleaned2)
       const hardViolations2 = detectVoiceViolations(cleaned2, { scope: 'runtime' })
-      const score = (f, hv) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length
-      const useRetry = score(flags2, hardViolations2) < score(flags, hardViolations)
-      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name) }, after: { ...flags2, hard: hardViolations2.map(v => v.name) }, used: useRetry ? 'retry' : 'original', captures_locked_before_retry: true })
+      const sessionOpenTooLong2 = turnKind === 'session_open' && countSentences(cleaned2) > 3
+      const sessionOpenSaysINoticed2 = turnKind === 'session_open' && /\bi noticed\b/i.test(cleaned2)
+      const score = (f, hv, tooLong, saysINoticed) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length + (tooLong ? 1 : 0) + (saysINoticed ? 1 : 0)
+      const useRetry = score(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2) < score(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed)
+      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name), sessionOpenTooLong, sessionOpenSaysINoticed }, after: { ...flags2, hard: hardViolations2.map(v => v.name), sessionOpenTooLong: sessionOpenTooLong2, sessionOpenSaysINoticed: sessionOpenSaysINoticed2 }, used: useRetry ? 'retry' : 'original', captures_locked_before_retry: true })
       if (useRetry) strippedText = cleaned2
     } catch (err) {
       console.error('coach voice-retry failed (keeping original):', err)

@@ -1491,6 +1491,18 @@ const OP_COUNTED_KEYS=['companyRead','p5','p6','p_res','p_cover','p11']
 // here fires a Delivery reaction because nothing here is a generated card.
 const OP_MOMENT_CARD_KEYS=['companyRead','salaryRead','p5','p_res','p_cover','p11','offerNegotiation']
 const OP_MOMENT_CARD_LABELS={companyRead:'About This Company',salaryRead:'Compensation',p5:'Where you fit',p_res:'Resume Refresh',p_cover:'Cover Letter',p11:'Interview Prep',offerNegotiation:'Offer & Negotiation'}
+// Offer detection (production fix, Bob's read on Imerys/Lindsey, 2026-09-10):
+// every Delivery reaction ends with an offer to go further ("If you want, we
+// could add...") but no prior mechanism ever read for it -- Delivery's own
+// quickReplies were always just the shared Remind-me-later/Minimize pair, so
+// the offer's own tap never existed anywhere. This regex is that detection:
+// a generated Delivery reply matching it gets a "Do it now" tap prepended,
+// ahead of the shared decline pair. "Do it now" performs a plain rebuild of
+// the card the reply is about (the same generation the Focus/Opportunity
+// Playbook screen's own Generate/Rebuild button triggers) -- it is not a
+// targeted correction toward whatever specifically the model just offered to
+// add, since nothing here parses the offer's content, only its shape.
+const DELIVERY_OFFER_RE=/\bif you want,?\s+we could add\b/i
 // Highest-frequency consultant / thought-leader register patterns for the Cover
 // Letter detection-and-retry backstop (voice-sweep 2026-06-29). Detection only —
 // the retry rewrites; these are multi-token structural patterns, not strippable.
@@ -7751,6 +7763,12 @@ export default function PivotEngine(){
   // in-flight one settles, success or failure.
   const momentInFlightRef=useRef(false)
   const[momentReevalTick,setMomentReevalTick]=useState(0)
+  // activeSectionTick declared here (not beside activeSectionRef below) so the
+  // Moments evaluator effect -- which runs earlier in this component and lists
+  // activeSectionTick in its dependency array -- doesn't reference a
+  // not-yet-declared const in the same render pass. See the comment beside
+  // activeSectionRef itself for what this tick is for.
+  const[activeSectionTick,setActiveSectionTick]=useState(0)
   // Coach engine guardrails (2026-09-09, Output/handoff/2026-09-09_coach-
   // engine-guardrails-brief.md, rules 1 and 2): two session-scoped holds the
   // Moments evaluator checks before it fires anything. Distress (hard) blocks
@@ -8307,6 +8325,20 @@ export default function PivotEngine(){
         // small banner card next to it.
         if(conciergeEmbedded)beginCoachMinimize()
         else setCoachOpen(false)
+        return true
+      }
+      // Do it now (production fix, Bob's read on Imerys/Lindsey, 2026-09-10):
+      // the offer's own tap, added by fireMoment's offerTap above. The
+      // section/card id is recovered from the entry key itself -- 'delivery-
+      // op-<id>' for an Opportunity Playbook card, 'delivery-<id>' for a
+      // Focus Playbook one -- since every Delivery entry's key already
+      // encodes exactly that (see delivery-p5/delivery-op-companyRead/etc.
+      // above). A plain rebuild, same generation the screen's own Generate/
+      // Rebuild button triggers -- see DELIVERY_OFFER_RE's comment for why.
+      if(value.startsWith('delivery-do-it:')){
+        const doneKey=value.slice('delivery-do-it:'.length)
+        if(doneKey.startsWith('delivery-op-'))generateOpSection(doneKey.slice('delivery-op-'.length))
+        else if(doneKey.startsWith('delivery-'))genSec(doneKey.slice('delivery-'.length))
         return true
       }
       // genSec added for Next move (Phase 3a): its onTap starts a build the
@@ -9651,6 +9683,13 @@ export default function PivotEngine(){
           // dismissal ones, not just reflect. Every other generated entry
           // (Choice, Delivery) still has nothing here, so this is additive.
           const action=entry.actionReply?[entry.actionReply(ctx)]:[]
+          // Offer detection (production fix, Bob's read on Imerys/Lindsey,
+          // 2026-09-10): a Delivery reply ending in "If you want, we could
+          // add..." carries an offer, and an offer gets [Do it now] first --
+          // ahead of any actionReply tap and the shared decline pair. See
+          // DELIVERY_OFFER_RE's own comment for why this is a plain rebuild,
+          // not a targeted correction.
+          const offerTap=entry.family==='delivery'&&DELIVERY_OFFER_RE.test(reply)?[{label:'Do it now',value:`delivery-do-it:${entry.key}`}]:[]
           // Taps decided (batch item 1.1.1, 2026-09-10): the old two-way
           // session/screen quiet dismissal is retired. An entry's own offer
           // (action, above) keeps its own specific label; every dismissible
@@ -9660,7 +9699,7 @@ export default function PivotEngine(){
           // one presence control (Minimize Coach for now -- does what the
           // header minimize does, on whichever surface is showing). Every
           // live-side brief PR 2 op- entry uses this same shared pair too.
-          const quickReplies=entry.dismissible?[...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:action
+          const quickReplies=entry.dismissible?[...offerTap,...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:[...offerTap,...action]
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
         }
@@ -9848,8 +9887,14 @@ export default function PivotEngine(){
     const opPickByStage=(stage,cardBuilt,knownCount)=>{
       if(stage==='applied'&&!knownCount)return'knownContacts'
       if(stage==='applied'&&!cardBuilt('p_cover'))return'p_cover'
-      if(stage==='interviewing'&&!cardBuilt('p11'))return'p11'
-      if(stage==='interviewing'&&cardBuilt('p11'))return'practice'
+      // final_round included alongside interviewing (production fix, Bob's
+      // read on Imerys/Lindsey, 2026-09-10): a final-round record with
+      // Interview Prep built rendered no "one card that fits the stage" line
+      // at all, because this rule only ever matched 'interviewing' -- final
+      // round is still interviewing, just further along, and Practice It is
+      // exactly as relevant there.
+      if((stage==='interviewing'||stage==='final_round')&&!cardBuilt('p11'))return'p11'
+      if((stage==='interviewing'||stage==='final_round')&&cardBuilt('p11'))return'practice'
       if(stage==='offer'&&!cardBuilt('offerNegotiation'))return'offerNegotiation'
       if(stage==='offer'&&cardBuilt('offerNegotiation'))return'tradeoff'
       return null
@@ -9867,7 +9912,13 @@ export default function PivotEngine(){
       const company=opCurrentRecordRaw.company||opCurrentRecordRaw.title||'this opportunity'
       const s=pursuitStatusFor(opCurrentRecordRaw.id)||{}
       const builtOnes=OP_MOMENT_CARD_KEYS.filter(cardBuilt)
-      const builtSummary=builtOnes.length?`${builtOnes.map(cardLabel).join(' and ')} ${builtOnes.length===1?'is':'are'} built.`:'Nothing is built on it yet.'
+      const builtLabels=builtOnes.map(cardLabel)
+      // Oxford-comma join, not '.join(" and ")' -- the latter reads as "A and
+      // B and C and D..." for anything past two built cards (production fix,
+      // Bob's read on Imerys/Lindsey, 2026-09-10: six built cards rendered as
+      // a five-times-repeated "and").
+      const joinAnd=(list)=>list.length<=1?(list[0]||''):list.length===2?`${list[0]} and ${list[1]}`:`${list.slice(0,-1).join(', ')}, and ${list[list.length-1]}`
+      const builtSummary=builtLabels.length?`${joinAnd(builtLabels)} ${builtLabels.length===1?'is':'are'} built.`:'Nothing is built on it yet.'
       const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice'&&pick!=='tradeoff')?{key:pick,label:cardLabel(pick)}:null
       const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
@@ -9875,7 +9926,24 @@ export default function PivotEngine(){
         :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
-      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalCopy:`This is your playbook for ${opCurrentRecordRaw.title||'this role'} at ${company}. ${builtSummary} ${stageLine}`.trim()}
+      // The title already names the company for most records (e.g. "Imerys ·
+      // Human Resources Vice President") -- appending " at {company}"
+      // unconditionally duplicated it (production fix, same read: "your
+      // playbook for Imerys · Human Resources Vice President at Imerys.").
+      // Say it once: only append "at {company}" when the title doesn't
+      // already mention it.
+      const titleText=opCurrentRecordRaw.title||''
+      const roleCompanyPhrase=titleText
+        ?(company&&titleText.includes(company)?titleText:`${titleText} at ${company}`)
+        :`this role at ${company}`
+      // arrivalPick carries the raw opPickByStage() result (a real card key
+      // OR one of the pseudo-keys) so op-playbook-arrival's own tap (coach-
+      // moments.js) can offer the right thing even when the fitting move
+      // isn't a buildable card -- arrivalTarget alone (null for every
+      // pseudo-key) used to leave the arrival row with copy naming the next
+      // move but no way to actually take it (production fix, Bob's read on
+      // Imerys/Lindsey, 2026-09-10: "the missing half of the row").
+      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalPick:pick,arrivalCopy:`This is your playbook for ${roleCompanyPhrase}. ${builtSummary} ${stageLine}`.trim()}
     })():null
     // Next move (fires after Delivery on a card): the anchor is the card
     // with the latest delivery-op-* firedAt for this record, mirroring
@@ -9938,7 +10006,23 @@ export default function PivotEngine(){
       if(focusRec.outputs&&focusRec.outputs.p_res&&String(focusRec.outputs.p_res).trim())return null
       return{lane:opRecord.lane,focusRecordId:focusRec.id,copy:`You've got ${opRecord.company} in the pipeline for the ${laneLabelFor(opRecord.lane)} path, and the resume for that path isn't built yet. Want me to build Resume Refresh for it now, so what you send matches the direction?`}
     })()
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}
+    // Production fix (2026-09-10, Bob's read on Imerys/Lindsey): read fresh,
+    // synchronously, at the moment this effect runs (not stored for later
+    // async use) -- activeSectionTick in the dependency array below is what
+    // makes the effect re-run when this changes, per that ref's own comment.
+    // Every Delivery entry (Focus and op side) now also requires its own
+    // card/section to be the one actually in view -- see coach-moments.js's
+    // own comment on why a build in progress does not need special-casing
+    // here (it is already the viewed section by the time it finishes,
+    // because the app scrolls to it the moment the build starts).
+    const viewedSection=activeSectionRef.current
+    // op-playbook-arrival must always win the very first pass at a record,
+    // even when its top card happens to already be the viewed section on
+    // mount (the observer's very first pick, before any human scroll) --
+    // every op- Delivery entry also requires this to be true, so nothing
+    // can race the arrival to render first.
+    const opArrivalFired=!!(opRecord&&coachMoments['op-playbook-arrival']&&coachMoments['op-playbook-arrival'][opRecord.id])
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
@@ -10011,7 +10095,7 @@ export default function PivotEngine(){
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch,activeSectionTick])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and
@@ -10964,7 +11048,7 @@ export default function PivotEngine(){
   // sectionLockRef locks the observer out (see the effect below) until a
   // genuine user-initiated scroll releases it, so an unrelated section that
   // happens to be more visible right after the jump can never overwrite this.
-  const scrollToOutput=(key)=>{activeSectionRef.current=key;sectionLockRef.current=true;scrollSettledRef.current=false;requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
+  const scrollToOutput=(key)=>{setActiveSection(key);sectionLockRef.current=true;scrollSettledRef.current=false;requestAnimationFrame(()=>{const el=document.getElementById(`section-${key}`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start',behavior:'smooth'})})}
   const demoNext=()=>{if(demoIdx<DEMO_TOUR.length-1){const next=demoIdx+1;setDemoIdx(next);setStep(DEMO_TOUR[next].step);window.scrollTo(0,0)}}
   const demoPrev=()=>{if(demoIdx>0){const prev=demoIdx-1;setDemoIdx(prev);setStep(DEMO_TOUR[prev].step);window.scrollTo(0,0)}}
   // Telemetry identity: a returning magic-link user is restored straight to
@@ -12087,12 +12171,30 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const activeSectionRef=useRef(null)
   const sectionLockRef=useRef(false)
   const scrollSettledRef=useRef(true)
+  // activeSectionTick (live-side brief PR 2 production fix, 2026-09-10):
+  // activeSectionRef is deliberately a ref, not state (CLAUDE.md sec. 8) --
+  // Situation reads it live via a getter at send time, and a ref update
+  // must never itself trigger a re-render. But the Moments evaluator (a
+  // separate consumer, added by the live-side brief) needs to know WHEN the
+  // viewed section changes, to gate Delivery-on-a-pre-existing-build to the
+  // one card actually in view rather than firing for every already-built
+  // card the instant a playbook with several loads (production incident:
+  // opening an Opportunity Playbook with six built cards fired six Delivery
+  // reactions, and six model calls, before the person did anything). This
+  // tick is that signal: bumped only when the section actually changes, so
+  // the evaluator effect (which lists it as a dependency) re-runs exactly
+  // when there is something new to reconsider, and reads activeSectionRef.
+  // current fresh, synchronously, the moment it does -- never stored for
+  // later async use, so this does not reintroduce the render-time-snapshot
+  // bug the same section carefully avoids elsewhere. (activeSectionTick's own
+  // useState lives up near momentReevalTick, not here -- see that comment.)
+  const setActiveSection=(key)=>{if(activeSectionRef.current!==key){activeSectionRef.current=key;setActiveSectionTick(t=>t+1)}}
   useEffect(()=>{
     // Cleared on leaving the Focus/Opportunity Playbook -- otherwise a value
     // left over from this visit (or set by scrollToOutput for an unrelated
     // screen) survives navigating away and could report a section that has
     // nothing to do with where the person actually is once they come back.
-    if(step!=='focus'&&step!=='op'){activeSectionRef.current=null;sectionLockRef.current=false;scrollSettledRef.current=true;return}
+    if(step!=='focus'&&step!=='op'){setActiveSection(null);sectionLockRef.current=false;scrollSettledRef.current=true;return}
     const els=document.querySelectorAll('[id^="section-"]')
     if(!els.length)return
     const ratios=new Map()
@@ -12119,7 +12221,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(r.top<=readingLine&&r.bottom>=readingLine){spanning=el;break}
       }
       const target=spanning||[...ratios.entries()].sort((a,b)=>b[1]-a[1]).map(([id])=>document.getElementById(`section-${id}`)).find(Boolean)
-      if(target)activeSectionRef.current=target.id.replace(/^section-/,'')
+      if(target)setActiveSection(target.id.replace(/^section-/,''))
     }
     const observer=new IntersectionObserver(entries=>{
       entries.forEach(e=>ratios.set(e.target.id.replace(/^section-/,''),e.isIntersecting?e.intersectionRatio:0))
@@ -12278,8 +12380,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // 'p6' while viewing an Opportunity Playbook, where the Bridge Story has no
   // container of its own (it is the closing beat of the merged "Where You
   // Fit" card, section-p5) -- nothing to scroll to and nothing to claim.
-  useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opSectionBuilding])
-  useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[generatingSection])
+  useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){setActiveSection(k);sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opSectionBuilding])
+  useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){setActiveSection(k);sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[generatingSection])
   // Record id the in-flight op build belongs to. Scopes the spinner/busy reads so a
   // record switched to mid-build does not show the building record's spinner. Set/cleared
   // alongside opSectionBuilding; the guards and the Build-button disabled stay global.
@@ -12911,7 +13013,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // that window (via _opAutoBuildPending) could sit below the fold while the
   // page is still pinned to the top from the step change. Gated on a queued
   // auto-build so background backfill inference (no pending build) never scrolls.
-  useEffect(()=>{if(!opLaneInferring||!_pendingAutoBuildRef.current)return;requestAnimationFrame(()=>{const el=document.getElementById('section-companyRead');if(el&&el.scrollIntoView){activeSectionRef.current='companyRead';sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opLaneInferring])
+  useEffect(()=>{if(!opLaneInferring||!_pendingAutoBuildRef.current)return;requestAnimationFrame(()=>{const el=document.getElementById('section-companyRead');if(el&&el.scrollIntoView){setActiveSection('companyRead');sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView({block:'start',behavior:'smooth'})}})},[opLaneInferring])
   // Compact foundation summary for the lane inference call: the synthesized
   // Personal Brand when present, plus the raw values / passions / reputation.
   const buildOpProfileSummary=()=>{

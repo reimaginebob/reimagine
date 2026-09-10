@@ -65,8 +65,12 @@ check(app.includes('const action=entry.actionReply?[entry.actionReply(ctx)]:[]')
   `${APP}: fireMoment no longer computes an entry-specific action reply from actionReply(ctx)`)
 // Dismissal taps updated by batch item 1.1.1 (2026-09-10): Remind me later
 // + Minimize Coach for now replace the retired session/screen quiet taps,
-// still trailing the entry's own action reply.
-check(app.includes("const quickReplies=entry.dismissible?[...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:action"),
+// still trailing the entry's own action reply. Widened again for the
+// live-side brief PR 2 production fix's offer detection (2026-09-10): an
+// offerTap (Delivery-only -- next-move's family is 'next_move', so this is
+// always empty for next-move itself) can now lead ahead of action, but
+// action still comes immediately before the shared Remind/Minimize pair.
+check(app.includes("const quickReplies=entry.dismissible?[...offerTap,...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:[...offerTap,...action]"),
   `${APP}: fireMoment's quickReplies no longer lead with the entry's own action reply ahead of the Remind me later / Minimize Coach for now taps`)
 
 // --- The tap handler: genSec threaded through so an actionable onTap can
@@ -105,13 +109,13 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // stallTarget appended by batch item 1.1.5; extended by live-side brief
 // PR 2, same day, with the op-side fields; next-move's own fields are
 // still present alongside both, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired}'),
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1): forces
 // a re-pick the instant an in-flight generated moment settles. savedPlaybooks/
 // activePlaybooks/pursuitStatus/connNetwork/connManual/connSearch appended by
 // live-side brief PR 2, same day, for the op-side ctx fields above.
-check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])'),
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch,activeSectionTick])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---

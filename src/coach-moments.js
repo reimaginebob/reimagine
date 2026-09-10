@@ -168,7 +168,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p5',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p5) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p5) && !!ctx.chosen && ctx.viewedSection === 'p5',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p5,
     momentContext: (ctx) => ({ section: 'p5', sectionLabel: ctx.focusLabelFor('p5', ctx.isIndependent), text: ctx.outputs.p5 }),
@@ -182,7 +182,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p6',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p6) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p6) && !!ctx.chosen && ctx.viewedSection === 'p6',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     // outputs.p6 is not reliably a string -- it can be a pre- or post-2026-
     // 05-31 wrapped object (bridgeStoryToProse's own header comment). Both
@@ -203,7 +203,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p9',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p9) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p9) && !!ctx.chosen && ctx.viewedSection === 'p9',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p9,
     momentContext: (ctx) => ({ section: 'p9', sectionLabel: ctx.focusLabelFor('p9', ctx.isIndependent), text: ctx.outputs.p9 }),
@@ -221,7 +221,7 @@ export const MOMENT_CATALOG = [
     // delivery_<internal-key> promptCode naming. Confirmed with Bob.
     promptCode: 'delivery_comp_read',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.salaryRead) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.salaryRead) && !!ctx.chosen && ctx.viewedSection === 'salaryRead',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.salaryRead,
     momentContext: (ctx) => ({ section: 'salaryRead', sectionLabel: ctx.focusLabelFor('salaryRead', ctx.isIndependent), text: ctx.outputs.salaryRead }),
@@ -235,7 +235,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p11',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p11) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p11) && !!ctx.chosen && ctx.viewedSection === 'p11',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p11,
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.focusLabelFor('p11', ctx.isIndependent), text: ctx.outputs.p11 }),
@@ -249,7 +249,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p_res',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p_res) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p_res) && !!ctx.chosen && ctx.viewedSection === 'p_res',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p_res,
     momentContext: (ctx) => ({ section: 'p_res', sectionLabel: ctx.focusLabelFor('p_res', ctx.isIndependent), text: ctx.outputs.p_res }),
@@ -263,7 +263,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p8',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p8) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p8) && !!ctx.chosen && ctx.viewedSection === 'p8',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p8,
     momentContext: (ctx) => ({ section: 'p8', sectionLabel: ctx.focusLabelFor('p8', ctx.isIndependent), text: ctx.outputs.p8 }),
@@ -277,7 +277,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_p7',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p7) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p7) && !!ctx.chosen && ctx.viewedSection === 'p7',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p7,
     momentContext: (ctx) => ({ section: 'p7', sectionLabel: ctx.focusLabelFor('p7', ctx.isIndependent), text: ctx.outputs.p7 }),
@@ -291,7 +291,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_income',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.income) && !!ctx.chosen,
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.income) && !!ctx.chosen && ctx.viewedSection === 'income',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.income,
     momentContext: (ctx) => ({ section: 'income', sectionLabel: ctx.focusLabelFor('income', ctx.isIndependent), text: ctx.outputs.income }),
@@ -420,9 +420,24 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord,
     dedupeKey: (ctx) => ctx.opRecord.id,
     message: (ctx) => ctx.opRecord.arrivalCopy,
-    quickReplies: (ctx) => ctx.opRecord.arrivalTarget ? [{ label: `Build ${ctx.opRecord.arrivalTarget.label}`, value: `op-build:${ctx.opRecord.arrivalTarget.key}` }] : [],
+    // Production fix (Bob's read on Imerys/Lindsey, 2026-09-10): the arrival
+    // row's copy already named the one card that fits the stage even when it
+    // was a pseudo-key (knownContacts/practice/tradeoff), but the tap below
+    // only ever handled a real buildable card (arrivalTarget) -- a pseudo-key
+    // pick left the row with a line and no way to act on it ("the missing
+    // half of the row"). arrivalPick carries the raw pick regardless of
+    // shape, so the tap now covers all four cases the same way op-next-move's
+    // own tap (opNextMoveOnTap, App.jsx) already does for the identical picks.
+    quickReplies: (ctx) => {
+      const pick = ctx.opRecord.arrivalPick
+      if (pick === 'knownContacts') return [{ label: 'Open Who You Know Here', value: 'op-arrival-pick:knownContacts' }]
+      if (pick === 'practice') return [{ label: 'Practice it', value: 'op-arrival-pick:practice' }]
+      if (pick === 'tradeoff') return [{ label: 'Trade-off considerations', value: 'op-arrival-pick:tradeoff' }]
+      return ctx.opRecord.arrivalTarget ? [{ label: `Build ${ctx.opRecord.arrivalTarget.label}`, value: `op-build:${ctx.opRecord.arrivalTarget.key}` }] : []
+    },
     onTap: (value, ctx) => {
       if (value.startsWith('op-build:')) ctx.generateOpSectionFor(value.slice('op-build:'.length))
+      else if (value.startsWith('op-arrival-pick:')) ctx.opNextMoveOnTap(value.slice('op-arrival-pick:'.length))
       return true
     },
   },
@@ -443,7 +458,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_companyRead',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('companyRead'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('companyRead') && ctx.viewedSection === 'companyRead' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('companyRead'),
     momentContext: (ctx) => ({ section: 'companyRead', sectionLabel: ctx.opRecord.cardLabel('companyRead'), text: ctx.opRecord.cardText('companyRead') }),
@@ -457,7 +472,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_salaryRead',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('salaryRead'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('salaryRead') && ctx.viewedSection === 'salaryRead' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('salaryRead'),
     momentContext: (ctx) => ({ section: 'salaryRead', sectionLabel: ctx.opRecord.cardLabel('salaryRead'), text: ctx.opRecord.cardText('salaryRead') }),
@@ -471,7 +486,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_p5',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p5'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p5') && ctx.viewedSection === 'p5' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p5'),
     momentContext: (ctx) => ({ section: 'p5', sectionLabel: ctx.opRecord.cardLabel('p5'), text: ctx.opRecord.cardText('p5') }),
@@ -485,7 +500,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_p_res',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_res'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_res') && ctx.viewedSection === 'p_res' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p_res'),
     momentContext: (ctx) => ({ section: 'p_res', sectionLabel: ctx.opRecord.cardLabel('p_res'), text: ctx.opRecord.cardText('p_res') }),
@@ -499,7 +514,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_p_cover',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_cover'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_cover') && ctx.viewedSection === 'p_cover' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p_cover'),
     momentContext: (ctx) => ({ section: 'p_cover', sectionLabel: ctx.opRecord.cardLabel('p_cover'), text: ctx.opRecord.cardText('p_cover') }),
@@ -513,7 +528,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_p11',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p11'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p11') && ctx.viewedSection === 'p11' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p11'),
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.opRecord.cardText('p11') }),
@@ -527,7 +542,7 @@ export const MOMENT_CATALOG = [
     priority: 3,
     promptCode: 'delivery_op_offerNegotiation',
     generated: true,
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('offerNegotiation'),
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('offerNegotiation') && ctx.viewedSection === 'offerNegotiation' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('offerNegotiation'),
     momentContext: (ctx) => ({ section: 'offerNegotiation', sectionLabel: ctx.opRecord.cardLabel('offerNegotiation'), text: ctx.opRecord.cardText('offerNegotiation') }),
