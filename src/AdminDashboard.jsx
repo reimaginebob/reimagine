@@ -278,7 +278,6 @@ export default function AdminDashboard() {
   // count in its title has to distinguish "act on this" from "this happened".
   const onHold = paused.filter((p) => p.on_hold)
   const funnel = (payload && payload.panel_2_funnel) || []
-  const nps = (payload && payload.panel_3_nps) || {}
   const health = (payload && payload.panel_5_system_health) || {}
   const income = (payload && payload.panel_6_income_usage) || {}
 
@@ -517,45 +516,25 @@ export default function AdminDashboard() {
 
           {/* Panel 2: funnel */}
           <Panel title="Funnel per step">
-            <table style={S.table}>
-              <thead><tr>
-                <Th>Step</Th><Th right>Entered</Th><Th right>Generated</Th><Th right>Completed</Th><Th right>Drop-off</Th>
-              </tr></thead>
-              <tbody>
-                {funnel.map((f) => (
-                  <tr key={f.step}>
-                    <Td>{stepLabel(f.step)}</Td>
-                    <Td right>{f.entered}</Td>
-                    <Td right>{f.generated}</Td>
-                    <Td right>{f.completed}</Td>
-                    <Td right>{fmtRate(f.drop_off_rate)}</Td>
-                  </tr>
-                ))}
-                {funnel.length === 0 && <tr><Td colSpan={5} muted>No funnel events in range.</Td></tr>}
-              </tbody>
-            </table>
-          </Panel>
-
-          {/* Panel 3: NPS */}
-          <Panel title="NPS">
-            <div style={S.tileGrid}>
-              <Stat label="Score" value={nps.summary ? fmtNum(nps.summary.score) : "—"} accent />
-              <Stat label="Promoters" value={nps.summary ? nps.summary.promoters : 0} />
-              <Stat label="Passives" value={nps.summary ? nps.summary.passives : 0} />
-              <Stat label="Detractors" value={nps.summary ? nps.summary.detractors : 0} />
-              <Stat label="Responses" value={nps.summary ? nps.summary.total : 0} />
-            </div>
-            <div style={S.subSectionLabel}>Open text</div>
-            <div style={S.feed}>
-              {(nps.open_text || []).length === 0 && <div style={S.muted}>No open-text responses in range.</div>}
-              {(nps.open_text || []).map((o, i) => (
-                <div key={i} style={S.feedItem}>
-                  <div style={{ color: GRAY, lineHeight: 1.5 }}>{o.text || o.comment || JSON.stringify(o)}</div>
-                  {(o.score != null || o.role) && (
-                    <div style={S.feedMeta}>{o.score != null ? `score ${o.score}` : ""}{o.role ? ` · ${o.role}` : ""}</div>
-                  )}
-                </div>
-              ))}
+            <div style={S.muted}>All time. Entered = reached this step; Generated = has an output; Completed = marked done. Drop-off = 1 - completed / entered.</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={S.table}>
+                <thead><tr>
+                  <Th>Step</Th><Th right>Entered</Th><Th right>Generated</Th><Th right>Completed</Th><Th right>Drop-off</Th>
+                </tr></thead>
+                <tbody>
+                  {funnel.map((f) => (
+                    <tr key={f.step}>
+                      <Td style={{ whiteSpace: "nowrap" }}>{stepLabel(f.step)}</Td>
+                      <Td right>{f.entered}</Td>
+                      <Td right>{f.generated}</Td>
+                      <Td right>{f.completed}</Td>
+                      <Td right>{fmtRate(f.drop_off_rate)}</Td>
+                    </tr>
+                  ))}
+                  {funnel.length === 0 && <tr><Td colSpan={5} muted>No funnel events in range.</Td></tr>}
+                </tbody>
+              </table>
             </div>
           </Panel>
 
@@ -563,11 +542,15 @@ export default function AdminDashboard() {
           <Panel title="System health">
             <div style={S.tileGrid}>
               <Stat label="Database" value={health.db_ok ? "OK" : "DOWN"} accent={health.db_ok} danger={!health.db_ok} />
-              <Stat label="Survey responses (range)" value={health.survey_responses_in_range} />
+              <Stat label="Generations (range)" value={health.generations_in_range} />
+              <Stat label="Sign-ins (range)" value={health.signins_in_range} />
+              <Stat label="Feedback (range)" value={health.feedback_in_range} />
             </div>
             <div style={{ ...S.muted, marginTop: 10 }}>
-              Last survey response: {health.last_survey_response_at ? new Date(health.last_survey_response_at).toUTCString() : "—"}
+              Last generation: <span style={isStale(health.last_generation_at) ? { color: ERR, fontWeight: 600 } : undefined}>{ago(health.last_generation_at)}</span>
             </div>
+            <div style={S.muted}>Last sign-in: {ago(health.last_signin_at)}</div>
+            <div style={S.muted}>Last feedback: {ago(health.last_feedback_at)}</div>
           </Panel>
 
           {/* Panel 6: income now */}
@@ -639,8 +622,26 @@ export default function AdminDashboard() {
 }
 
 // ---- formatting helpers ----
-function fmtNum(n) { return (n === null || n === undefined) ? "—" : n }
 function fmtRate(r) { return (r === null || r === undefined) ? "—" : `${Math.round(r * 100)}%` }
+// Relative time ("3 hours ago") instead of a UTC timestamp -- "how long since"
+// is the question the System health panel answers.
+function ago(ts) {
+  if (!ts) return "—"
+  const ms = Date.now() - new Date(ts).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return "—"
+  const mins = Math.floor(ms / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? "" : "s"} ago`
+}
+// Stale flag: no generation in the last 48 hours is a silent-outage signal.
+function isStale(ts) {
+  if (!ts) return true
+  return (Date.now() - new Date(ts).getTime()) > 48 * 60 * 60 * 1000
+}
 
 // ---- presentational sub-components ----
 function Panel({ title, children, wide }) {
@@ -663,8 +664,8 @@ function Stat({ label, value, sub, accent, danger }) {
 function Th({ children, right }) {
   return <th style={{ ...S.th, textAlign: right ? "right" : "left" }}>{children}</th>
 }
-function Td({ children, right, muted, colSpan }) {
-  return <td colSpan={colSpan} style={{ ...S.td, textAlign: right ? "right" : "left", color: muted ? GRAYL : GRAY }}>{children}</td>
+function Td({ children, right, muted, colSpan, style }) {
+  return <td colSpan={colSpan} style={{ ...S.td, textAlign: right ? "right" : "left", color: muted ? GRAYL : GRAY, ...style }}>{children}</td>
 }
 
 const S = {
@@ -696,10 +697,6 @@ const S = {
   table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
   th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
-  subSectionLabel: { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: GRAYL, margin: "16px 0 6px" },
-  feed: { display: "flex", flexDirection: "column", gap: 10, maxHeight: 280, overflowY: "auto" },
-  feedItem: { background: CREAM, borderRadius: 8, padding: "10px 12px", fontSize: 14 },
-  feedMeta: { fontSize: 12, color: GRAYL, marginTop: 4 },
   muted: { color: GRAYL, fontSize: 14 },
   // auth form
   authWrap: { maxWidth: 380, margin: "12vh auto 0", background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 28 },
