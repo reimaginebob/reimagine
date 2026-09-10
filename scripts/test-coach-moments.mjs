@@ -68,8 +68,11 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // inside the loop body now, ahead of the static-branch checks. Widened
 // again for the next-move dedupeValue-null-crash fix (2026-09-09): eligible()
 // now runs before dedupeKey/dedupeValue, pushing the static-branch checks a
-// bit further still.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 3100) : ''
+// bit further still. Widened again for the live-side brief PR 1 ordering fix
+// (2026-09-10): the momentInFlightRef in-flight check (with its explanatory
+// comment) sits between "if(!picked)return" and the static-branch dispatch,
+// pushing everything after it further from evalIdx again.
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 3900) : ''
 check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
   `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
@@ -108,7 +111,11 @@ check(evalBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCo
 // fireOrientationCheck, same POST-and-push shape. ---
 const fireMomentIdx = app.indexOf('const fireMoment=(entry,ctx)=>{')
 check(fireMomentIdx !== -1, `${APP}: fireMoment is missing`)
-const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 1600) : ''
+// Widened for the live-side brief PR 1 ordering fix (2026-09-10): setting
+// momentInFlightRef synchronously (with its explanatory comment) between the
+// in-flight guard and the async IIFE pushed the POST body / setChatMessages
+// lines further from fireMomentIdx.
+const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 2100) : ''
 check(app.includes('const momentFetchingRef=useRef({})'), `${APP}: momentFetchingRef state is missing`)
 check(fireMomentBlock.includes('if(momentFetchingRef.current[trackKey])return'), `${APP}: fireMoment is missing its in-flight guard`)
 check(fireMomentBlock.includes("body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})"),

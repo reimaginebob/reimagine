@@ -98,8 +98,16 @@ check(chat.includes("situation: typeof getSituation === 'function' ? getSituatio
 check(!chat.includes('\n          situation,\n'), `${CHAT}: the old bare "situation," request-body shorthand survives somewhere -- it must be fully replaced, not left alongside the fix`)
 
 check(coach.includes("hasCoachSituation } from './_lib/feature-flags.js'"), `${COACH}: hasCoachSituation import is missing`)
-check(coach.includes('const situationRecordId = hasCoachSituation({ feature_flags: featureFlags, email: userEmail }) && situation && situation.record && typeof situation.record.id === \'string\''),
-  `${COACH}: situationRecordId derivation is missing or has drifted (must be gated on hasCoachSituation)`)
+// Live-side brief PR 1, item 3 (2026-09-10, test log finding D2): a moment
+// (turnKind==='moment') carries no typed message for findInFocusRecord to
+// scan, so gating it behind coach_situation the same as an ordinary typed
+// message let it fall back to guessing the record from recent chat history
+// on an account with coach_presence but not the separately-gated
+// coach_situation flag -- the wrong-record bug. A moment already implies
+// the onboarding_concierge/coach_presence gate, so situationRecordId now
+// trusts situation.record.id unconditionally for turnKind==='moment'.
+check(coach.includes("const situationRecordId = (turnKind === 'moment' || hasCoachSituation({ feature_flags: featureFlags, email: userEmail })) && situation && situation.record && typeof situation.record.id === 'string'"),
+  `${COACH}: situationRecordId derivation is missing or has drifted (must bypass hasCoachSituation for turnKind==='moment', per the live-side brief PR 1 record-pinning fix)`)
 check(coach.indexOf('const situationRecordId') < coach.indexOf('let inFocusRecordId = null'),
   `${COACH}: situationRecordId must be derived before the in-focus resolution block that uses it`)
 check(coach.includes("const pinnedId = situationRecordId || (typeof focusRecordId === 'string' ? focusRecordId.trim() : '')"),

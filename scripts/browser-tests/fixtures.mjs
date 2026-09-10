@@ -145,7 +145,7 @@ export const DOOR2_RECORD = {
 // records ride in savedPlaybooks either way -- the app just uses whichever
 // one chosen/selectedLane/step point it at, matching the real app's own
 // "many saved directions, one open at a time" shape.
-export function buildProfileLoadResponse({ step = 'focus' } = {}) {
+export function buildProfileLoadResponse({ step = 'focus', coachMoments } = {}) {
   const forOp = step === 'op'
   return {
     updatedAt: '2026-09-01T12:00:00.000Z',
@@ -165,11 +165,17 @@ export function buildProfileLoadResponse({ step = 'focus' } = {}) {
       done: forOp ? [] : DOOR1_RECORD.done,
       profile: {},
       savedPlaybooks: [DOOR1_RECORD, DOOR2_RECORD],
+      // Optional: pre-seed the Moments evaluator's dedupe store (App.jsx's
+      // coachMoments) via the same hydration path a real returning session
+      // uses -- lets a test start already past one moment (e.g. delivery-p5
+      // already fired) so the NEXT one it can drive is next-move or a
+      // second delivery, without needing to simulate a live generation.
+      ...(coachMoments ? { coachMoments } : {}),
     },
   }
 }
 
-export function buildMeResponse({ flagged = false, employmentStatus = 'employed' } = {}) {
+export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -198,8 +204,15 @@ export function buildMeResponse({ flagged = false, employmentStatus = 'employed'
       search_focus: '',
       // 'coach_presence' (COACH_PRESENCE_FLAG, api/_lib/feature-flags.js)
       // is what App.jsx's hasCoachPresence/conciergeEmbedded read -- see the
-      // comment above.
-      feature_flags: flagged ? ['coach_presence'] : [],
+      // comment above. 'onboarding_concierge' (ONBOARDING_CONCIERGE_FLAG) is
+      // the separate flag the Moments evaluator itself gates on
+      // (ctx.hasOnboardingConcierge in every MOMENT_CATALOG entry) -- a test
+      // driving a real Delivery/Next move fire needs this one specifically,
+      // independent of whether the embedded panel (coach_presence) is on.
+      feature_flags: [
+        ...(flagged ? ['coach_presence'] : []),
+        ...(onboardingConcierge ? ['onboarding_concierge'] : []),
+      ],
       // Matches the live values in src/config/legal.js -- anything else
       // trips App.jsx's reaccept effect (~8956) and opens the fixed,
       // full-viewport LegalReacceptanceModal, which sits above both Chat

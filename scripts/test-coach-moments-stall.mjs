@@ -83,7 +83,8 @@ check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,
   `${APP}: the evaluator's ctx no longer carries stallEligible`)
 // coachDistressHold/coachMoodHold appended by the engine guardrails brief
 // (2026-09-09) -- stall's own two fields are still present ahead of them.
-check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold])'),
+// momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
+check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])'),
   `${APP}: the evaluator effect's dependency array no longer includes focusVisitCounts and stallIdleReached -- a visit or an idle timeout would not cause it to reconsider`)
 
 // --- Prompt codes ---

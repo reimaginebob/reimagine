@@ -107,7 +107,8 @@ check(distressIdx !== -1 && quietIdx !== -1 && distressIdx < quietIdx,
   `${APP}: the distress hold check is not positioned before the quiet-state check`)
 check(app.includes("if(coachMoodHold&&entry.family!=='delivery'&&entry.family!=='choice')continue"),
   `${APP}: the evaluator does not hold every family except delivery/choice while coachMoodHold is set`)
-check(app.includes(',coachDistressHold,coachMoodHold])'),
+// momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
+check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick])'),
   `${APP}: the evaluator effect's dependency array does not include both new holds`)
 
 // --- Client: all 3 Chat mount sites wired ---
