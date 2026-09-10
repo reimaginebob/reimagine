@@ -9614,7 +9614,12 @@ export default function PivotEngine(){
     if(stallTimerRef.current){clearTimeout(stallTimerRef.current);stallTimerRef.current=null}
     setStallIdleReached(false)
     if(step!=='focus'||!chosen||generatingSection)return
-    const nothingBuiltYet=focusOrderFor(isIndependent).every(s=>!done.includes(s.id))
+    // Same D3 correction as stallEligible below (batch item 1.1.5,
+    // 2026-09-10): the first section auto-builds on landing, so it is
+    // excluded here too -- arming this timer on the old literal-nothing-
+    // built check would never happen in practice, since the free first
+    // section already has content by the time anyone could read it.
+    const nothingBuiltYet=focusOrderFor(isIndependent).slice(1).every(s=>!done.includes(s.id))
     if(!nothingBuiltYet)return
     const arm=()=>{stallTimerRef.current=setTimeout(()=>setStallIdleReached(true),90000)}
     arm()
@@ -9679,20 +9684,32 @@ export default function PivotEngine(){
       if(!nextSec)return null
       return{anchorLabel:order[anchorIdx].label,nextId:nextSec.id,nextLabel:nextSec.label}
     })()
-    // stallEligible (Phase 3b): "nothing built at all yet" is deliberately
-    // narrower than "some unbuilt section remains" -- Next move already owns
-    // the moment for someone who has made progress and paused; Stall is only
-    // for someone who has never started. The two are mutually exclusive by
+    // stallEligible (Phase 3b, corrected by batch item 1.1.5's D3 finding,
+    // 2026-09-10): "nothing built at all yet" is deliberately narrower than
+    // "some unbuilt section remains" -- Next move already owns the moment
+    // for someone who has made progress and paused; Stall is only for
+    // someone who has never started. The two are mutually exclusive by
     // construction (nextMoveTarget requires an anchor, which requires
     // something already built), so they can never compete for the same
     // identity.
+    //
+    // D3: the FIRST section in Focus Playbook order (The Role, p5, for the
+    // standard track) auto-builds the instant a role is picked (switchToRole
+    // calls generate('p5',...) itself, before the person ever does anything
+    // on this screen) -- so "every section unbuilt" could never be true in
+    // practice and Stall could never fire. That first section is free, not
+    // a real build the person chose, so it is excluded from the check here;
+    // stallTarget is the section right after it, the one Stall actually
+    // offers to build.
+    const stallOrder=focusOrderFor(isIndependent)
     const stallEligible=(()=>{
       if(!chosen)return false
-      if(!focusOrderFor(isIndependent).every(s=>!done.includes(s.id)))return false
+      if(!stallOrder.slice(1).every(s=>!done.includes(s.id)))return false
       const idKey=`${selectedLane}::${chosen}`
       return(focusVisitCounts[idKey]||0)>=3||stallIdleReached
     })()
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}
+    const stallTarget=stallEligible&&stallOrder[1]?{id:stallOrder[1].id,label:stallOrder[1].label}:null
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
@@ -9745,11 +9762,17 @@ export default function PivotEngine(){
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{
+      // message/quickReplies may be a plain value (every entry before Stall)
+      // or a function of ctx (Stall, batch item 1.1.5: its copy names the
+      // actual next section, resolved from ctx.stallTarget, so it cannot be
+      // a fixed string the way every earlier static entry's was).
+      const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message
+      const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies
       // Same tap set as fireMoment's generated branch above (batch item
       // 1.1.1) -- an entry's own quickReplies (its offer) keep their own
       // labels, plus one Remind me later and one Minimize Coach for now.
-      const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entry.quickReplies
-      setChatMessages(m=>[...m,{role:'assistant',content:entry.message,checkinKey:`moment:${entry.key}`,quickReplies}])
+      const quickReplies=entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
+      setChatMessages(m=>[...m,{role:'assistant',content:entryMessage,checkinKey:`moment:${entry.key}`,quickReplies}])
       if(entry.significance==='open')setCoachPresence('open')
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }

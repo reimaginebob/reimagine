@@ -104,7 +104,7 @@ check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: deliver
 // Phase 3b -- their own shapes are covered in test-coach-moments-next-
 // move.mjs and test-coach-moments-stall.mjs; this just confirms Career
 // Paths' own six fields are still present alongside them, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}'),
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
 
 // --- Server: shape validation, authoritative gate, dispatch ---
