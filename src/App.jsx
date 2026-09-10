@@ -1477,6 +1477,20 @@ function bridgeStoryToProse(v){
 // metric + the Save-as-PDF completion gates + the section rail. Interview Team
 // (panel) is intentionally NOT here — it is un-numbered and excluded from the count.
 const OP_COUNTED_KEYS=['companyRead','p5','p6','p_res','p_cover','p11']
+// Live-side brief PR 2 (Output/handoff/2026-09-10_concierge-live-side-brief.md):
+// the Moments catalog's op-side Delivery/Next-move rows need card labels at
+// module scope (the render switch's own OP_CARD_LABELS is block-scoped inside
+// case'op', unreachable from the evaluator effect further up the component).
+// Bridge Story (p6) is deliberately absent: it is not an independently
+// buildable card -- it is generated as p5's own closing beat (the "merged
+// Where You Fit card", see _busyP6 in the case'op' render) -- so there is no
+// separate delivery-op-p6 row, unlike the Focus Playbook side where p5 and p6
+// are two separate sections in their own right. Panel (Interview Team, an input, not a
+// generated section), knownContacts (Who You Know Here, a connections match,
+// not a generation) and recruiters are excluded for the same reason: nothing
+// here fires a Delivery reaction because nothing here is a generated card.
+const OP_MOMENT_CARD_KEYS=['companyRead','salaryRead','p5','p_res','p_cover','p11','offerNegotiation']
+const OP_MOMENT_CARD_LABELS={companyRead:'About This Company',salaryRead:'Compensation',p5:'Where you fit',p_res:'Resume Refresh',p_cover:'Cover Letter',p11:'Interview Prep',offerNegotiation:'Offer & Negotiation'}
 // Highest-frequency consultant / thought-leader register patterns for the Cover
 // Letter detection-and-retry backstop (voice-sweep 2026-06-29). Detection only —
 // the retry rewrites; these are multi-token structural patterns, not strippable.
@@ -8251,7 +8265,10 @@ export default function PivotEngine(){
       // mechanism is 2.6/Phase 4 work). 'Minimize Coach for now' is a
       // presence control, not a decision on the offer itself, but
       // engagement logging is a binary accepted/declined, so it logs as
-      // declined too, same as remind-later.
+      // declined too, same as remind-later. Every live-side brief PR 2
+      // op- entry (Output/handoff/2026-09-10_concierge-live-side-brief.md)
+      // uses this same shared pair by default -- no op-specific tap values
+      // or overrides needed.
       const declined=value==='moment-remind-later'||value==='moment-minimize'
       if(entry&&entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',declined?'declined':'accepted')
       if(value==='moment-remind-later')return true
@@ -8269,7 +8286,37 @@ export default function PivotEngine(){
       }
       // genSec added for Next move (Phase 3a): its onTap starts a build the
       // same way the Focus Playbook screen's own Generate button does.
-      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})
+      // Live-side brief PR 2 extends this ctx with the op-side equivalents,
+      // each re-deriving what it needs fresh from component state at tap
+      // time (the value itself already encodes the target) rather than
+      // reaching into the evaluator's own locals, which are out of scope
+      // here.
+      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,
+        openOpRecord:(id)=>{const rec=savedPlaybooks.find(r=>r&&r.id===id);if(rec)restoreFromSavedSlot(rec)},
+        generateOpSectionFor:(k)=>generateOpSection(k),
+        opNextMoveOnTap:(k)=>{
+          if(k==='knownContacts'){scrollToOutput('knownContacts');return}
+          if(k==='practice'){const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current);openCoachWith(`I want to practice my interview answers for ${(rec&&(rec.company||rec.title))||'this opportunity'}.`);return}
+          generateOpSection(k)
+        },
+        opInterviewCloseOnTap:(recId)=>{
+          const rec=savedPlaybooks.find(r=>r&&r.id===recId);if(!rec)return
+          const sec=(rec.schemaVersion===2&&rec.sections)||{}
+          const prepBuilt=_opSectionBuilt(sec,'p11')
+          const alreadyOpen=currentSavedSlotIdRef.current===recId
+          const act=()=>{if(prepBuilt)openCoachWith(`I want to practice my interview answers for ${rec.company||rec.title||'this opportunity'}.`);else generateOpSection('p11')}
+          if(alreadyOpen)act();else{restoreFromSavedSlot(rec);setTimeout(act,250)}
+        },
+        opResumeJumpOnTap:()=>{
+          const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current)
+          const lane=rec&&rec.lane
+          if(!lane)return
+          const focusRec=activePlaybooks.find(r=>r&&r.source==='door1'&&r.lane===lane)
+          if(!focusRec)return
+          restoreFromSavedSlot(focusRec)
+          setTimeout(()=>genSec('p_res'),250)
+        },
+      })
       return true
     }
     // Search intake: the coach judged this answer worth carrying and showed the
@@ -9580,7 +9627,8 @@ export default function PivotEngine(){
           // later -- see the tap handler below: it is per-offer and has no
           // broader session/screen effect, unlike the taps it replaces) plus
           // one presence control (Minimize Coach for now -- does what the
-          // header minimize does, on whichever surface is showing).
+          // header minimize does, on whichever surface is showing). Every
+          // live-side brief PR 2 op- entry uses this same shared pair too.
           const quickReplies=entry.dismissible?[...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:action
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
@@ -9729,11 +9777,136 @@ export default function PivotEngine(){
       return(focusVisitCounts[idKey]||0)>=3||stallIdleReached
     })()
     const stallTarget=stallEligible&&stallOrder[1]?{id:stallOrder[1].id,label:stallOrder[1].label}:null
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}
+    // Live-side brief PR 2 (Output/handoff/2026-09-10_concierge-live-side-brief.md):
+    // op-side targets, same division of labor as nextMoveTarget/stallEligible
+    // above -- resolved once here from state already in scope (savedPlaybooks,
+    // pursuitStatusFor), so src/coach-moments.js's op- entries stay
+    // declarative and never re-derive this themselves.
+    const opActiveRecords=activePlaybooks.filter(r=>r&&r.source==='door2')
+    const opDatesFor=(recId)=>{const s=pursuitStatusFor(recId)||{};return[s.next_step_at,s.next_conversation_at].filter(Boolean).map(d=>new Date(d).getTime()).filter(x=>!Number.isNaN(x))}
+    // The one record "the move that fits" points at: soonest upcoming date
+    // across the pipeline, or (nothing dated) the most recently touched
+    // record -- same fallback the pipeline board's own sort uses for ties.
+    const opNearestRecord=(()=>{
+      if(!opActiveRecords.length)return null
+      const dated=opActiveRecords.map(rec=>({rec,dates:opDatesFor(rec.id)})).filter(x=>x.dates.length)
+      const rec=dated.length?dated.reduce((best,cur)=>Math.min(...cur.dates)<Math.min(...best.dates)?cur:best).rec:[...opActiveRecords].sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0))[0]
+      return rec?{id:rec.id,company:rec.company||rec.title||'this opportunity'}:null
+    })()
+    const opPipelineArrivalCopy=opNearestRecord
+      ?`This is where every opportunity you're working lives, with its stage and what's next on each one. ${opNearestRecord.company} is the nearest thing on the calendar. Want to start there?`
+      :`This is where every opportunity you're working lives, with its stage and what's next on each one. Nothing here yet. When you have an application out, a referral, or an interview coming, add it and I'll build the playbook for it.`
+    // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
+    // move row), shared by Opportunity Playbook arrival (offers the first
+    // one that fits) and Next move (offers the one after whatever Delivery
+    // just reacted to) so the two rows never point at two different things
+    // for the same record at the same time. Returns a real OP_MOMENT_CARD_KEYS
+    // key, the pseudo-key 'knownContacts' (Who You Know Here -- matched, not
+    // generated, so its tap scrolls to the card instead of building it), the
+    // pseudo-key 'practice' (Interview Prep already built -- offer practice,
+    // not a rebuild), or null when nothing fits (silence is allowed). No
+    // 'referred' stage exists in PURSUIT_STAGES (src/pursuit-stages.js); the
+    // brief's "applied or referred" reads as 'applied' here -- see the PR
+    // description for this call. Offer-stage, Offer & Negotiation-already-built
+    // ("the trade-off drill", inventory row 21) has no discoverable built
+    // feature behind it in this codebase, so it resolves to null (no Next
+    // move) rather than inventing one -- flagged in the PR for a real answer.
+    const opPickByStage=(stage,cardBuilt,knownCount)=>{
+      if(stage==='applied'&&!knownCount)return'knownContacts'
+      if(stage==='applied'&&!cardBuilt('p_cover'))return'p_cover'
+      if(stage==='interviewing'&&!cardBuilt('p11'))return'p11'
+      if(stage==='interviewing'&&cardBuilt('p11'))return'practice'
+      if(stage==='offer'&&!cardBuilt('offerNegotiation'))return'offerNegotiation'
+      return null
+    }
+    const opCurrentRecordRaw=(()=>{
+      const rec=currentSavedSlotIdRef.current?savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current):null
+      return(rec&&rec.source==='door2'&&rec.schemaVersion===2)?rec:null
+    })()
+    const opKnownCountFor=(rec)=>rec?matchConnections(withManual(connNetwork?connNetwork.people:[],connManual),resolveSearch(connSearch[rec.id],rec.company||'').company).length:0
+    const opRecord=opCurrentRecordRaw?(()=>{
+      const sec=opCurrentRecordRaw.sections||{}
+      const cardBuilt=(k)=>_opSectionBuilt(sec,k)
+      const cardText=(k)=>_opSectionText(sec,k)
+      const cardLabel=(k)=>OP_MOMENT_CARD_LABELS[k]||k
+      const company=opCurrentRecordRaw.company||opCurrentRecordRaw.title||'this opportunity'
+      const s=pursuitStatusFor(opCurrentRecordRaw.id)||{}
+      const builtOnes=OP_MOMENT_CARD_KEYS.filter(cardBuilt)
+      const builtSummary=builtOnes.length?`${builtOnes.map(cardLabel).join(' and ')} ${builtOnes.length===1?'is':'are'} built.`:'Nothing is built on it yet.'
+      const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
+      const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice')?{key:pick,label:cardLabel(pick)}:null
+      const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
+        :pick==='practice'?'Interview Prep is built — want to practice the answer that’s weakest?'
+        :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
+        :''
+      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalCopy:`This is your playbook for ${opCurrentRecordRaw.title||'this role'} at ${company}. ${builtSummary} ${stageLine}`.trim()}
+    })():null
+    // Next move (fires after Delivery on a card): the anchor is the card
+    // with the latest delivery-op-* firedAt for this record, mirroring
+    // Focus's own nextMoveTarget just above -- the model needs something it
+    // "just finished" to reference. The target itself does NOT depend on the
+    // anchor (opPickByStage reads only stage + what's built), so a next move
+    // is only offered once at least one card has actually been delivered on.
+    const opNextMoveTarget=(()=>{
+      if(!opRecord)return null
+      let anchorKey=null,anchorFiredAt=null
+      for(const k of OP_MOMENT_CARD_KEYS){
+        const rec=coachMoments[`delivery-op-${k}`]&&coachMoments[`delivery-op-${k}`][opRecord.id]
+        if(rec&&(!anchorFiredAt||rec.firedAt>anchorFiredAt)){anchorFiredAt=rec.firedAt;anchorKey=k}
+      }
+      if(!anchorKey)return null
+      const pick=opPickByStage(opRecord.stage,opRecord.cardBuilt,opKnownCountFor(opCurrentRecordRaw))
+      if(!pick||pick===anchorKey)return null
+      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':opRecord.cardLabel(pick)
+      const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':`Build ${nextLabel}`
+      return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel}
+    })()
+    // Interview is close (Check family): scans every active opportunity, not
+    // just the one open now -- eligible from either 'pipeline' or 'op' (this
+    // entry's screen is an array; see the filter below). Soonest qualifying
+    // record wins a given pass; dedupeValue is keyed on that record's own
+    // interview date, so a later interview on the same record gets its own
+    // check once this one's tap or dismissal is recorded.
+    const opInterviewCloseTarget=(()=>{
+      const now=Date.now(),THREE_DAYS=3*86400000
+      let best=null
+      for(const rec of opActiveRecords){
+        const s=pursuitStatusFor(rec.id)||{}
+        if(!s.next_step_at)continue
+        const ms=new Date(s.next_step_at).getTime()
+        if(Number.isNaN(ms)||ms<now||ms-now>THREE_DAYS)continue
+        const secR=(rec.schemaVersion===2&&rec.sections)||{}
+        const prepBuilt=_opSectionBuilt(secR,'p11')
+        if(!best||ms<best.ms)best={rec,ms,prepBuilt,dateIso:s.next_step_at}
+      }
+      if(!best)return null
+      const{rec,ms,prepBuilt,dateIso}=best
+      const company=rec.company||rec.title||'this opportunity'
+      const days=Math.round((ms-now)/86400000)
+      const when=days<=0?'today':days===1?'tomorrow':'in two days'
+      const copy=prepBuilt
+        ?`${company} is ${when}. Interview Prep is built. Want to practice the answer that's weakest?`
+        :`${company} is ${when}. Interview Prep isn't built for it yet. Want me to build it now?`
+      return{recordId:rec.id,dateIso,copy,tapLabel:prepBuilt?'Practice it':'Build Interview Prep',prepBuilt}
+    })()
+    // Opportunity added, direction has no resume: only on the 'op' screen for
+    // a record with a matched direction (its own lane, set at Add-an-
+    // Opportunity time -- there is no separate focusId field; lane already
+    // plays that role everywhere else in this file, e.g. delivery-p5's own
+    // dedupeKey). No lane match, no Focus Playbook for it, or Resume Refresh
+    // already built there all resolve to null.
+    const opResumeJumpTarget=(()=>{
+      if(!opRecord||!opRecord.lane)return null
+      const focusRec=activePlaybooks.find(r=>r&&r.source==='door1'&&r.lane===opRecord.lane)
+      if(!focusRec)return null
+      if(focusRec.outputs&&focusRec.outputs.p_res&&String(focusRec.outputs.p_res).trim())return null
+      return{lane:opRecord.lane,focusRecordId:focusRec.id,copy:`You've got ${opRecord.company} in the pipeline for the ${laneLabelFor(opRecord.lane)} path, and the resume for that path isn't built yet. Want me to build Resume Refresh for it now, so what you send matches the direction?`}
+    })()
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
-      if(entry.screen!==step)continue
+      if(Array.isArray(entry.screen)?!entry.screen.includes(step):entry.screen!==step)continue
       // Rule 2 (discouragement hold, soft): held families are everything
       // except delivery/choice, which react to something the person just
       // did rather than interrupting on their own initiative -- literal
@@ -9791,13 +9964,18 @@ export default function PivotEngine(){
       // Same tap set as fireMoment's generated branch above (batch item
       // 1.1.1) -- an entry's own quickReplies (its offer) keep their own
       // labels, plus one Remind me later and one Minimize Coach for now.
+      // Live-side brief PR 2 (2026-09-10): the same message/quickReplies-as-
+      // function-of-ctx support above also covers My Pipeline arrival's
+      // per-user interpolated copy (the nearest opportunity's name) and its
+      // sibling op- rows; every Focus-side entry still uses a plain literal,
+      // which this passes through unchanged.
       const quickReplies=entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
       setChatMessages(m=>[...m,{role:'assistant',content:entryMessage,checkinKey:`moment:${entry.key}`,quickReplies}])
       if(entry.significance==='open')setCoachPresence('open')
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

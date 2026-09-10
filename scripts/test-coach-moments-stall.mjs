@@ -101,12 +101,16 @@ check(stallEligibleBlock.includes('return(focusVisitCounts[idKey]||0)>=3||stallI
 // one -- what Stall's "Build {label}" tap actually offers.
 check(app.includes('const stallTarget=stallEligible&&stallOrder[1]?{id:stallOrder[1].id,label:stallOrder[1].label}:null'),
   `${APP}: stallTarget is missing or has drifted from the Moments evaluator`)
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget}'),
+// Extended by live-side brief PR 2 (2026-09-10) with the op-side fields;
+// stall's own fields are still present, not replaced.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget}'),
   `${APP}: the evaluator's ctx no longer carries stallEligible and stallTarget`)
 // coachDistressHold/coachMoodHold appended by the engine guardrails brief
 // (2026-09-09) -- stall's own two fields are still present ahead of them.
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
-check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])'),
+// savedPlaybooks/activePlaybooks/pursuitStatus/connNetwork/connManual/
+// connSearch appended by live-side brief PR 2, same day.
+check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch])'),
   `${APP}: the evaluator effect's dependency array no longer includes focusVisitCounts and stallIdleReached -- a visit or an idle timeout would not cause it to reconsider`)
 
 // --- Prompt codes ---

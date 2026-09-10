@@ -59,26 +59,31 @@ export async function openEmbeddedCoach(page) {
   await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
 }
 
-async function newPage(browser, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments }) {
+async function newPage(browser, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride }) {
   const context = await browser.newContext({ viewport: VIEWPORT })
   const page = await context.newPage()
   await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments })
+  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride })
   await page.goto(DEV_URL)
   await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
   return { context, page, coachRequests }
 }
 
 // Ordinary (unflagged) Focus Playbook page, floating bubble opened.
-export async function newFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: false, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments })
+export async function newFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: false, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride })
   await openFloatingCoach(page)
   return { context, page, coachRequests }
 }
 
-// Flagged (coach_presence) Focus Playbook page, embedded panel already open.
-export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments })
+// Flagged (coach_presence) page, embedded panel already open. Named for its
+// original (Focus Playbook) use; step also accepts 'pipeline' or 'op' for
+// the live-side brief PR 2 browser tests -- pursuitStatusRows and
+// savedPlaybooksOverride/chosenOverride (all optional) drive an
+// opportunity's stage/dates/built-cards for those without touching the
+// shared DOOR1_RECORD/DOOR2_RECORD fixtures.
+export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride })
   await openEmbeddedCoach(page)
   return { context, page, coachRequests }
 }

@@ -70,8 +70,16 @@ check(coach.includes('never twice in this same conversation once you have alread
   `${COACH}: MILESTONE_PROMPT_NOTE does not tell the model to avoid repeating itself within a conversation -- with no persisted dismissal flag, this is the only thing preventing it from mentioning the same gap every turn`)
 check(coach.includes('never more than one in a single reply'),
   `${COACH}: MILESTONE_PROMPT_NOTE does not cap itself to one suggestion per reply, unlike every other capture note's "at most once per reply" discipline`)
-check(coach.includes('You cannot build these for them or take them there yourself'),
-  `${COACH}: MILESTONE_PROMPT_NOTE does not reaffirm that Coach stays prose-only (no NAVIGATE mechanism, CLAUDE.md §6)`)
+// Live-side brief PR 2 (2026-09-10): "you cannot build these for them or
+// take them there yourself" was the posture-rule contradiction carry-over
+// #1 fixed -- Coach can now start a build via a real tap (next-move's own
+// actionReply/onTap, and this brief's op-side rows), so a milestone mention
+// can no longer claim it categorically cannot. CLAUDE.md §6's own prose-only
+// invariant (no NAVIGATE mechanism, no clickable navigation button) is a
+// different thing and is untouched -- a build tap is not a screen-navigate
+// button.
+check(coach.includes('Say what it is for and let them decide; if the surface you are in offers a tap for it, let the tap start the build, and never claim you have already done it before they tap'),
+  `${COACH}: MILESTONE_PROMPT_NOTE no longer tells the model to let a real tap start the build when one exists, or has drifted from the confirmed wording`)
 
 // Gating: its own flag, computed and spliced the same shape as the other
 // capture notes -- NOT gated on sightOn (hasNextStep), which is a different,

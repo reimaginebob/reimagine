@@ -18,8 +18,12 @@ const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
 check(/Speak as a partner, not a separate party with your own wants/.test(coach),
   `${COACH}: the partnership posture-rule bullet is missing from SYSTEM_PROMPT_STABLE`)
-check(coach.indexOf('Speak as a partner, not a separate party with your own wants') > coach.indexOf('You are read-only'),
-  `${COACH}: the partnership posture-rule bullet should sit alongside the other posture rules (after "You are read-only")`)
+// "You are read-only" was retired by the live-side brief PR 2 posture-rule
+// fix (2026-09-10, carry-over #1) -- Coach can now start a build/rework/
+// capture via a real tap, so it is no longer categorically read-only.
+// Anchored on the same bullet's new opening line instead.
+check(coach.indexOf('Speak as a partner, not a separate party with your own wants') > coach.indexOf('You can offer to build, rework, or capture things for them'),
+  `${COACH}: the partnership posture-rule bullet should sit alongside the other posture rules (after the build/rework/capture posture bullet)`)
 
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
