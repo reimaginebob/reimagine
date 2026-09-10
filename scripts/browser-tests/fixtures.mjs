@@ -169,7 +169,7 @@ export function buildProfileLoadResponse({ step = 'focus' } = {}) {
   }
 }
 
-export function buildMeResponse({ flagged = false } = {}) {
+export function buildMeResponse({ flagged = false, employmentStatus = 'employed' } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -187,7 +187,13 @@ export function buildMeResponse({ flagged = false } = {}) {
       first_name: 'Browser',
       last_name: 'Test',
       suspended_at: null,
-      employment_status: 'employed',
+      // employmentStatus overridable (empty string) so a test can flip on
+      // Chat's employmentCaptureActive prop (App.jsx: !isIndependent &&
+      // !employmentStatus) and exercise the real employment-mention capture
+      // offer -- a genuine second assistant message landing right after the
+      // main reply in the same turn, the same shape as Bob's "a reply plus
+      // a capture offer" scroll-arrival report (2026-09-10).
+      employment_status: employmentStatus,
       search_going_well: '',
       search_focus: '',
       // 'coach_presence' (COACH_PRESENCE_FLAG, api/_lib/feature-flags.js)

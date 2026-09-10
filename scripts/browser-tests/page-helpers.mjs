@@ -59,26 +59,26 @@ export async function openEmbeddedCoach(page) {
   await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
 }
 
-async function newPage(browser, { step, flagged, coachReplyBody }) {
+async function newPage(browser, { step, flagged, coachReplyBody, employmentStatus }) {
   const context = await browser.newContext({ viewport: VIEWPORT })
   const page = await context.newPage()
   await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody })
+  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, employmentStatus })
   await page.goto(DEV_URL)
   await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
   return { context, page, coachRequests }
 }
 
 // Ordinary (unflagged) Focus Playbook page, floating bubble opened.
-export async function newFocusPage(browser, { step = 'focus', coachReplyBody } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: false, coachReplyBody })
+export async function newFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: false, coachReplyBody, employmentStatus })
   await openFloatingCoach(page)
   return { context, page, coachRequests }
 }
 
 // Flagged (coach_presence) Focus Playbook page, embedded panel already open.
-export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody })
+export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, employmentStatus })
   await openEmbeddedCoach(page)
   return { context, page, coachRequests }
 }

@@ -312,13 +312,41 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   })
   // Per-message DOM refs populated by the ref callback in the messages.map
   // render. Indexed by position in the messages array. The scroll effect
-  // below pins the user's most recent question to the top of the visible
-  // chat area so the assistant response reads downward from a fixed eyeline.
+  // below pins a new Coach message's TOP to the top of the visible chat
+  // area, not its end -- see that effect's own header comment (2026-09-10
+  // scroll-to-start rewrite) for the full rule and why the previous
+  // "pin the user's question to the top" approach let a later capture-offer
+  // or moment message silently steal the scroll position out from under it.
   const messageRefs = useRef([])
   // Tracks message count so the pin-to-top scroll fires only when a NEW message
   // is appended (a new turn) and not on in-place edits like rating a reply or
   // opening its note box — those must leave the scroll position alone.
-  const prevLenRef = useRef(0)
+  // Seeded from the ACTUAL length at mount (not a bare 0): a mount with
+  // existing history (INTRO_MSG, at minimum) would otherwise read as a
+  // phantom "growth" on the very first effect run, claiming the batch
+  // anchor below for whatever sat at message 0 before any real turn had a
+  // chance to -- caught live while writing this fix's own browser test,
+  // where the debounce below let that phantom mount batch win a race
+  // against the real reply and silently swallow it.
+  const prevLenRef = useRef(messages ? messages.length : 0)
+  // Whether the transcript is scrolled to (near) its bottom edge, tracked via
+  // the onScroll effect below. A ref, not state: read inside the debounced
+  // scroll-decision below without needing a re-render on every scroll tick.
+  const atBottomRef = useRef(true)
+  const BOTTOM_PX = 24
+  // The in-flight scroll target for a burst of messages arriving together (a
+  // reply plus a capture offer; a recap plus a Delivery). Set by the FIRST
+  // growth event of a burst and left alone by any that follow until the
+  // debounce below fires, so "several messages in one turn" always resolves
+  // to the top of the FIRST of them, never re-anchors to whichever arrived
+  // last.
+  const pendingScrollBatchRef = useRef(null)
+  const scrollDebounceRef = useRef(null)
+  const SCROLL_BATCH_DEBOUNCE_MS = 250
+  // Set when a new Coach message arrives while the person is scrolled up
+  // reading something else -- never yanked down to it, but a small marker
+  // offers the jump. { idx } | null.
+  const [newReplyMarker, setNewReplyMarker] = useState(null)
   // Per-reply feedback: which message's comment box is open, and its draft text.
   const [commentFor, setCommentFor] = useState(null)
   const [commentDraft, setCommentDraft] = useState('')
@@ -375,42 +403,110 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // moment it is dismissed once.
   const lifeEventsThinLangFiredRef = useRef(false)
 
+  // Tracks whether the transcript is scrolled to (near) its bottom edge, so
+  // the growth effect below knows whether it is safe to move the view.
+  // Attached once, to the container ref itself (a stable DOM node once
+  // mounted) rather than depending on `messages`, so re-renders during
+  // streaming never re-subscribe it.
+  useEffect(() => {
+    const el = messagesContainerRef.current
+    if (!el) return
+    const onScroll = () => {
+      const nowAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_PX
+      atBottomRef.current = nowAtBottom
+      // Reaching the bottom on their own means whatever the marker was
+      // pointing at has now been scrolled past and seen -- clear it rather
+      // than leave a stale "new reply" pill up. Functional update so this
+      // stable, mount-once listener never closes over stale state.
+      if (nowAtBottom) setNewReplyMarker(prev => (prev ? null : prev))
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Scroll rule (2026-09-10, Bob's L6/B6 production report): on a new Coach
+  // message, scroll so THAT message's top lands at the top of the visible
+  // area, with the person's own message (when there is one) immediately
+  // above it -- never scroll to the message's END, which is what a reply
+  // longer than the panel, or a second message arriving right behind the
+  // first, used to do.
+  //
+  // Root cause of the old behavior: the previous version of this effect
+  // re-ran on every array-length growth and re-anchored the scroll to
+  // whichever message had JUST arrived. A single typed question already
+  // triggers more than one growth in the same turn in the common case --
+  // the reply itself, then (separately) a capture offer, an employment or
+  // pursuit save-offer, or a moment message appended right after it -- so
+  // the LAST of those always won, dragging the view down to its own end and
+  // burying whatever came before, including the reply itself if it was
+  // long. Two moments firing close together (a recap, then a Delivery) hit
+  // the exact same bug from the app side, not just the per-turn offers.
+  //
+  // Fix: batch. The FIRST growth event of a burst sets the scroll target;
+  // any growth that follows within SCROLL_BATCH_DEBOUNCE_MS extends the
+  // wait but does not move the target. Only after the burst goes quiet does
+  // the actual scroll happen, always to the first message of the burst.
   useEffect(() => {
     const len = messages ? messages.length : 0
-    // Only pin a question to the top when a new message was APPENDED (a new
-    // turn). In-place mutations — rating a reply, opening/closing its note box —
-    // keep the same length and must not move the view (that yanked the user off
-    // the note textarea they just opened).
+    // Only act when a new message was APPENDED (a new turn). In-place
+    // mutations — rating a reply, opening/closing its note box — keep the
+    // same length and must not move the view (that yanked the user off the
+    // note textarea they just opened).
     const prevLen = prevLenRef.current
     const grew = len > prevLen
     prevLenRef.current = len
     if (!grew || len === 0) return
-    // A Coach-initiated turn (a check-in, a chained continuation) appends only
-    // assistant messages, with no new user message in this growth. Pinning the
-    // last EXISTING user message in that case scrolls to wherever that older
-    // turn was, which can leave the new message stranded below the fold in a
-    // conversation with any real history -- the person opens the panel, lands
-    // on old ground, and never sees Coach was waiting on them. Scroll those
-    // straight to the new message; only pin-to-top when this turn's growth
-    // itself included a fresh user message.
-    const turnHasNewUserMsg = messages.slice(prevLen).some(m => m.role === 'user')
-    if (!turnHasNewUserMsg) {
-      const el = messageRefs.current[len - 1]
-      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end', behavior: 'smooth' })
-      return
+
+    if (!pendingScrollBatchRef.current) {
+      const firstNew = messages[prevLen]
+      const isTap = firstNew.role === 'user' && firstNew.synthetic === true
+      const isTypedUser = firstNew.role === 'user' && !firstNew.synthetic
+      // A typed question always arrives as a {user, assistant} pair in one
+      // update (Chat's send()) -- anchor to the REPLY that follows it, so
+      // the reply's own top lands at the top of the view with the person's
+      // question scrolled just out of view above it. A tap (a quick-reply
+      // button) or an unprompted Coach message (a moment, a check-in) has
+      // no such pair; anchor to the new message itself.
+      const anchorIdx = isTypedUser ? prevLen + 1 : prevLen
+      pendingScrollBatchRef.current = { anchorIdx, isTap, wasAtBottom: atBottomRef.current }
     }
-    // Find the most recent user message and scroll it to the top of the
-    // messages container so the assistant response reads downward.
-    let lastUserIdx = -1
-    for (let i = len - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') { lastUserIdx = i; break }
-    }
-    if (lastUserIdx < 0) return
-    const el = messageRefs.current[lastUserIdx]
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
-    }
-  }, [messages, loading])
+
+    clearTimeout(scrollDebounceRef.current)
+    scrollDebounceRef.current = setTimeout(() => {
+      const batch = pendingScrollBatchRef.current
+      pendingScrollBatchRef.current = null
+      if (!batch) return
+      const el = messageRefs.current[batch.anchorIdx]
+      // isConnected: guards a narrow race (Clear conversation, or any full
+      // messages replacement) landing inside this debounce's short window --
+      // the ref would still point at a now-detached node from the array
+      // this batch was computed against, not the one actually on screen.
+      if (!el || !el.scrollIntoView || !el.isConnected) return
+      if (batch.isTap) {
+        // Taps stay at the bottom of their own message -- ordinary
+        // follow-to-bottom behavior, not the pin-to-top rule below.
+        el.scrollIntoView({ block: 'end', behavior: 'smooth' })
+        return
+      }
+      if (batch.wasAtBottom) {
+        el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      } else {
+        // The person had scrolled up to read something else -- never pull
+        // them down to a message they did not ask to see. A small marker
+        // offers the same scroll on tap instead.
+        setNewReplyMarker({ idx: batch.anchorIdx })
+      }
+    }, SCROLL_BATCH_DEBOUNCE_MS)
+  }, [messages])
+
+  const scrollToNewReply = () => {
+    const idx = newReplyMarker && newReplyMarker.idx
+    setNewReplyMarker(null)
+    if (idx == null) return
+    const el = messageRefs.current[idx]
+    if (el && el.scrollIntoView && el.isConnected) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
 
   // When a note box opens, focus its textarea and bring it just into view
   // (block:'nearest' scrolls minimally, never to the top), so the user lands in
@@ -1200,7 +1296,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // defaults to min-height:auto, which refuses to shrink below its content and
   // would overflow the panel instead of scrolling).
   const transcript = (
-    <div ref={messagesContainerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
+    <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <div ref={messagesContainerRef} data-coach-transcript="true" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => {
         const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)
         // Same eligibility as isCollapsedBanner, minus the expanded check --
@@ -1353,6 +1450,21 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           )}
         </div>
       )})}
+    </div>
+    {newReplyMarker && (
+      <button
+        onClick={scrollToNewReply}
+        aria-label="New reply"
+        style={{
+          position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+          background: C.gold, color: '#fff', border: 'none', borderRadius: 999,
+          padding: '6px 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+          fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', zIndex: 5,
+        }}
+      >
+        New reply ↓
+      </button>
+    )}
     </div>
   )
 
