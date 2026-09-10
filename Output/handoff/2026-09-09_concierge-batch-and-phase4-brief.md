@@ -1,21 +1,19 @@
-# Prompt for Code
+Prompt for Code
 HOLD until Bob says go. Save this file verbatim to `Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md` in this repo now; do not start work on it. It has two parts. Part 1 is the post-test batch: items already known from Bob's production read on `268a812` through `e4e088f`, plus a placeholder section that Bob's Parts B5 through G results will fill. Part 2 is the Phase 4 brief. When Bob says go, Part 1 ships as a small number of PRs (grouped as marked, gated and ungated never mixed), and Part 2 starts after Part 1 has cleared Bob's read.
-
-Date: 2026-09-09
+Date: 2026-09-09, revised 2026-09-10 (section 2.6 added; Code: replace the saved copy with this one)
 Type: Batch (post-production-test fixes) and Phase 4 brief (fold the hand-wired Coach into the catalog)
-Sources: Bob's test log (`2026-09-09_concierge-test-feedback.md`, Parts A and B, plus the SCOPE reference sample); Code's affordance inventory (`2026-09-09_coach-affordance-inventory.md`); the introduction-messaging research consult (2026-09-09); the concierge design (`2026-09-08_coach-concierge-design.md`). Builds these were observed on: `268a812` through `e4e088f`.
+Sources: Bob's test log (`2026-09-09_concierge-test-feedback.md`, Parts A and B, plus the SCOPE reference sample); Code's affordance inventory (`2026-09-09_coach-affordance-inventory.md`); the introduction-messaging research consult (2026-09-09); the concierge design (`2026-09-08_coach-concierge-design.md`).
+Build these were observed on: `268a812` through `e4e088f`.
+Standing rules that apply to everything below
 
-## Standing rules that apply to everything below
+* Situation fields are a projection of app state, never DOM measurement (CLAUDE.md §8, #842).
+* No Coach copy ships without Bob's sign-off on the text. Copy in this brief marked APPROVED is his; copy marked DRAFT is not, and must not ship.
+* One `PLAIN_ENGLISH` principle, no banned-word lists. Add this sentence to the block: "Could a good colleague say this across a table without sounding either above the person or like they were keeping a file on them? If not, rewrite it." (Bob, 2026-09-09: no superiority, no surveillance, partner not parent.)
+* A gated PR contains no ungated change. Each item below is marked G (behind `onboarding_concierge` / `coach_presence`) or U (reaches every account).
+* Production bugs: reproduce to the symptom first, trace the path in the PR, run it in a browser on the preview.
 
-- Situation fields are a projection of app state, never DOM measurement (CLAUDE.md §8, #842).
-- No Coach copy ships without Bob's sign-off on the text. Copy in this brief marked APPROVED is his; copy marked DRAFT is not, and must not ship.
-- One `PLAIN_ENGLISH` principle, no banned-word lists. Add this sentence to the block: "Could a good colleague say this across a table without sounding either above the person or like they were keeping a file on them? If not, rewrite it." (Bob, 2026-09-09: no superiority, no surveillance, partner not parent.)
-- A gated PR contains no ungated change. Each item below is marked G (behind `onboarding_concierge` / `coach_presence`) or U (reaches every account).
-- Production bugs: reproduce to the symptom first, trace the path in the PR, run it in a browser on the preview.
-
-## Part 1: the batch
-
-### 1.1 Engine and presence (G)
+Part 1: the batch
+1.1 Engine and presence (G)
 
 1. Dismissal taps and an accept tap. When Coach makes an offer ("If you want, we could add..."), the taps are: [Yes, add that] [Not now] [Skip this screen]. When there is no offer: [Not now] [Skip this screen]. "Yes, add that" sends the acceptance as the person's turn so the existing rework/capture path does the work. Tap words: DRAFT, Bob to confirm or replace. Gold stays on the action tap only. Behavior of the two dismissals is unchanged (session snooze; screen quiet).
 2. Delivery on pre-existing builds. Delivery fires once on first visit to a section that was built before the concierge existed (observed A1, Interview Prep). Decision: KEEP, once per section, as the discovery moment for prior work. Bob to confirm; if he'd rather it stay quiet on old builds, add a built-before-flag check to the dedupe key.
@@ -24,78 +22,76 @@ Sources: Bob's test log (`2026-09-09_concierge-test-feedback.md`, Parts A and B,
 5. Stall copy. Per `2026-09-09_coach-phase3-voice-review.md`: "Nothing is built for this role yet. Want me to build {firstSectionLabel} now, or would you rather look at other roles?" Taps "Build {firstSectionLabel}" / "Show me other roles". Status: awaiting Bob's word. Ship only when marked APPROVED.
 6. Introduction explanation once. The self-open explanatory framing (Part 2, item 2.3) appears the first time Coach opens on its own and never again: dedupe key `coach-self-open-explained`, durable.
 7. B4 and B5. Pending Bob's fresh-session results. If B4 shows Delivery did not open the panel through the snooze, that is a significance bug in the evaluator; fix to the symptom with a browser test.
+7a. Concierge on the live side. Pulled forward from Phase 4 (2026-09-10): Arrival on My Pipeline and on each Opportunity Playbook, Delivery and a stage-based Next move on Opportunity cards, an "interview is close" Check, and the state-based jump to Resume Refresh when an opportunity is added for a direction. Written as its own prompt: `2026-09-10_concierge-live-side-brief.md`. Its PR 1 (ordering, tap persistence, record pinning) also closes items D1 and D2 from the log and should ship first in the batch.
 
-### 1.2 Voice samples for the eval (no code; add to the fixture set)
+1.2 Voice samples for the eval (no code; add to the fixture set)
 
-- PASS reference: Bob's SCOPE question on the Deloitte Interview Prep card (grounded, personalized, surfaced "leaning on" and "also consider"). Use as the bar.
-- FAIL samples: "Every interviewer on this path is going to clock that" (unsourced absolute plus slang); "the main read mostly confirms what you already believe" (tells the person what they believe); "real momentum on the live side" (shorthand).
+* PASS reference: Bob's SCOPE question on the Deloitte Interview Prep card (grounded, personalized, surfaced "leaning on" and "also consider"). Use as the bar.
+* FAIL samples: "Every interviewer on this path is going to clock that" (unsourced absolute plus slang); "the main read mostly confirms what you already believe" (tells the person what they believe); "real momentum on the live side" (shorthand).
 
-### 1.3 Ungated fixes (U, each its own PR or grouped as marked)
+1.3 Ungated fixes (U, each its own PR or grouped as marked)
 
 8. Start Fresh confirmation. Replace the browser-native `confirm()` with an in-app dialog: Cancel is the default, the destructive button reads "Delete my account", body text unchanged ("This permanently deletes your profile, outputs, saved playbooks, and chat history. You can sign back in with the same email to start over.").
 9. Layout width token. Raise layout width, keep prose measure (see the layout prompt of 2026-09-09): one token for page layout (cards, pipeline board, rails), ceiling around 1440, running text keeps its current measure inside it; no centering; same width whether the panel is open or docked. Screenshots at 1440 and 1920.
 10. CoachMark on the sidebar's My Coach row. Same mark as the header pill so the two entrances share an identity. No other sidebar change.
 
-### 1.4 Process and tests (U, docs and test files only)
+1.4 Process and tests (U, docs and test files only)
 
 11. CLAUDE.md additions. (a) Production bugs: reproduce to the symptom, trace the path in the PR, run it in a browser on the preview; adversarial second look on engine PRs. (b) Animation: when morphing a box between very different sizes, screenshot the mid-flight frame, not only the endpoints (the #844 radius bug). (c) Branch restart: rebase onto `origin/main`, not the reset branch tip, even when content-identical.
 12. Flagged fixture for browser tests. The #842 suite runs as a non-internal account (floating bubble). Add a flagged-account fixture so the embedded concierge panel is the surface under test; run the eleven-click sweep and the composer-visibility check on it.
 13. Correction-target verification. The one browser test that decides Column 3 of the inventory: on a Focus Playbook, scroll (do not click) to a section, type a correction ("change the opening"), assert the rework lands on that section. If it passes across the eleven sections, the per-section "Ask My Coach about this" targets can come from the Situation and Column 3 collapses into Column 1 at GA.
 
-### 1.5 From Bob's Parts B5 through G (placeholder)
-
+1.5 From Bob's Parts B5 through G (placeholder)
 To be filled from the log. Sort each failure by phase (1a grounding, 1b presence, 2 or 3 moment or copy, guardrails) and attach the verbatim reply.
-
-## Part 2: Phase 4 brief
-
-### 2.1 What Phase 4 is
-
+Part 2: Phase 4 brief
+2.1 What Phase 4 is
 One mechanism for the whole journey. The eighteen hand-wired `seen*` triggers, the fifteen `openCoachWith` sites, and the twenty-five Coach affordances in Code's inventory become catalog rows in the Moments engine, offered by Coach at the moment they are useful, with taps. Nothing users see changes on day one; the change is that a future tweak is one row in one place. Onboarding is last on purpose, so the part that works is never the part under test.
-
-### 2.2 The inventory, applied
-
+2.2 The inventory, applied
 Per `2026-09-09_coach-affordance-inventory.md` (25 affordances):
 
-- Column 1 (16, open Coach only): removal list for GA day. Nothing is removed until the panel is on for every account. Two premises to verify before this list is final: "Your Next Step" is a live pilot (shipped 2026-09-02, flagged), not dead code, so its button is a pilot question, not a removal; and the five Focus sections whose "Ask My Coach about this" carries no rework target (The Role, Compensation Read, Interview Prep, Networking Groups, Recruiters) need one answer: corrections unsupported there, or inconsistent wiring. Report which.
-- Column 2 (8, specific reads and drills): become catalog rows, one each: Practice This Answer; the two per-seat Interview Team doors; the weakness question; the five routed interview questions (one row with a parameter, not five); the offer-negotiation trade-off drill; the pipeline read; the opportunity read. Each row: family (mostly Check, keyed on pipeline or playbook state; Practice This Answer is Delivery-adjacent, after Interview Prep builds), significance (ordinary unless it responds to something the person just did), condition, dedupe key, and the tap that runs the existing read. The page button is removed only once its row has fired on Bob's account and passed his read.
-- Column 3 (1, correction target): resolved by item 13. Until then, unchanged.
+* Column 1 (16, open Coach only): removal list for GA day. Nothing is removed until the panel is on for every account. Two premises to verify before this list is final: "Your Next Step" is a live pilot (shipped 2026-09-02, flagged), not dead code, so its button is a pilot question, not a removal; and the five Focus sections whose "Ask My Coach about this" carries no rework target (The Role, Compensation Read, Interview Prep, Networking Groups, Recruiters) need one answer: corrections unsupported there, or inconsistent wiring. Report which.
+* Column 2 (8, specific reads and drills): become catalog rows, one each: Practice This Answer; the two per-seat Interview Team doors; the weakness question; the five routed interview questions (one row with a parameter, not five); the offer-negotiation trade-off drill; the pipeline read; the opportunity read. Each row: family (mostly Check, keyed on pipeline or playbook state; Practice This Answer is Delivery-adjacent, after Interview Prep builds), significance (ordinary unless it responds to something the person just did), condition, dedupe key, and the tap that runs the existing read. The page button is removed only once its row has fired on Bob's account and passed his read.
+* Column 3 (1, correction target): resolved by item 13. Until then, unchanged.
 
-### 2.3 Coach introduces itself (three catalog rows, Arrival family, surface = Coach)
-
+2.3 Coach introduces itself (three catalog rows, Arrival family, surface = Coach)
 Principles (research consult, 2026-09-09, adopted): teach one capability at the moment it is true, never a list; trust comes from what Coach does, not what it claims; the first open is relationship plus the one true next thing. Bob's constraints: partner not parent; no language that implies superiority or surveillance; texture over vagueness ("worth a word" and "worth talking about" rejected as meaningless to a new user); never apologize for being present.
-
 Row A, first open (once per account, at the first appearance of the panel after Welcome). Copy, DRAFT pending Bob's sign-off (fifth pass, 2026-09-09):
-
-> I'm your coach, and I'm with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I'll be right here while you put that in, and if you'd rather tell me something than type it into a box, say it here and I'll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works.
-
+I'm your coach, and I'm with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I'll be right here while you put that in, and if you'd rather tell me something than type it into a box, say it here and I'll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works.
 Row B, first minimize (once; renders in the pill as it lands). DRAFT:
-
-> I'm right up here. Click me anytime and we pick up where we left off.
-
+I'm right up here. Click me anytime and we pick up where we left off.
 Row C, first self-open (once, the first time a significant moment opens the panel; the real reason is filled in from the moment that fired). DRAFT:
-
-> I opened because something just happened that's worth talking about: {the real reason, e.g. "you finished your Bridge Story, and I have a read on it"}. I'll do this when there's something real to say, after you build something, when you pick a role, when an interview is coming up. If you'd rather I hold off for now, tell me "I'm good" and I will.
-
+I opened because something just happened that's worth talking about: {the real reason, e.g. "you finished your Bridge Story, and I have a read on it"}. I'll do this when there's something real to say, after you build something, when you pick a role, when an interview is coming up. If you'd rather I hold off for now, tell me "I'm good" and I will.
 Rule, not copy: "what can you do?" When asked, Coach names three or four things it can do with what this person has built right now, one line each, each with a tap; never a general list of features. Implement as a prompt rule in `SYSTEM_PROMPT_STABLE` plus the catalog's tap vocabulary.
-
-### 2.4 One Coach
-
+2.4 One Coach
 The panel is the Coach. Add an expand control that takes it to full width for a long conversation; the sidebar's My Coach opens that same panel expanded rather than a separate screen. The full-page `myCoach` mount is retired once the expanded panel has passed Bob's read. The pill and the sidebar row share the CoachMark.
-
-### 2.5 Pre-Phase-2 copy pass
-
+2.5 Pre-Phase-2 copy pass
 All Coach copy that predates Phase 2 (onboarding framing, per-step narration, employment and intake prompts, capture-offer copy; the "how it lands" onboarding line is an example) gets the same extraction-and-sign-off pass the Phase 2 and 3 copy got. Extraction first, verbatim, as a returned document; rewrite only after Bob's sign-off.
+2.6 The widen-the-search set (added 2026-09-10)
+Why. The features that widen a person's surface area of opportunity are the ones nobody finds: in the 14 days to Sep 10 the insights page shows Groups for This Path surfaced once, Known Contacts once, Recruiters never. Next move walks the section order and these sit ninth and tenth. Bob's principle (2026-09-10): people don't know how to run a job search, they are overloaded, and part of Coach's job is to keep gently nudging them toward the things that increase the surface area of their opportunities. A good idea declined for lack of bandwidth is not a rejected idea.
+The set. Five offers, each a Check-family catalog row, surface = Coach, tap opens the thing:
 
-### 2.6 Order of work and gates
+1. Recruiters for This Path (build the section for the direction in view).
+2. Load your LinkedIn contacts (the connections export, so Who You Know Here and Known Contacts work).
+3. Networking Groups (build the section; groups near you for this path).
+4. Career Club Corner (link out; the Monday group call, with a networking group built in). Copy is Bob's.
+5. Income Now (the section; a path for bringing money in while the search runs).
+
+Taps, a hard rule. Every offer in the set carries three taps: [Do it now] [Remind me later] [Not for me]. "Remind me later" is a snooze with a date (placeholder: seven days; Bob sets it). "Not for me" retires the offer for that person (placeholder: sixty days, then it may be raised once more; Bob decides whether it should ever come back). Nothing in this set is once-per-account. The dedupe key for these rows stores a snooze-until date, not a done flag. Tap words are DRAFT.
+What the engine does (machinery, kept small). Two things a model is bad at: it remembers the snooze dates per row per person, and it enforces pacing: at most one widen-the-search offer per session unprompted, never the same row inside its snooze window, and rotation through the set so a person who snoozed recruiters hears about groups next time. "I'm good for now" still holds the whole set for the session. Exception: a direct hint from the person overrides the pacing and the snooze (not a "Not for me" retirement), because answering what someone just said is a reply, not an unprompted offer.
+What Coach does (principle, in the prompt, not a condition table). Add to `SYSTEM_PROMPT_STABLE`, under `PLAIN_ENGLISH`, in words to this effect (copy DRAFT, Bob signs off): Reimagine has built things for the hard parts of a search: finding the recruiters who place this kind of role, seeing who you already know at a company, finding groups of people on the same path, the Career Club Corner calls, and bringing money in while the search runs. When what the person says, how they sound, or what their pipeline shows points at one of those, name it plainly and offer to start it, with the tap. Hints to listen for: "I've run out of people to talk to," "there's nothing out there," "I don't know anyone," feeling alone in it, a comment that the money is getting tight, discouragement about opportunities; and, in the Situation, a pipeline with few live opportunities, nothing added in a while, or nothing moving. The snooze is a floor on Coach raising the same thing unprompted; a hint from the person is answered when it comes, snooze or not. Offer the path, do not diagnose the person: for Income Now in particular, respond to the words that were said and never probe the finances behind them.
+The catalog rows carry a sentence, not a rule. Each row lists what it offers, the tap targets, and one sentence on when it tends to be true (e.g. Recruiters: "The Role and Your Bridge Story are built for a direction and nothing is live in the pipeline for it"). These sentences are guidance to the model through the Situation, not evaluator conditions; the evaluator's job for this set is the pacing and the snooze dates only.
+The mood question gets a job. The Return recap's "How are you doing this week?" read as perfunctory (Bob, C1). It stops being decorative once the answer routes somewhere: "run out of people," "no opportunities," "tired of this," "money" are the hints above. Keep the question; make it real.
+Measured by. The dashboard's offer-made / do-it-now / remind-later / not-for-me counts per row (see `2026-09-10_coach-insights-dashboard-concierge.md`). A row whose remind-later rate runs high is not a failure; a row whose not-for-me rate runs high gets its condition sentence or its copy revisited.
+2.7 Order of work and gates
 
 1. Part 1 ships and clears Bob's read.
 2. Item 13 (correction-target test) decides Column 3.
 3. 2.3 rows A, B, C ship first in Phase 4, since they are three rows with no removals, and Bob reads them on a fresh account.
 4. Column 2 rows ship in small groups (two or three per PR), each row read by Bob before its page button is removed.
-5. 2.4 One Coach.
-6. 2.5 copy pass.
-7. GA: flag opens to named testers, then everyone; Column 1 removals ship the same day the flag opens to everyone, not before.
+5. 2.6 widen-the-search set: the engine change (snooze dates, pacing, rotation) first, then the five rows in one PR, then the prompt principle; Bob reads each offer on his account with the hints typed in, and reads a snooze coming back after its date.
+6. 2.4 One Coach.
+7. 2.5 copy pass.
+8. GA: flag opens to named testers, then everyone; Column 1 removals ship the same day the flag opens to everyone, not before.
 
-## Out of scope
-
+Out of scope
 Weekly goals (held by Bob until Part G results). The challenge mechanism as a Check moment (backlog). The My Coach avatar (enhancements list, Later). Server-side orchestration and the rest of the structural backlog.

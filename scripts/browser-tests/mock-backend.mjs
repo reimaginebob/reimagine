@@ -12,14 +12,14 @@ import { buildProfileLoadResponse, buildMeResponse, DOOR1_RECORD, DOOR2_RECORD }
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
-export async function mockBackend(page, { step = 'focus' } = {}) {
+export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.' } = {}) {
   const coachRequests = []
 
   // Catch-all first (lowest precedence): anything not explicitly mocked
   // below gets a harmless empty 200 rather than a real network attempt.
   await page.route('**/api/**', route => route.fulfill(json({})))
 
-  await page.route('**/api/me', route => route.fulfill(json(buildMeResponse())))
+  await page.route('**/api/me', route => route.fulfill(json(buildMeResponse({ flagged }))))
   await page.route('**/api/profile/load', route => route.fulfill(json(buildProfileLoadResponse({ step }))))
   await page.route('**/api/saved-playbooks', route => route.fulfill(json({ playbooks: [DOOR1_RECORD, DOOR2_RECORD] })))
   // Nothing needs to persist for these tests -- accept any write silently.
@@ -29,7 +29,10 @@ export async function mockBackend(page, { step = 'focus' } = {}) {
     let body = null
     try { body = route.request().postDataJSON() } catch { /* not JSON, leave null */ }
     coachRequests.push(body)
-    await route.fulfill({ status: 200, contentType: 'text/plain', body: 'Got it.' })
+    // coachReplyBody is overridable (default a short stub) so a caller can
+    // mock a long reply -- e.g. to exercise the composer-visibility fix
+    // (#846) against a real, tall transcript rather than a one-line reply.
+    await route.fulfill({ status: 200, contentType: 'text/plain', body: coachReplyBody })
   })
 
   return { coachRequests }

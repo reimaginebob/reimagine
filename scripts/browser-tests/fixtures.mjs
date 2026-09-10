@@ -169,7 +169,7 @@ export function buildProfileLoadResponse({ step = 'focus' } = {}) {
   }
 }
 
-export function buildMeResponse() {
+export function buildMeResponse({ flagged = false } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -177,21 +177,27 @@ export function buildMeResponse() {
       // including hasCoachPresence -- which switches Chat from the floating
       // bubble (open/setOpen) to the embedded concierge panel (presence/
       // setPresence, App.jsx's conciergeEmbedded) on every non-welcome step.
-      // These tests exercise the ordinary floating-bubble surface that the
-      // other 145 accounts see; an internal address would silently swap
-      // which Chat variant renders and break openCoach()'s selector.
-      email: 'browser-test@example.com',
+      // The default (unflagged) fixture exercises the ordinary
+      // floating-bubble surface that the other 145 accounts see; `flagged`
+      // below grants coach_presence the same way a named outside tester
+      // would be granted it (feature_flags, not the internal-domain
+      // shortcut), so this stays a genuine test of the flag path rather
+      // than of the internal-account bypass.
+      email: flagged ? 'browser-test-flagged@example.com' : 'browser-test@example.com',
       first_name: 'Browser',
       last_name: 'Test',
       suspended_at: null,
       employment_status: 'employed',
       search_going_well: '',
       search_focus: '',
-      feature_flags: [],
+      // 'coach_presence' (COACH_PRESENCE_FLAG, api/_lib/feature-flags.js)
+      // is what App.jsx's hasCoachPresence/conciergeEmbedded read -- see the
+      // comment above.
+      feature_flags: flagged ? ['coach_presence'] : [],
       // Matches the live values in src/config/legal.js -- anything else
       // trips App.jsx's reaccept effect (~8956) and opens the fixed,
-      // full-viewport LegalReacceptanceModal, which sits above the floating
-      // coach bubble and blocks every click in these tests.
+      // full-viewport LegalReacceptanceModal, which sits above both Chat
+      // surfaces and blocks every click in these tests.
       privacy_version: PRIVACY_VERSION_MATERIAL,
       terms_version: TOS_VERSION_MATERIAL,
     },

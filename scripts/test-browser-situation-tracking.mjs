@@ -41,26 +41,34 @@
 // automated pipeline this suite would need to slot into yet, either. It
 // gets its own script instead: `npm run test:browser`, run manually (or
 // wired into a future CI job) same as `npm run smoke:preview` already is.
+//
+// Extended 2026-09-10 (item 12, the concierge batch brief): scenarios 7 and
+// 8 run the same rail-click sweep and a new composer-visibility check
+// against a coach_presence-FLAGGED account, so the embedded concierge panel
+// (App.jsx's conciergeEmbedded) is the surface under test, not just the
+// ordinary floating bubble scenarios 1-6 exercise. The account-bootstrap
+// helpers (newFocusPage/newFlaggedFocusPage and friends) moved out to
+// ./browser-tests/page-helpers.mjs so a second suite can reuse the same two
+// account shapes without copying selectors.
 import { chromium } from 'playwright'
 import { mockBackend, waitForCoachRequest } from './browser-tests/mock-backend.mjs'
+import {
+  DEV_URL, VIEWPORT, RAIL, INPUT,
+  dismissCookieBanner, openFloatingCoach, openEmbeddedCoach,
+  newFocusPage, newFlaggedFocusPage, clickRailSection, askWhereAmI,
+} from './browser-tests/page-helpers.mjs'
 import { existsSync } from 'node:fs'
 
-const DEV_URL = process.env.SITUATION_TEST_URL || 'http://localhost:5173'
 const EXECUTABLE_PATH = existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
   ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
   : undefined // falls back to Playwright's own managed browser elsewhere
 
-// Taller than Playwright's 720px default. At 720, the rail's own maxHeight
-// formula (calc(100dvh - 80px), src/components/PlaybookSectionRail.jsx) and
-// its actual sticky offset once stuck (measured: the content column's own
-// top plus 16px) disagree by several pixels, so the last row (Income Now)
-// renders with its clickable center just past the viewport's clipped
-// bottom edge -- confirmed by direct measurement, not app behavior this
-// suite is testing. A taller viewport (matching a real laptop screen far
-// more than 720px does) removes that incidental clip without masking it;
-// scenario 3 below still exercises the genuine "last section, cannot
-// scroll further" edge case the task asked for.
-const VIEWPORT = { width: 1280, height: 1000 }
+// VIEWPORT (1280x1000, taller than Playwright's 720px default), RAIL/INPUT
+// selectors, dismissCookieBanner, openFloatingCoach/openEmbeddedCoach,
+// clickRailSection, askWhereAmI, and the newFocusPage/newFlaggedFocusPage
+// bootstrap helpers all now live in ./browser-tests/page-helpers.mjs (split
+// out 2026-09-10 so the live-side concierge PR 1 browser tests can reuse
+// the same two account shapes -- see that file's header comment).
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } else { console.log(`  ok   ${msg}`) } }
@@ -71,82 +79,6 @@ const FOCUS_LABELS = {
   groups: 'Networking Groups', recruiters: 'Recruiters for This Path', income: 'Income Now',
 }
 const FOCUS_ORDER_IDS = ['p5', 'p6', 'p9', 'salaryRead', 'p11', 'p_res', 'p8', 'p7', 'groups', 'recruiters', 'income']
-
-// CSS/attribute locators throughout, not Playwright's role/accessible-name
-// engine (getByRole/getByPlaceholder) -- observed in this environment
-// matching against a live aria-label reliably while the same element's
-// computed ARIA role+name did not, for reasons not worth chasing down here.
-const RAIL = 'nav[aria-label="Playbook sections"]'
-const INPUT = 'textarea[placeholder="Ask your coach anything. Shift+Enter for a new line."]'
-const OPEN_COACH = 'button[aria-label*="Open My Coach"]'
-
-async function openCoach(page) {
-  await page.locator(OPEN_COACH).click()
-  await page.locator(INPUT).waitFor({ state: 'visible', timeout: 10000 })
-  // Opening the panel can itself fire a silent, un-typed request (the
-  // returning-session opening recap, Chat.jsx's sessionOpenEligible effect
-  // -- gated on hasNextStep, which this fixture's account carries). Chat's
-  // send() no-ops while `loading` is true (Chat.jsx ~518), and the
-  // textarea is disabled the same way, so typing here before that settles
-  // would submit into a no-op and the test would hang waiting on a
-  // request that was never sent. Waiting for the enabled state clears
-  // that race without hardcoding which silent turns exist.
-  await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
-}
-
-// Types "Where am I?" and sends it, returning the situation.section the next
-// captured /api/coach request carried. Baseline is taken before the send so
-// a silent turn (session-open recap, a capture offer) that lands in the gap
-// between an earlier await and this call can never be mistaken for our own
-// message's request.
-async function askWhereAmI(page, coachRequests) {
-  const baseline = coachRequests.length
-  const input = page.locator(INPUT)
-  await input.fill('Where am I?')
-  await input.press('Enter')
-  const body = await waitForCoachRequest(coachRequests, { count: baseline + 1 })
-  return body && body.situation ? body.situation.section : undefined
-}
-
-async function clickRailSection(page, label) {
-  const btn = page.locator(RAIL).locator('button', { hasText: label }).first()
-  // Explicit native scrollIntoView, not Playwright's own actionability
-  // auto-scroll: the rail sits inside a scrollable content column nested
-  // inside a sticky rail with its own bounded height, and Playwright's
-  // heuristic left the last row's clickable center a few pixels past the
-  // viewport's clipped edge in exactly the scenario 3 (Income Now) case.
-  // The browser's own scrollIntoView resolves the same nested-ancestor
-  // scroll correctly.
-  await btn.evaluate(el => el.scrollIntoView({ block: 'center' }))
-  await btn.click()
-}
-
-// Two other one-time overlays sit above the floating coach bubble the same
-// way the cookie banner does (src/CookieBanner.jsx, fixed full-width bar at
-// the max z-index) -- the Support Reimagine announcement (App.jsx ~17216,
-// a fixed full-viewport scrim gated on seenSupportAnnounce, which itself
-// reads straight from this same localStorage key at mount). All three are
-// pre-acknowledged the same way a real returning visitor's browser already
-// has them, so they never intercept a click meant for the app underneath.
-async function dismissCookieBanner(page) {
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem('reimagine_cookie_acknowledged_v1', '1')
-      localStorage.setItem('reimagine_support_announce_v1_dismissed', '1')
-    } catch {}
-  })
-}
-
-async function newFocusPage(browser) {
-  const context = await browser.newContext({ viewport: VIEWPORT })
-  const page = await context.newPage()
-  await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step: 'focus' })
-  await page.goto(DEV_URL)
-  await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
-  await openCoach(page)
-  return { context, page, coachRequests }
-}
 
 async function run() {
   // Chrome's own autofill/account-sync background features try to reach
@@ -261,17 +193,70 @@ async function run() {
     // you fit), the same short-then-long shape as the Focus Playbook
     // repro cases, confirming the fix covers both surfaces. ---
     {
-      const context = await browser.newContext({ viewport: VIEWPORT })
-      const page = await context.newPage()
-      await dismissCookieBanner(page)
-      const { coachRequests } = await mockBackend(page, { step: 'op' })
-      await page.goto(DEV_URL)
-      await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
-      await openCoach(page)
+      const { context, page, coachRequests } = await newFocusPage(browser, { step: 'op' })
       await clickRailSection(page, 'About This Company')
       await page.waitForTimeout(400)
       const section = await askWhereAmI(page, coachRequests)
       check(section === 'companyRead', `Opportunity Playbook: About This Company (short/unbuilt, next to a long built card) reports companyRead (got ${JSON.stringify(section)})`)
+      await context.close()
+    }
+
+    // --- Scenario 7 (item 12, 2026-09-10): the eleven-click sweep repeated
+    // against a coach_presence-flagged account, so it exercises the
+    // embedded concierge panel (conciergeEmbedded=true) as the surface
+    // under test, not just the floating bubble every non-flagged account
+    // sees. Same fixture, same assertions as scenario 4 -- only the account
+    // shape (and therefore which Chat variant renders) differs. ---
+    {
+      const { context, page, coachRequests } = await newFlaggedFocusPage(browser)
+      for (const id of FOCUS_ORDER_IDS) {
+        await clickRailSection(page, FOCUS_LABELS[id])
+        await page.waitForTimeout(400)
+        const section = await askWhereAmI(page, coachRequests)
+        check(section === id, `Flagged/embedded eleven-click sweep: clicking "${FOCUS_LABELS[id]}" reports ${id} (got ${JSON.stringify(section)})`)
+      }
+      await context.close()
+    }
+
+    // --- Scenario 8 (item 12, 2026-09-10): composer-visibility check on the
+    // embedded panel. #846 replaced a JS-measured maxHeight with a genuine
+    // CSS flex height chain specifically so a long reply can never push the
+    // composer (input/mic/Send) out of view -- Bob's screenshot on 7bb7f91
+    // showed exactly that happening under the old measurement, with the
+    // composer's box still technically present in the DOM but clipped out
+    // of the panel's visible area by its overflow:hidden ancestor. A plain
+    // boundingBox() read doesn't catch that (a clipped element still
+    // reports a box), so this asks the browser what element actually
+    // paints at the input's and the Send button's own center point --
+    // document.elementFromPoint -- which a clipped/covered element fails,
+    // and a genuinely visible one passes. ---
+    {
+      const longReply = Array.from({ length: 20 }, (_, i) =>
+        `Paragraph ${i + 1} of a deliberately long reply, long enough that a panel sized by a stale JS measurement would let it push the composer out of view.`
+      ).join('\n\n')
+      const { context, page } = await newFlaggedFocusPage(browser, { coachReplyBody: longReply })
+      const input = page.locator(INPUT)
+      const sendBtn = page.locator('button', { hasText: /^(Send|Stop)$/ })
+      await input.fill('Give me a long reply.')
+      await input.press('Enter')
+      // Wait for the mocked reply's own text to actually render, not just
+      // the request firing -- the composer-visibility risk is specifically
+      // about the panel's layout AFTER a tall transcript renders.
+      await page.locator('text=Paragraph 20 of a deliberately long reply').waitFor({ state: 'visible', timeout: 10000 })
+
+      const paintsAt = async (locator) => {
+        const box = await locator.boundingBox()
+        if (!box) return false
+        const cx = box.x + box.width / 2
+        const cy = box.y + box.height / 2
+        return page.evaluate(([x, y]) => {
+          const el = document.elementFromPoint(x, y)
+          return !!(el && el.closest('textarea, button'))
+        }, [cx, cy])
+      }
+
+      check(await paintsAt(input), 'Composer-visibility check: the input actually paints at its own center point after a long reply (not clipped by an overflow:hidden ancestor)')
+      check(await paintsAt(sendBtn), 'Composer-visibility check: the Send/Stop button actually paints at its own center point after a long reply')
       await context.close()
     }
   } finally {
@@ -282,7 +267,7 @@ async function run() {
     console.error(`test-browser-situation-tracking: ${failures} check(s) failed`)
     process.exit(1)
   } else {
-    console.log('test-browser-situation-tracking: OK (all eleven Focus Playbook sections, the last-section scroll edge case, the wheel-scroll fallback, and one Opportunity Playbook short-then-long case all report the correct situation.section)')
+    console.log('test-browser-situation-tracking: OK (all eleven Focus Playbook sections, the last-section scroll edge case, the wheel-scroll fallback, one Opportunity Playbook short-then-long case, the eleven-click sweep on a flagged/embedded account, and the embedded-panel composer-visibility check all pass)')
   }
 }
 
