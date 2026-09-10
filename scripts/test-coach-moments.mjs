@@ -153,7 +153,10 @@ check(fireMomentIdx !== -1, `${APP}: fireMoment is missing`)
 // lines further from fireMomentIdx. Widened again for batch item 1.1.1's tap
 // rewrite (2026-09-10): the explanatory comment ahead of the new quickReplies
 // line pushed setChatMessages further still.
-const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 2700) : ''
+// Widened again for the live-side brief PR 2 production fix's offer
+// detection (2026-09-10): the offerTap comment/computation ahead of
+// setChatMessages pushed it further still.
+const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 3500) : ''
 check(app.includes('const momentFetchingRef=useRef({})'), `${APP}: momentFetchingRef state is missing`)
 check(fireMomentBlock.includes('if(momentFetchingRef.current[trackKey])return'), `${APP}: fireMoment is missing its in-flight guard`)
 check(fireMomentBlock.includes("body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})"),
@@ -173,7 +176,10 @@ check(tapIdx !== -1, `${APP}: the generic moment: tap handler is missing`)
 // (2026-09-10): the five op-side onTap ctx closures (openOpRecord,
 // generateOpSectionFor, opNextMoveOnTap, opInterviewCloseOnTap,
 // opResumeJumpOnTap) push the window further still.
-const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 2900) : ''
+// Widened again for the live-side brief PR 2 production fix's "Do it now"
+// dispatch branch (2026-09-10), which sits between the Minimize branch and
+// the onTap delegation line.
+const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 3800) : ''
 check(tapBlock.includes("const key=checkinKey.slice(7)"), `${APP}: the tap handler does not parse the moment key out of the checkinKey`)
 check(tapBlock.includes('const entry=MOMENT_CATALOG.find(e=>e.key===key)'), `${APP}: the tap handler does not resolve the fired entry from the catalog`)
 check(tapBlock.includes("declined?'declined':'accepted'"), `${APP}: the tap handler does not log accept/decline based on which value was tapped`)

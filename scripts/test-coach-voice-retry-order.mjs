@@ -27,7 +27,11 @@ check(extractionIdx !== -1 && retryIdx !== -1 && extractionIdx < retryIdx,
 
 // The retry block voice-checks strippedText (post-extraction prose), not
 // cleaned (which still carries every trailer line).
-const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 6000) : ''
+// Window widened 6000 -> 8000 (live-side brief PR 2 production fix,
+// 2026-09-10): the session-open sentence-count/"I noticed" checks added to
+// this same block by that fix push the tail markers below past the old
+// 6000-char window -- see test-coach-session-open-cap.mjs for those checks.
+const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 8000) : ''
 check(retryBlock.includes('const flags = detectResidualVoice(strippedText)'),
   `${COACH}: the retry's first voice check still runs against \`cleaned\` instead of \`strippedText\` -- it would still see raw trailer JSON`)
 check(retryBlock.includes("const hardViolations = detectVoiceViolations(strippedText, { scope: 'runtime' })"),

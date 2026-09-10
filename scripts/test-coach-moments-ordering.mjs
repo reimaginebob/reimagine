@@ -18,26 +18,38 @@
 // shape) reproduces that on purpose: DOOR1_RECORD (fixtures.mjs) has both
 // p5 and p11 already built, and this test pre-seeds coachMoments with
 // delivery-p5 already fired (via buildProfileLoadResponse's own
-// coachMoments hydration path). That makes delivery-p11 AND next-move (whose
-// nextMoveTarget anchors on delivery-p5's record, independent of p11)
-// eligible in the very same evaluator pass -- the exact shape that raced
-// before the fix: candidates.sort() always calls delivery-p11 first
-// (priority 3 beats next-move's 2), but nothing stopped next-move's fetch
-// from being sent, and resolving, before delivery-p11's own fetch settled.
+// coachMoments hydration path), giving next-move its anchor immediately.
 //
-// To prove the fix (not just that both messages eventually show up), this
-// test deliberately delays delivery-p11's mocked /api/coach response and
-// asserts next-move's request is not even SENT until after delivery-p11's
-// response lands -- the in-flight gate (momentInFlightRef, App.jsx) blocks
-// the pick, not just the display, so a slow first moment cannot let a fast
-// second one win the arrival race.
+// Production fix (live-side brief PR 2, Bob's read on Imerys/Lindsey,
+// 2026-09-10) changed WHICH of the two fires first here: Delivery on a
+// pre-existing build now only fires once the person actually views that
+// card (src/coach-moments.js's viewedSection gate on every delivery-*
+// entry) -- it no longer fires for every already-built card the instant
+// the screen mounts. p11 is built in this fixture but is not the section
+// in view on arrival, so delivery-p11 is NOT eligible on the very first
+// pass the way it was pre-fix; next-move (which needs no view, only the
+// already-fired p5 anchor) is the only thing eligible then, and fires
+// first. Scrolling to Interview Prep (clickRailSection below) is what
+// makes delivery-p11 eligible at all, and it becomes so strictly after
+// next-move has already been picked -- the two are no longer a same-pass
+// priority tie, they are sequential by construction.
+//
+// What this test still proves, unchanged: the in-flight gate
+// (momentInFlightRef, App.jsx) serializes the two fetches regardless of
+// which one becomes eligible first or which has higher catalog priority --
+// delivery-p11's request must not even be SENT until next-move's mocked
+// response lands, and the transcript must show them in the order they were
+// actually called (next-move, then delivery-p11), not in priority order or
+// whichever happened to resolve first. To prove that (not just that both
+// messages eventually show up), this test deliberately delays next-move's
+// mocked /api/coach response.
 //
 // Runs against the real headless Chromium + Vite dev server + mocked
 // backend, same harness as test-coach-scroll-to-start.mjs.
 import { chromium } from 'playwright'
 import { existsSync } from 'node:fs'
 import {
-  DEV_URL, VIEWPORT, RAIL, INPUT, dismissCookieBanner, openEmbeddedCoach,
+  DEV_URL, VIEWPORT, RAIL, INPUT, dismissCookieBanner, openEmbeddedCoach, clickRailSection,
 } from './browser-tests/page-helpers.mjs'
 import { mockBackend } from './browser-tests/mock-backend.mjs'
 import { CHOSEN, SELECTED_LANE, DOOR1_RECORD, DOOR2_RECORD } from './browser-tests/fixtures.mjs'
@@ -47,11 +59,12 @@ const EXECUTABLE_PATH = existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/
   : undefined
 
 const ASSISTANT_MSG = '[data-message-role="assistant"]'
-// Deliberately slow: long enough that a naive (pre-fix) implementation --
-// where next-move's fetch is sent as soon as its own eligibility becomes
-// true, independent of whether delivery-p11's fetch has settled -- would
-// have every opportunity to resolve and land in chatMessages first.
-const DELIVERY_DELAY_MS = 600
+// Deliberately slow: long enough that a naive (pre-guard) implementation --
+// where a later-eligible moment's fetch is sent as soon as its own
+// eligibility becomes true, independent of whether an earlier one's fetch
+// has settled -- would have every opportunity to resolve and land in
+// chatMessages first.
+const NEXT_MOVE_DELAY_MS = 600
 
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } else { console.log(`  ok   ${msg}`) } }
@@ -66,6 +79,14 @@ async function run() {
     // (buildProfileLoadResponse -> normalizeProfileState -> setCoachMoments).
     const coachMoments = {
       'delivery-p5': { [idKey]: { value: DOOR1_RECORD.outputs.p5, firedAt: '2026-09-01T12:00:00.000Z' } },
+      // Pre-seeded fired (production fix, live-side brief PR 2, 2026-09-10):
+      // without this, choice-role is also eligible on arrival (this fixture's
+      // chosen/selectedLane already satisfy it) and wins the very first
+      // pass ahead of both next-move and delivery-p11, which raced this
+      // test's own click-to-view-p11 step against a moment the test was
+      // never about -- not a real ordering bug, just unrelated noise this
+      // fixture happened to also make eligible.
+      'choice-role': { [idKey]: { value: 'fired', firedAt: '2026-09-01T12:00:00.000Z' } },
     }
 
     const requestLog = []
@@ -88,17 +109,17 @@ async function run() {
     // Last-registered wins (Playwright route precedence, mock-backend.mjs's
     // own header comment) -- this overrides mockBackend's generic /api/coach
     // stub with per-moment responses, so delivery-p11 and next-move can be
-    // told apart in the DOM and delivery-p11's response can be held back.
+    // told apart in the DOM and next-move's response can be held back.
     await page.route('**/api/coach', async route => {
       let body = null
       try { body = route.request().postDataJSON() } catch { /* not JSON */ }
       const key = body && body.moment && body.moment.key
       requestLog.push({ key, at: Date.now() })
-      if (key === 'delivery-p11') {
-        await new Promise(r => setTimeout(r, DELIVERY_DELAY_MS))
-        await route.fulfill({ status: 200, contentType: 'text/plain', body: 'DELIVERY_P11_REPLY' })
-      } else if (key === 'next-move') {
+      if (key === 'next-move') {
+        await new Promise(r => setTimeout(r, NEXT_MOVE_DELAY_MS))
         await route.fulfill({ status: 200, contentType: 'text/plain', body: 'NEXT_MOVE_REPLY' })
+      } else if (key === 'delivery-p11') {
+        await route.fulfill({ status: 200, contentType: 'text/plain', body: 'DELIVERY_P11_REPLY' })
       } else {
         await route.fulfill({ status: 200, contentType: 'text/plain', body: 'Got it.' })
       }
@@ -106,50 +127,62 @@ async function run() {
     await page.goto(DEV_URL)
     await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
     await openEmbeddedCoach(page)
+    // Bring Interview Prep into view once the panel is open and next-move's
+    // (delayed) fetch is already in flight -- this is what makes delivery-p11
+    // eligible at all under the production fix. The in-flight guard must
+    // still block its request from being sent until next-move's settles,
+    // even though delivery-p11 outranks next-move in catalog priority.
+    await clickRailSection(page, 'Interview Prep')
 
-    // --- Item 1, part A: next-move's request must not be sent while
-    // delivery-p11's is still in flight. ---
-    await page.waitForTimeout(250) // well past when a same-pass eligible next-move would have been sent, pre-fix
+    // --- Item 1, part A: delivery-p11's request must not be sent while
+    // next-move's is still in flight. ---
+    await page.waitForTimeout(250) // well past when a same-pass eligible delivery-p11 would have been sent, if the guard did not serialize it
     const momentReqsSoFar = requestLog.filter(r => r.key === 'delivery-p11' || r.key === 'next-move')
-    check(momentReqsSoFar.length === 1 && momentReqsSoFar[0].key === 'delivery-p11',
-      `Only delivery-p11's request has been sent 250ms in, with its response still held back -- next-move must wait for it to settle (saw: ${JSON.stringify(momentReqsSoFar.map(r => r.key))})`)
+    check(momentReqsSoFar.length === 1 && momentReqsSoFar[0].key === 'next-move',
+      `Only next-move's request has been sent 250ms in, with its response still held back -- delivery-p11 must wait for it to settle (saw: ${JSON.stringify(momentReqsSoFar.map(r => r.key))})`)
 
-    // --- Item 1, part B: once delivery-p11's (delayed) response lands, the
-    // evaluator re-fires (momentReevalTick) and next-move's request follows. ---
-    await page.locator('text=DELIVERY_P11_REPLY').first().waitFor({ state: 'attached', timeout: 10000 })
+    // --- Item 1, part B: once next-move's (delayed) response lands, the
+    // evaluator re-fires (momentReevalTick) and delivery-p11's request follows. ---
     await page.locator('text=NEXT_MOVE_REPLY').first().waitFor({ state: 'attached', timeout: 10000 })
+    await page.locator('text=DELIVERY_P11_REPLY').first().waitFor({ state: 'attached', timeout: 10000 })
     const bothReqs = requestLog.filter(r => r.key === 'delivery-p11' || r.key === 'next-move')
-    check(bothReqs.length === 2 && bothReqs[0].key === 'delivery-p11' && bothReqs[1].key === 'next-move',
-      `Both requests were sent, delivery-p11 first (saw: ${JSON.stringify(bothReqs.map(r => r.key))})`)
-    check(bothReqs[1].at - bothReqs[0].at >= DELIVERY_DELAY_MS - 50,
-      `next-move's request was not sent until after delivery-p11's ${DELIVERY_DELAY_MS}ms-delayed response settled (gap=${bothReqs[1].at - bothReqs[0].at}ms) -- proves the fetches were serialized, not merely called in priority order`)
+    check(bothReqs.length === 2 && bothReqs[0].key === 'next-move' && bothReqs[1].key === 'delivery-p11',
+      `Both requests were sent, next-move first (saw: ${JSON.stringify(bothReqs.map(r => r.key))})`)
+    check(bothReqs[1].at - bothReqs[0].at >= NEXT_MOVE_DELAY_MS - 50,
+      `delivery-p11's request was not sent until after next-move's ${NEXT_MOVE_DELAY_MS}ms-delayed response settled (gap=${bothReqs[1].at - bothReqs[0].at}ms) -- proves the fetches were serialized, not merely called in priority order`)
 
     // --- Item 1, part C: arrival order in the transcript matches call
-    // order (Delivery before Next move), not whichever happened to resolve
-    // first -- the actual symptom the ordering fix targets. ---
+    // order (Next move before Delivery, since Delivery only became eligible
+    // once the person scrolled to it), not whichever happened to resolve
+    // first. ---
     const texts = await page.locator(ASSISTANT_MSG).allTextContents()
     const deliveryIdx = texts.findIndex(t => t.includes('DELIVERY_P11_REPLY'))
     const nextMoveIdx = texts.findIndex(t => t.includes('NEXT_MOVE_REPLY'))
-    check(deliveryIdx !== -1 && nextMoveIdx !== -1 && deliveryIdx < nextMoveIdx,
-      `Delivery's message renders before Next move's in the transcript (deliveryIdx=${deliveryIdx}, nextMoveIdx=${nextMoveIdx})`)
+    check(deliveryIdx !== -1 && nextMoveIdx !== -1 && nextMoveIdx < deliveryIdx,
+      `Next move's message renders before Delivery's in the transcript (nextMoveIdx=${nextMoveIdx}, deliveryIdx=${deliveryIdx})`)
 
-    // --- Item 2: Delivery's own taps are still visible after Next move's
+    // --- Item 2: Next move's own tap is still visible after Delivery's
     // message lands right after it -- the D1 bug (banner auto-collapse
     // hiding an earlier message's live quickReplies the moment a later one
-    // supersedes it) would have hidden these behind a one-line strip. ---
+    // supersedes it) would have hidden it behind a one-line strip. Next move
+    // is now the earlier message under the production fix (it needed no
+    // view, so it fired first), with delivery-p11 landing right after it. ---
     const deliveryMsg = page.locator(ASSISTANT_MSG).filter({ hasText: 'DELIVERY_P11_REPLY' }).first()
     const nextMoveMsg = page.locator(ASSISTANT_MSG).filter({ hasText: 'NEXT_MOVE_REPLY' }).first()
     // Tap labels updated by batch item 1.1.1 (2026-09-10): Remind me later /
     // Minimize Coach for now replace the retired session/screen quiet taps.
     check(await deliveryMsg.locator('button', { hasText: 'Remind me later' }).isVisible(),
-      "Delivery's own \"Remind me later\" tap is still visible after Next move's message landed after it")
+      "Delivery's own \"Remind me later\" tap is visible on its own message")
     check(await deliveryMsg.locator('button', { hasText: 'Minimize Coach for now' }).isVisible(),
-      "Delivery's own \"Minimize Coach for now\" tap is still visible after Next move's message landed after it")
+      "Delivery's own \"Minimize Coach for now\" tap is visible on its own message")
     // Next move's own action tap (the one new capability this catalog entry
     // adds -- see coach-moments.js's header comment): "Build {label}",
     // where {label} is the section after p5 in door1's build order (p6).
+    // This is the message the D1 bug actually threatened here: Next move
+    // fired first, so its own live quickReplies are the ones a banner
+    // auto-collapse could have hidden once Delivery's message landed after it.
     check(await nextMoveMsg.locator('button', { hasText: /^Build /ig }).isVisible(),
-      'Next move\'s own "Build {label}" action tap is visible on its message')
+      'Next move\'s own "Build {label}" action tap is still visible after Delivery\'s message landed after it')
 
     await context.close()
 
@@ -215,7 +248,7 @@ async function run() {
     console.error(`test-coach-moments-ordering: ${failures} check(s) failed`)
     process.exit(1)
   } else {
-    console.log('test-coach-moments-ordering: OK (next-move\'s request waits for delivery-p11\'s in-flight fetch to settle rather than firing in the same pass; arrival order in the transcript matches priority/call order even when the higher-priority moment resolves slower; delivery-p11\'s own taps stay visible once next-move\'s message lands after it; op-next-move\'s request names the record actually open, not one merely mentioned in chat)')
+    console.log('test-coach-moments-ordering: OK (delivery-p11\'s request waits for next-move\'s in-flight fetch to settle rather than firing the instant scrolling to it makes it eligible; arrival order in the transcript matches call order even though delivery-p11 outranks next-move in catalog priority; next-move\'s own taps stay visible once delivery-p11\'s message lands after it; op-next-move\'s request names the record actually open, not one merely mentioned in chat)')
   }
 }
 
