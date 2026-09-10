@@ -2,9 +2,11 @@
 // phase-2a-moments-core.md): guards the Moments catalog + evaluator core --
 // the general mechanism the design's Section 5 asks for, sized to what this
 // phase ships. One entry (Arrival on Put It to Work, migrated from the old
-// one-shot orientation-route effect), the coachMoments dedupe store, both
-// dismissal affordances, and the session-scoped quiet state. No server
-// change: Arrival is static copy, so this is a client-only test.
+// one-shot orientation-route effect) and the coachMoments dedupe store. No
+// server change: Arrival is static copy, so this is a client-only test.
+// The session/screen quiet state Phase 2a originally shipped here was
+// retired by batch item 1.1.4 (2026-09-10); see the Remind me later /
+// Minimize Coach for now taps below instead (batch item 1.1.1).
 import fs from 'node:fs'
 
 let failures = 0
@@ -52,8 +54,16 @@ check(app.includes('const seenOrientationRouteRef=useRef(false)'),
 // --- New state ---
 check(app.includes('const[coachMoments,setCoachMoments]=useState({})'), `${APP}: coachMoments state is missing`)
 check(app.includes('const momentFiredRef=useRef(new Set())'), `${APP}: momentFiredRef is missing`)
-check(app.includes('const[quietUntilReload,setQuietUntilReload]=useState(false)'), `${APP}: quietUntilReload state is missing`)
-check(app.includes('const[quietScreens,setQuietScreens]=useState({})'), `${APP}: quietScreens state is missing`)
+// quietUntilReload/quietScreens retired (batch item 1.1.4, 2026-09-10): the
+// session/screen quiet state and its taps are gone, not superseded --
+// verify the actual state declarations and taps are removed, not left dead
+// alongside the new ones (a historical mention in an explanatory comment is
+// fine and expected, so this checks the specific declarations/taps rather
+// than a blanket substring absence).
+check(!app.includes('const[quietUntilReload,setQuietUntilReload]=useState') && !app.includes('const[quietScreens,setQuietScreens]=useState'),
+  `${APP}: the retired quietUntilReload/quietScreens state declarations should be fully removed, not left dead alongside the new taps`)
+check(!app.includes("value==='moment-quiet-session'") && !app.includes("value==='moment-quiet-screen'"),
+  `${APP}: the retired moment-quiet-session/moment-quiet-screen taps should be fully removed`)
 
 // --- The evaluator effect ---
 const evalIdx = app.indexOf('for(const entry of MOMENT_CATALOG){')
@@ -73,8 +83,14 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // comment) sits between "if(!picked)return" and the static-branch dispatch,
 // pushing everything after it further from evalIdx again.
 const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 2400, evalIdx + 3900) : ''
-check(evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
-  `${APP}: the evaluator does not respect the two quiet states before considering any entry`)
+// The old quiet-states early return is retired (batch item 1.1.4/1.1.7,
+// 2026-09-10): it used to block the WHOLE evaluator from running, which was
+// also the significance bug (observed B4, confirmed L8/L9) -- an ordinary
+// moment now still fires and lands in chatMessages while minimized (feeding
+// the header pill's preview), only a significant one (entry.significance
+// ==='open') still pops the panel open.
+check(!evalBlock.includes('if(quietUntilReload||quietScreens[step])return'),
+  `${APP}: the retired quiet-states early return should be gone -- it used to block the entire evaluator, not just the reopen`)
 check(evalBlock.includes("if(entry.key==='ptw-arrival'&&seenOrientationRouteRef.current)continue"),
   `${APP}: the evaluator is missing the legacy seenOrientationRouteRef guard -- an account that already answered this under the old mechanism would see it fire again`)
 // Dedupe generalized Phase 2b: a sub-key + comparable value per entry
@@ -95,11 +111,12 @@ check(evalBlock.includes("setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key]
   `${APP}: firing a moment does not record it in coachMoments under its sub-key -- it would fire again on the next render`)
 check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMoment(entry,ctx)'),
   `${APP}: a generated entry does not dispatch through fireMoment`)
-// 'Not on this screen' -> 'Stay quiet on this screen' 2026-09-09 by the
-// voice review (Section 8): the old label read as a location description,
-// not an instruction the user is giving Coach.
-check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'I\\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:entry.quickReplies"),
-  `${APP}: a dismissible static entry's message does not append the two dismissal quick replies`)
+// Taps decided (batch item 1.1.1, 2026-09-10): the old two dismissal taps
+// (session/screen quiet) are replaced by one decline (Remind me later) and
+// one presence control (Minimize Coach for now) -- superseding the
+// 2026-09-09 voice-review rename this comment used to describe.
+check(evalBlock.includes("entry.dismissible?[...entry.quickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entry.quickReplies"),
+  `${APP}: a dismissible static entry's message does not append the Remind me later / Minimize Coach for now taps`)
 check(evalBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)
 check(evalBlock.includes("if(entry.significance==='open')setCoachPresence('open')"),
@@ -114,8 +131,10 @@ check(fireMomentIdx !== -1, `${APP}: fireMoment is missing`)
 // Widened for the live-side brief PR 1 ordering fix (2026-09-10): setting
 // momentInFlightRef synchronously (with its explanatory comment) between the
 // in-flight guard and the async IIFE pushed the POST body / setChatMessages
-// lines further from fireMomentIdx.
-const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 2100) : ''
+// lines further from fireMomentIdx. Widened again for batch item 1.1.1's tap
+// rewrite (2026-09-10): the explanatory comment ahead of the new quickReplies
+// line pushed setChatMessages further still.
+const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 2700) : ''
 check(app.includes('const momentFetchingRef=useRef({})'), `${APP}: momentFetchingRef state is missing`)
 check(fireMomentBlock.includes('if(momentFetchingRef.current[trackKey])return'), `${APP}: fireMoment is missing its in-flight guard`)
 check(fireMomentBlock.includes("body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})"),
@@ -128,12 +147,20 @@ const tapIdx = app.indexOf("checkinKey.startsWith('moment:')")
 check(tapIdx !== -1, `${APP}: the generic moment: tap handler is missing`)
 // Window widened Phase 3a (2026-09-09): a new comment ahead of the onTap
 // dispatch line (explaining genSec) pushed it past the old +700 edge.
-const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 900) : ''
+// Widened again for batch item 1.1.1 (2026-09-10): the retired-taps
+// explanatory comment plus the new moment-minimize branch (surface-aware
+// dispatch to beginCoachMinimize/setCoachOpen) sit between the entry lookup
+// and the onTap dispatch line now.
+const tapBlock = tapIdx !== -1 ? app.slice(tapIdx - 100, tapIdx + 2200) : ''
 check(tapBlock.includes("const key=checkinKey.slice(7)"), `${APP}: the tap handler does not parse the moment key out of the checkinKey`)
 check(tapBlock.includes('const entry=MOMENT_CATALOG.find(e=>e.key===key)'), `${APP}: the tap handler does not resolve the fired entry from the catalog`)
-check(tapBlock.includes("quiet?'declined':'accepted'"), `${APP}: the tap handler does not log accept/decline based on which value was tapped`)
-check(tapBlock.includes("if(value==='moment-quiet-session'){setQuietUntilReload(true);return true}"), `${APP}: the 'I'm good for now' tap does not set the session-scoped quiet state`)
-check(tapBlock.includes("if(value==='moment-quiet-screen'){setQuietScreens(s=>({...s,[step]:true}));return true}"), `${APP}: the 'Not on this screen' tap does not set the per-screen quiet state`)
+check(tapBlock.includes("declined?'declined':'accepted'"), `${APP}: the tap handler does not log accept/decline based on which value was tapped`)
+check(tapBlock.includes("const declined=value==='moment-remind-later'||value==='moment-minimize'"),
+  `${APP}: the tap handler's declined check no longer covers both moment-remind-later and moment-minimize`)
+check(tapBlock.includes("if(value==='moment-remind-later')return true"),
+  `${APP}: the 'Remind me later' tap no longer just declines -- it should have no broader session/screen effect (batch item 1.1.1)`)
+check(tapBlock.includes("if(conciergeEmbedded)beginCoachMinimize()") && tapBlock.includes('else setCoachOpen(false)'),
+  `${APP}: the 'Minimize Coach for now' tap does not dispatch to beginCoachMinimize (embedded) / setCoachOpen(false) (floating)`)
 // genSec added Phase 3a (Next move): its onTap starts a build the same way
 // the Focus Playbook screen's own Generate button does.
 check(tapBlock.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})'),
@@ -172,5 +199,5 @@ if (failures) {
   console.error(`test-coach-moments: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-moments: OK (ptw-arrival catalog entry with confirmed copy, old orientation-route mechanism fully retired with a read-only legacy dedupe guard, generic evaluator + tap handler wired for dismissal/quiet, coachMoments threaded through stateForSave and both hydration paths, twoDoors callout gated not deleted)')
+  console.log('test-coach-moments: OK (ptw-arrival catalog entry with confirmed copy, old orientation-route mechanism fully retired with a read-only legacy dedupe guard, generic evaluator + tap handler wired for Remind me later/Minimize Coach for now (the old session/screen quiet state is fully retired), coachMoments threaded through stateForSave and both hydration paths, twoDoors callout gated not deleted)')
 }

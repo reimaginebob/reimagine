@@ -97,14 +97,16 @@ check(app.includes('const handleCoachSessionOpen=()=>{setCoachDistressHold(false
 // --- Client: the evaluator actually checks both holds ---
 check(app.includes('if(coachDistressHold)return'),
   `${APP}: the evaluator does not check coachDistressHold`)
-// Ordering: the distress check must come before the quiet-state check, per
-// the brief ("checks this flag before it builds the candidate list ...
-// regardless of presence state") -- a hard hold should not depend on
-// reaching the quiet-state line first.
+// Ordering: the distress check must come before the candidate list is even
+// built, per the brief ("checks this flag before it builds the candidate
+// list ... regardless of presence state") -- a hard hold should not depend
+// on reaching any later line first. The quiet-state check this used to be
+// measured against is retired (batch item 1.1.4, 2026-09-10); the loop that
+// builds candidates is the next stable anchor.
 const distressIdx = app.indexOf('if(coachDistressHold)return')
-const quietIdx = app.indexOf('if(quietUntilReload||quietScreens[step])return', distressIdx - 200)
-check(distressIdx !== -1 && quietIdx !== -1 && distressIdx < quietIdx,
-  `${APP}: the distress hold check is not positioned before the quiet-state check`)
+const loopIdx = app.indexOf('for(const entry of MOMENT_CATALOG){', distressIdx)
+check(distressIdx !== -1 && loopIdx !== -1 && distressIdx < loopIdx,
+  `${APP}: the distress hold check is not positioned before the evaluator builds its candidate list`)
 check(app.includes("if(coachMoodHold&&entry.family!=='delivery'&&entry.family!=='choice')continue"),
   `${APP}: the evaluator does not hold every family except delivery/choice while coachMoodHold is set`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
@@ -140,5 +142,5 @@ if (failures) {
   console.error(`test-coach-engine-guardrails: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-engine-guardrails: OK (distress hold checked before the quiet-state check and blocks every family; mood hold blocks every family except delivery/choice; both clear only on a genuine new session; MOOD: low trailer parsed and stripped like SELFCHECK; Situation-block size sampled and logged 1-in-20)')
+  console.log('test-coach-engine-guardrails: OK (distress hold checked before the candidate list is built and blocks every family; mood hold blocks every family except delivery/choice; both clear only on a genuine new session; MOOD: low trailer parsed and stripped like SELFCHECK; Situation-block size sampled and logged 1-in-20)')
 }

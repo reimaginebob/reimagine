@@ -7481,8 +7481,6 @@ export default function PivotEngine(){
   // in-flight one settles, success or failure.
   const momentInFlightRef=useRef(false)
   const[momentReevalTick,setMomentReevalTick]=useState(0)
-  const[quietUntilReload,setQuietUntilReload]=useState(false)
-  const[quietScreens,setQuietScreens]=useState({})
   // Coach engine guardrails (2026-09-09, Output/handoff/2026-09-09_coach-
   // engine-guardrails-brief.md, rules 1 and 2): two session-scoped holds the
   // Moments evaluator checks before it fires anything. Distress (hard) blocks
@@ -7997,10 +7995,31 @@ export default function PivotEngine(){
     if(typeof checkinKey==='string'&&checkinKey.startsWith('moment:')){
       const key=checkinKey.slice(7)
       const entry=MOMENT_CATALOG.find(e=>e.key===key)
-      const quiet=value==='moment-quiet-session'||value==='moment-quiet-screen'
-      if(entry&&entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',quiet?'declined':'accepted')
-      if(value==='moment-quiet-session'){setQuietUntilReload(true);return true}
-      if(value==='moment-quiet-screen'){setQuietScreens(s=>({...s,[step]:true}));return true}
+      // Taps decided (batch item 1.1.1, 2026-09-10): 'Remind me later' is
+      // the one remaining decline -- per-offer, with no broader session or
+      // screen effect (the old moment-quiet-session/moment-quiet-screen
+      // taps this replaces are gone; the existing coachMoments dedupe
+      // already keeps the SAME content from firing again, which is all
+      // "remind me later" needs for now -- a real snooze-with-date
+      // mechanism is 2.6/Phase 4 work). 'Minimize Coach for now' is a
+      // presence control, not a decision on the offer itself, but
+      // engagement logging is a binary accepted/declined, so it logs as
+      // declined too, same as remind-later.
+      const declined=value==='moment-remind-later'||value==='moment-minimize'
+      if(entry&&entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',declined?'declined':'accepted')
+      if(value==='moment-remind-later')return true
+      if(value==='moment-minimize'){
+        // Does exactly what the header minimize control does, on whichever
+        // surface is currently showing (item 1.1.1): the embedded panel
+        // zips into the header pill (beginCoachMinimize, the #844 dock
+        // animation) so the person can see where Coach went; the floating
+        // bubble has no pill, so it just closes back to the round bubble --
+        // an ordinary moment landing while closed already shows as the
+        // small banner card next to it.
+        if(conciergeEmbedded)beginCoachMinimize()
+        else setCoachOpen(false)
+        return true
+      }
       // genSec added for Next move (Phase 3a): its onTap starts a build the
       // same way the Focus Playbook screen's own Generate button does.
       if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec})
@@ -8860,9 +8879,11 @@ export default function PivotEngine(){
   // was last said on a different screen. coachPreviewBaseline is the
   // chatMessages length at the moment `step` last changed; the preview
   // only shows once chatMessages has grown past it, and only for an
-  // assistant turn. Under quietUntilReload ("I'm good for now") nothing
-  // pushes a new message, so the baseline is never cleared past --
-  // exactly the "stays cleared" behavior, with no extra state needed.
+  // assistant turn. This is also what makes an ORDINARY moment (item 1.1.1/
+  // 1.1.7, 2026-09-10) visible while minimized without popping the panel
+  // open: it still pushes into chatMessages, so the preview line picks it
+  // up here the same way any other reply does -- no separate "show it in
+  // the pill" path is needed.
   const coachPreviewStepRef=useRef(step)
   const[coachPreviewBaseline,setCoachPreviewBaseline]=useState(chatMessages.length)
   useEffect(()=>{
@@ -9300,7 +9321,15 @@ export default function PivotEngine(){
           // dismissal ones, not just reflect. Every other generated entry
           // (Choice, Delivery) still has nothing here, so this is additive.
           const action=entry.actionReply?[entry.actionReply(ctx)]:[]
-          const quickReplies=entry.dismissible?[...action,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:action
+          // Taps decided (batch item 1.1.1, 2026-09-10): the old two-way
+          // session/screen quiet dismissal is retired. An entry's own offer
+          // (action, above) keeps its own specific label; every dismissible
+          // entry additionally gets exactly one decline tap (Remind me
+          // later -- see the tap handler below: it is per-offer and has no
+          // broader session/screen effect, unlike the taps it replaces) plus
+          // one presence control (Minimize Coach for now -- does what the
+          // header minimize does, on whichever surface is showing).
+          const quickReplies=entry.dismissible?[...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:action
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
         }
@@ -9378,12 +9407,24 @@ export default function PivotEngine(){
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser)return
-    // Rule 1 (distress hold, hard): checked before the quiet-state check
-    // itself -- this must win over everything, including a significant
-    // moment that would otherwise reopen a minimized panel. Coach stays
-    // exactly where the person left it; nothing posts to the strip.
+    // Rule 1 (distress hold, hard): checked first -- this must win over
+    // everything, including a significant moment that would otherwise
+    // reopen a minimized panel. Coach stays exactly where the person left
+    // it; nothing posts to the strip.
     if(coachDistressHold)return
-    if(quietUntilReload||quietScreens[step])return
+    // The session/screen quiet state (quietUntilReload/quietScreens) that
+    // used to sit here is retired (batch item 1.1.4, 2026-09-10): those two
+    // taps blocked the ENTIRE evaluator from running, which was also the
+    // significance bug in item 1.1.7 -- while "quiet," Delivery could not
+    // fire at all, not even to update the minimized pill's preview line
+    // (observed B4, confirmed by L8/L9: two builds in a row produced no
+    // Delivery whatsoever after "I'm good for now"). The presence model
+    // already covers what the old quiet state was for: minimized means an
+    // ORDINARY moment (entry.significance!=='open') still fires and lands in
+    // chatMessages -- feeding the header pill's preview line -- without
+    // popping the panel open; a SIGNIFICANT one (entry.significance==='open',
+    // currently Delivery and Choice; see coach-moments.js) still opens it,
+    // same as it always has. Nothing gates the evaluator itself anymore.
     // nextMoveTarget (Phase 3a, Next move): the delivery-* entry with the
     // latest firedAt for the current identity is "the one just built" --
     // anchoring on most-recently-reacted-to rather than first-unbuilt-
@@ -9471,13 +9512,16 @@ export default function PivotEngine(){
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{
-      const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'I\'m good for now',value:'moment-quiet-session'},{label:'Stay quiet on this screen',value:'moment-quiet-screen'}]:entry.quickReplies
+      // Same tap set as fireMoment's generated branch above (batch item
+      // 1.1.1) -- an entry's own quickReplies (its offer) keep their own
+      // labels, plus one Remind me later and one Minimize Coach for now.
+      const quickReplies=entry.dismissible?[...entry.quickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entry.quickReplies
       setChatMessages(m=>[...m,{role:'assistant',content:entry.message,checkinKey:`moment:${entry.key}`,quickReplies}])
       if(entry.significance==='open')setCoachPresence('open')
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])
+  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

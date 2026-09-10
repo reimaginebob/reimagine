@@ -1398,13 +1398,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {m.quickReplies.map((opt, qi) => {
-                // Tap hierarchy (2026-09-09 Coach styling pass): the two quiet-
-                // state dismissals stand down to a neutral outline -- the same
-                // one the Helpful/Not helpful row below already uses -- so gold
+                // Tap hierarchy (2026-09-09 Coach styling pass, values updated
+                // 2026-09-10 by batch item 1.1.1): Remind me later and Minimize
+                // Coach for now stand down to a neutral outline -- the same one
+                // the Helpful/Not helpful row below already uses -- so gold
                 // stays reserved for the tap that actually moves something
                 // forward (a moment's action reply, a doors-question answer, an
                 // accept/save tap). Gold on every chip stopped meaning anything.
-                const isDismissal = opt.value === 'moment-quiet-session' || opt.value === 'moment-quiet-screen'
+                const isDismissal = opt.value === 'moment-remind-later' || opt.value === 'moment-minimize'
                 return (
                 <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
                   style={isDismissal

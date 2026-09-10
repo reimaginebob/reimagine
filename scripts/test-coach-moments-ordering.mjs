@@ -139,10 +139,12 @@ async function run() {
     // supersedes it) would have hidden these behind a one-line strip. ---
     const deliveryMsg = page.locator(ASSISTANT_MSG).filter({ hasText: 'DELIVERY_P11_REPLY' }).first()
     const nextMoveMsg = page.locator(ASSISTANT_MSG).filter({ hasText: 'NEXT_MOVE_REPLY' }).first()
-    check(await deliveryMsg.locator('button', { hasText: "I'm good for now" }).isVisible(),
-      "Delivery's own \"I'm good for now\" tap is still visible after Next move's message landed after it")
-    check(await deliveryMsg.locator('button', { hasText: 'Stay quiet on this screen' }).isVisible(),
-      "Delivery's own \"Stay quiet on this screen\" tap is still visible after Next move's message landed after it")
+    // Tap labels updated by batch item 1.1.1 (2026-09-10): Remind me later /
+    // Minimize Coach for now replace the retired session/screen quiet taps.
+    check(await deliveryMsg.locator('button', { hasText: 'Remind me later' }).isVisible(),
+      "Delivery's own \"Remind me later\" tap is still visible after Next move's message landed after it")
+    check(await deliveryMsg.locator('button', { hasText: 'Minimize Coach for now' }).isVisible(),
+      "Delivery's own \"Minimize Coach for now\" tap is still visible after Next move's message landed after it")
     // Next move's own action tap (the one new capability this catalog entry
     // adds -- see coach-moments.js's header comment): "Build {label}",
     // where {label} is the section after p5 in door1's build order (p6).

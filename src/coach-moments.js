@@ -66,9 +66,13 @@ export const MOMENT_CATALOG = [
     key: 'ptw-arrival',
     family: 'arrival',
     screen: 'twoDoors',
-    // Opens the panel from minimized (Phase 1b's coachPresence) -- this is
-    // the first thing Coach says on a hub screen, not routine narration.
-    significance: 'open',
+    // Ordinary, not 'open' (batch item 1.1.7, 2026-09-10 -- corrected from
+    // this entry's original Phase 1b framing): an Arrival is Coach speaking
+    // on its own initiative, not reacting to something the person just did,
+    // so while minimized it lands in chatMessages (feeding the header
+    // pill's preview line) without popping the panel open. Reactive
+    // families (Delivery, Choice) still do.
+    significance: 'ordinary',
     dismissible: true,
     priority: 1,
     promptCode: 'ptw_arrival',
@@ -92,7 +96,9 @@ export const MOMENT_CATALOG = [
     key: 'career-paths-arrival',
     family: 'arrival',
     screen: 'laneSelect',
-    significance: 'open',
+    // Ordinary, not 'open' -- see ptw-arrival's comment above (batch item
+    // 1.1.7, 2026-09-10).
+    significance: 'ordinary',
     dismissible: true,
     priority: 1,
     promptCode: 'career_paths_arrival',
@@ -267,7 +273,11 @@ export const MOMENT_CATALOG = [
     key: 'next-move',
     family: 'next_move',
     screen: 'focus',
-    significance: 'open',
+    // Ordinary, not 'open' -- see ptw-arrival's comment above (batch item
+    // 1.1.7, 2026-09-10). Next move is Coach offering an unprompted next
+    // step, not reacting to something just done -- the same self-initiated
+    // shape as Arrival and Stall.
+    significance: 'ordinary',
     dismissible: true,
     // Below Delivery's 3 -- not that they ever compete in the same pass
     // (nextMoveTarget only exists once a delivery-* dedupe record already
@@ -296,7 +306,9 @@ export const MOMENT_CATALOG = [
     key: 'stall',
     family: 'stall',
     screen: 'focus',
-    significance: 'open',
+    // Ordinary, not 'open' -- see ptw-arrival's comment above (batch item
+    // 1.1.7, 2026-09-10).
+    significance: 'ordinary',
     dismissible: true,
     // Lowest priority on 'focus' -- an absence signal, so anything real
     // (Choice, Delivery, Next move) always wins a same-pass tie. In
