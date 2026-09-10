@@ -84,13 +84,9 @@ async function loadAggregate(rangeInterval, adminEmails) {
     funnelRows,
     regenRows,
     bridgeRows,
-    npsTrend,
-    npsDist,
-    npsByRole,
-    npsOpenText,
-    npsBuckets,
-    surveyHeartbeat,
-    surveyInRange,
+    generationHealth,
+    signinHealth,
+    feedbackHealth,
     incomeUsage,
     drillInRows,
     employmentSplit,
@@ -175,7 +171,9 @@ async function loadAggregate(rangeInterval, adminEmails) {
         s.sid AS step,
         (SELECT COUNT(*)::int FROM furthest f WHERE f.mx >= s.ord)                                               AS entered,
         (SELECT COUNT(*)::int FROM base b WHERE NULLIF(TRIM(b.profile_state->'outputs'->>s.sid), '') IS NOT NULL) AS generated,
-        (SELECT COUNT(*)::int FROM base b WHERE (b.profile_state->'done') ? s.sid)                               AS completed
+        (SELECT COUNT(*)::int FROM base b
+           WHERE (b.profile_state->'done') ? s.sid
+             AND NULLIF(TRIM(b.profile_state->'outputs'->>s.sid), '') IS NOT NULL)                               AS completed
       FROM steps s
       ORDER BY s.ord
     `,
@@ -207,72 +205,28 @@ async function loadAggregate(rangeInterval, adminEmails) {
       GROUP BY event_data->>'block', event_data->>'optionIndex'
       ORDER BY event_data->>'block', event_data->>'optionIndex'
     `,
-    // Panel 3: NPS trend (daily count + average).
+    // Panel 5: system health. Live signals (generation_events, sessions,
+    // feedback_event) replaced the retired survey_responses heartbeat --
+    // survey_responses has had no rows since 2026-06-22.
     sql`
-      SELECT
-        DATE_TRUNC('day', sr.created_at) AS day,
-        COUNT(*)::int                  AS responses,
-        ROUND(AVG(sr.nps_score)::numeric, 2) AS avg_nps
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
-      GROUP BY DATE_TRUNC('day', sr.created_at)
-      ORDER BY day
-    `,
-    sql`
-      SELECT sr.nps_score, COUNT(*)::int AS count
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
-      GROUP BY sr.nps_score
-      ORDER BY sr.nps_score
-    `,
-    sql`
-      SELECT sr.chosen_role, COUNT(*)::int AS responses,
-        ROUND(AVG(sr.nps_score)::numeric, 2) AS avg_nps
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
-        AND sr.chosen_role IS NOT NULL
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
-      GROUP BY sr.chosen_role
-      ORDER BY responses DESC
-    `,
-    sql`
-      SELECT sr.user_id, sr.nps_score, sr.chosen_role, sr.open_text, sr.created_at
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.open_text IS NOT NULL AND sr.open_text <> ''
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
-      ORDER BY sr.created_at DESC
-      LIMIT 25
-    `,
-    sql`
-      SELECT
-        SUM(CASE WHEN sr.nps_score >= 9 THEN 1 ELSE 0 END)::int AS promoters,
-        SUM(CASE WHEN sr.nps_score BETWEEN 7 AND 8 THEN 1 ELSE 0 END)::int AS passives,
-        SUM(CASE WHEN sr.nps_score <= 6 THEN 1 ELSE 0 END)::int AS detractors,
-        COUNT(*)::int AS total
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
-    `,
-    // Panel 5: system health.
-    sql`
-      SELECT MAX(sr.created_at) AS last_survey_at
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
+      SELECT MAX(ge.created_at) AS last_generation_at,
+             COUNT(*) FILTER (WHERE ge.created_at >= NOW() - (${rangeInterval})::interval)::int AS generations_in_range
+      FROM generation_events ge
+      JOIN users u ON u.id = ge.user_id
       WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
     `,
     sql`
-      SELECT COUNT(*)::int AS count
-      FROM survey_responses sr
-      JOIN users u ON u.id = sr.user_id
-      WHERE sr.created_at >= NOW() - (${rangeInterval})::interval
-        AND LOWER(u.email) <> ALL(${adminEmails}::text[])
+      SELECT MAX(s.created_at) AS last_signin_at,
+             COUNT(*) FILTER (WHERE s.created_at >= NOW() - (${rangeInterval})::interval)::int AS signins_in_range
+      FROM sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE LOWER(u.email) <> ALL(${adminEmails}::text[])
+    `,
+    sql`
+      SELECT MAX(fe.created_at) AS last_feedback_at,
+             COUNT(*) FILTER (WHERE fe.created_at >= NOW() - (${rangeInterval})::interval)::int AS feedback_in_range
+      FROM feedback_event fe
+      WHERE fe.email IS NULL OR LOWER(fe.email) <> ALL(${adminEmails}::text[])
     `,
     // Panel 6: Income Now usage. Both proxies (output present, OR step
     // marked done) because users can mark income done without leaving
@@ -424,7 +378,6 @@ async function loadAggregate(rangeInterval, adminEmails) {
 
   const top = topLine[0] || {}
   const ml = magicLinkStats[0] || { issued: 0, used: 0 }
-  const np = npsBuckets[0] || { promoters: 0, passives: 0, detractors: 0, total: 0 }
   const inc = incomeUsage[0] || { users_with_income_output: 0, users_with_income_done: 0 }
 
   // Funnel rows already carry entered / generated / completed per step from
@@ -452,10 +405,6 @@ async function loadAggregate(rangeInterval, adminEmails) {
     completed: r.completed,
     inferred_regenerations: Math.max(0, r.started - r.completed),
   }))
-
-  const npsScore = np.total > 0
-    ? Math.round(((np.promoters / np.total) * 100) - ((np.detractors / np.total) * 100))
-    : null
 
   return {
     range_interval: rangeInterval,
@@ -515,27 +464,18 @@ async function loadAggregate(rangeInterval, adminEmails) {
       last_hold_reason: r.last_hold_reason,
     })),
     panel_2_funnel: funnel,
-    panel_3_nps: {
-      trend:        npsTrend,
-      distribution: npsDist,
-      by_role:      npsByRole,
-      open_text:    npsOpenText,
-      summary: {
-        promoters:  np.promoters || 0,
-        passives:   np.passives  || 0,
-        detractors: np.detractors|| 0,
-        total:      np.total     || 0,
-        score:      npsScore,
-      },
-    },
     panel_4_quality_signals: {
       inferred_regenerations: regenerations,
       bridge_picks:           bridgeRows,
     },
     panel_5_system_health: {
       db_ok:                        true,
-      last_survey_response_at:      (surveyHeartbeat[0] && surveyHeartbeat[0].last_survey_at) || null,
-      survey_responses_in_range:    (surveyInRange[0]   && surveyInRange[0].count)            || 0,
+      last_generation_at:           (generationHealth[0] && generationHealth[0].last_generation_at)   || null,
+      generations_in_range:         (generationHealth[0] && generationHealth[0].generations_in_range) || 0,
+      last_signin_at:               (signinHealth[0]     && signinHealth[0].last_signin_at)           || null,
+      signins_in_range:             (signinHealth[0]     && signinHealth[0].signins_in_range)         || 0,
+      last_feedback_at:             (feedbackHealth[0]   && feedbackHealth[0].last_feedback_at)       || null,
+      feedback_in_range:            (feedbackHealth[0]   && feedbackHealth[0].feedback_in_range)      || 0,
     },
     panel_6_income_usage: {
       users_with_income_output: inc.users_with_income_output || 0,
