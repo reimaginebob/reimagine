@@ -7998,6 +7998,18 @@ export default function PivotEngine(){
   const isIndependent=signedInUser?(signedInUser.track===TRACK_INDEPENDENT):(trackParam===TRACK_INDEPENDENT)
   // pursuit_status rows, column-name shape as returned by GET /api/pursuit-status.
   const[pursuitStatus,setPursuitStatus]=useState([])
+  // Production fix (Bob's read on Imerys/Lindsey, 2026-09-10): op-playbook-
+  // arrival's copy names the one card that fits the record's STAGE (read via
+  // pursuitStatusFor, which reads pursuitStatus), but arrival's own
+  // eligibility never waited on that fetch -- pursuitStatus loads via its own
+  // separate, independently async request, fired well after mount. If arrival's
+  // first eligible evaluator pass beat that fetch, it locked in a stage-less
+  // message forever (arrival's dedupeValue is the fixed literal 'fired', so
+  // it never re-fires once shown). pursuitStatusLoaded lets op-playbook-
+  // arrival's own eligible() wait for a real answer -- true immediately when
+  // there is nothing to wait for (My Search off, demo/test), true once the
+  // fetch settles otherwise.
+  const[pursuitStatusLoaded,setPursuitStatusLoaded]=useState(false)
   // What we know about the human half of their search (the group, the
   // accountability partner, the direct outreach). Read so the doors can stop
   // offering something they already have or told us they do not want.
@@ -9142,7 +9154,15 @@ export default function PivotEngine(){
   // My Search hydration: load the pursuit-status list once the flag is known.
   // Fires when hasPipeline flips true (after /api/me resolves signedInUser).
   useEffect(()=>{
-    if(isDemo||isTest){setStoriesLoaded(true);return}
+    if(isDemo||isTest){setStoriesLoaded(true);setPursuitStatusLoaded(true);return}
+    // Deliberately does NOT set pursuitStatusLoaded here: hasPipeline is
+    // just !!signedInUser, so this branch only runs before sign-in resolves
+    // -- op-playbook-arrival's own eligible() already requires a real
+    // opRecord, which itself requires signedInUser's data, so nothing reads
+    // pursuitStatusLoaded while this branch is the one taking. Setting it
+    // true here was the actual bug: it stuck true across the render where
+    // hasPipeline flips to true and the real fetch below starts, so arrival
+    // could fire on stale (not-yet-loaded) pursuitStatus during that fetch.
     if(!hasPipeline)return
     fetch('/api/star-stories',{credentials:'include'}).then(r=>r.ok?r.json():null)
       .then(d=>{if(d&&Array.isArray(d.stories))setStarStories(d.stories)})
@@ -9150,7 +9170,7 @@ export default function PivotEngine(){
       // Settled either way. A failed load must not leave the screen waiting
       // forever on a library that is never coming.
       .finally(()=>setStoriesLoaded(true))
-    fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{})
+    fetch('/api/pursuit-status',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitStatus(d.rows)}).catch(()=>{}).finally(()=>setPursuitStatusLoaded(true))
     fetch('/api/pursuit-interviewers',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.rows))setPursuitInterviewers(d.rows)}).catch(()=>{})
     if(hasNextStep)fetch('/api/activity-facts',{credentials:'include'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.facts))setActivityFacts(d.facts)}).catch(()=>{})
   },[hasPipeline,isDemo,isTest])
@@ -10022,7 +10042,7 @@ export default function PivotEngine(){
     // every op- Delivery entry also requires this to be true, so nothing
     // can race the arrival to render first.
     const opArrivalFired=!!(opRecord&&coachMoments['op-playbook-arrival']&&coachMoments['op-playbook-arrival'][opRecord.id])
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
@@ -10095,7 +10115,7 @@ export default function PivotEngine(){
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,connNetwork,connManual,connSearch,activeSectionTick])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

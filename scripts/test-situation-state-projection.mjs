@@ -45,21 +45,29 @@ check(app.includes('const scrollSettledRef=useRef(true)'), `${APP}: scrollSettle
 check(!app.includes('visibleSectionRef'), `${APP}: the old visibleSectionRef name survives somewhere -- it should be fully renamed/replaced, not left alongside the new mechanism`)
 check(app.includes('section:activeSectionRef.current||null'), `${APP}: computeSituation must read the section from activeSectionRef, not a stale prop or a different ref`)
 
-// --- scrollToOutput: click is authoritative, synchronously, and locks the observer out ---
-check(app.includes('const scrollToOutput=(key)=>{activeSectionRef.current=key;sectionLockRef.current=true;scrollSettledRef.current=false;requestAnimationFrame'),
-  `${APP}: scrollToOutput no longer sets activeSectionRef + locks the observer synchronously on every click-driven jump`)
+// --- scrollToOutput: click is authoritative, synchronously, and locks the
+// observer out. Live-side brief PR 2 production fix (2026-09-10): the direct
+// activeSectionRef.current=key assignment is now routed through
+// setActiveSection(key) -- a thin wrapper that still assigns the ref
+// synchronously (nothing here reads a stale render-time snapshot) but also
+// bumps a new activeSectionTick state, the signal the Moments evaluator
+// needs to re-run when the viewed section changes (Delivery on a pre-
+// existing build now only fires once its own card is the one in view). ---
+check(app.includes('const scrollToOutput=(key)=>{setActiveSection(key);sectionLockRef.current=true;scrollSettledRef.current=false;requestAnimationFrame'),
+  `${APP}: scrollToOutput no longer sets activeSectionRef (via setActiveSection) + locks the observer synchronously on every click-driven jump`)
 
 // --- The three bypasses found by grepping every getElementById('section-...')
-// + scrollIntoView call site are routed through activeSectionRef too, each
-// gated on the target actually existing (opSectionBuilding can be 'p6' while
-// viewing an Opportunity Playbook, where the Bridge Story has no container of
-// its own -- nothing to claim there). ---
-check(app.includes("useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
-  `${APP}: the opSectionBuilding build-start scroll effect no longer claims activeSectionRef once its target is confirmed to exist`)
-check(app.includes("useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){activeSectionRef.current=k;sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
-  `${APP}: the generatingSection build-start scroll effect no longer claims activeSectionRef once its target is confirmed to exist`)
-check(app.includes("if(el&&el.scrollIntoView){activeSectionRef.current='companyRead';sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
-  `${APP}: the auto-build companyRead scroll effect no longer claims activeSectionRef once its target is confirmed to exist`)
+// + scrollIntoView call site are routed through activeSectionRef (via
+// setActiveSection, see above) too, each gated on the target actually
+// existing (opSectionBuilding can be 'p6' while viewing an Opportunity
+// Playbook, where the Bridge Story has no container of its own -- nothing to
+// claim there). ---
+check(app.includes("useEffect(()=>{const k=opSectionBuilding;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){setActiveSection(k);sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
+  `${APP}: the opSectionBuilding build-start scroll effect no longer claims activeSectionRef (via setActiveSection) once its target is confirmed to exist`)
+check(app.includes("useEffect(()=>{const k=generatingSection;if(!k)return;requestAnimationFrame(()=>{const el=document.getElementById(`section-${k}`);if(el&&el.scrollIntoView){setActiveSection(k);sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
+  `${APP}: the generatingSection build-start scroll effect no longer claims activeSectionRef (via setActiveSection) once its target is confirmed to exist`)
+check(app.includes("if(el&&el.scrollIntoView){setActiveSection('companyRead');sectionLockRef.current=true;scrollSettledRef.current=false;el.scrollIntoView"),
+  `${APP}: the auto-build companyRead scroll effect no longer claims activeSectionRef (via setActiveSection) once its target is confirmed to exist`)
 
 // --- The observer: locked out until a genuine user gesture releases it, then
 // prefers the container spanning the reading line over raw ratio, never a

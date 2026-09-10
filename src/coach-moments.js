@@ -417,7 +417,16 @@ export const MOMENT_CATALOG = [
     dismissible: true,
     priority: 1,
     promptCode: 'op_playbook_arrival',
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord,
+    // pursuitStatusLoaded gate (production fix, Bob's read on Imerys/Lindsey,
+    // 2026-09-10): opRecord.arrivalCopy names the one card that fits the
+    // record's STAGE, read from pursuitStatus -- a separate, independently async
+    // fetch (App.jsx) with no relationship to opRecord's own readiness.
+    // Arrival's dedupeValue below is the fixed literal 'fired', so if this
+    // fired before that fetch settled, the stage-less copy it locked in
+    // would never correct itself. Waiting for pursuitStatusLoaded (true
+    // immediately when there is nothing to wait for) means arrival's first
+    // and only message always reflects the real stage.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded,
     dedupeKey: (ctx) => ctx.opRecord.id,
     message: (ctx) => ctx.opRecord.arrivalCopy,
     // Production fix (Bob's read on Imerys/Lindsey, 2026-09-10): the arrival
