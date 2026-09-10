@@ -38,8 +38,14 @@ check(backLabelCount === 2, `${APP}: expected the origin-aware back-link label o
 // the literal "Back to {hubLabel}" text specifically (not just any
 // nav(hubStep) call -- a different, unrelated hub-entry button elsewhere
 // uses the same onClick target for a different purpose).
+//
+// Three sites, not two, since the Industry Insider ecosystem view
+// (2026-09-10, gated on industry_ecosystem_view) added a third: its own
+// back-link, reached the same way as p4's other two (pick a lane from the
+// hub, never a saved-record restore), so it correctly reads hubLabel
+// directly rather than opReturnStepRef.
 const p4BackLinkCount = (app.match(/Back to \{hubLabel\}/g) || []).length
-check(p4BackLinkCount === 2, `${APP}: expected exactly the two untouched p4 back-links still reading "Back to {hubLabel}", found ${p4BackLinkCount} -- did a p4 site get changed, or did an opportunity/focus site not get fixed?`)
+check(p4BackLinkCount === 3, `${APP}: expected exactly the three untouched p4-reachable back-links still reading "Back to {hubLabel}", found ${p4BackLinkCount} -- did a p4 site get changed, or did an opportunity/focus site not get fixed?`)
 
 if (failures) {
   console.error(`test-opportunity-back-nav: ${failures} check(s) failed`)
