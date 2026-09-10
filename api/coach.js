@@ -1814,7 +1814,19 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // mid-deploy degrades to exactly today's behavior. The client's
   // situation.record.title/lane/company are never trusted for anything --
   // only the id is used, to look the record up below, same as focusRecordId.
-  const situationRecordId = hasCoachSituation({ feature_flags: featureFlags, email: userEmail }) && situation && situation.record && typeof situation.record.id === 'string'
+  //
+  // turnKind==='moment' bypasses the coach_situation gate (live-side brief
+  // PR 1, item 3; 2026-09-10 test log finding D2): a moment carries no typed
+  // message for findInFocusRecord below to scan, so on an account with
+  // coach_presence but not the separately-gated coach_situation flag, the
+  // gated path fell through to guessing the record from the last two user
+  // turns in `history` -- which can name a completely different opportunity
+  // than the one actually on screen ("a law-firm playbook got a
+  // mental-health-consulting offer"). A moment already implies the
+  // onboarding_concierge/coach_presence gate, so there is no unflagged-
+  // account behavior left to preserve here the way there is for an ordinary
+  // typed message; trust situation.record.id unconditionally instead.
+  const situationRecordId = (turnKind === 'moment' || hasCoachSituation({ feature_flags: featureFlags, email: userEmail })) && situation && situation.record && typeof situation.record.id === 'string'
     ? situation.record.id.trim() : ''
   const situationSection = situation && typeof situation.section === 'string' ? situation.section.trim().slice(0, 60) : ''
   let inFocusRecordId = null

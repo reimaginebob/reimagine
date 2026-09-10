@@ -1299,14 +1299,25 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
     <div ref={messagesContainerRef} data-coach-transcript="true" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
       {messages.map((m, i) => {
-        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i)
+        // A message with live, unresolved taps never auto-collapses (live-
+        // side brief PR 1, item 2; 2026-09-10 test log finding D1): banner
+        // messages collapse once superseded so old narration does not
+        // compete for attention, but a generated moment with a real action
+        // (Next move's "Build {label}", the two dismissal taps) also carries
+        // banner:true -- collapsing it the moment a LATER moment (Delivery)
+        // arrives hid its buttons inside the one-line strip, reading as the
+        // tap having vanished. A tap belongs to its own message until the
+        // person acts on it or a new offer of the same kind supersedes it,
+        // neither of which "something else was said after it" is.
+        const hasLiveTaps = Array.isArray(m.quickReplies) && m.quickReplies.length > 0
+        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i) && !hasLiveTaps
         // Same eligibility as isCollapsedBanner, minus the expanded check --
         // true whether the strip is showing or the person tapped it open.
         // Reported live (2026-09-05): the strip's tap toggled expandedBanners
         // in both directions, but nothing on the EXPANDED bubble called
         // toggleBannerExpanded back -- once opened, a superseded message had
         // no way to return to its one-line strip.
-        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1
+        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1 && !hasLiveTaps
         return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
           {isCollapsedBanner ? (

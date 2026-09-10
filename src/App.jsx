@@ -7457,6 +7457,17 @@ export default function PivotEngine(){
   const[coachMoments,setCoachMoments]=useState({})
   const momentFiredRef=useRef(new Set())
   const momentFetchingRef=useRef({}) // Phase 2b: in-flight guard for generated (model-reaction) moments, keyed the same way as coachMoments' sub-keys -- see fireMoment below.
+  // Live-side brief PR 1, item 1 (2026-09-10): each generated moment is its
+  // own independent async fetch (fireMoment below), so firing Delivery
+  // before Next move in the evaluator only controls CALL order, not ARRIVAL
+  // order -- if Next move's turn happened to resolve faster, its message
+  // could land in chatMessages first, inverting the intended reading order.
+  // This ref serializes generated fires: the evaluator will not pick a new
+  // candidate while one is still in flight, and momentReevalTick forces the
+  // evaluator to re-run (and pick the next candidate) the instant the
+  // in-flight one settles, success or failure.
+  const momentInFlightRef=useRef(false)
+  const[momentReevalTick,setMomentReevalTick]=useState(0)
   const[quietUntilReload,setQuietUntilReload]=useState(false)
   const[quietScreens,setQuietScreens]=useState({})
   // Coach engine guardrails (2026-09-09, Output/handoff/2026-09-09_coach-
@@ -9261,6 +9272,12 @@ export default function PivotEngine(){
     const trackKey=`${entry.key}:${subKey}`
     if(momentFetchingRef.current[trackKey])return
     momentFetchingRef.current={...momentFetchingRef.current,[trackKey]:true}
+    // Set synchronously, before the async IIFE below ever awaits anything --
+    // the evaluator's setCoachMoments call (right before this function is
+    // invoked) triggers its own next pass on the very next render, which
+    // must already see this as in-flight, not learn about it after an await
+    // point has already yielded.
+    momentInFlightRef.current=true
     ;(async()=>{
       setCoachThinkingCount(c=>c+1)
       try{
@@ -9291,6 +9308,12 @@ export default function PivotEngine(){
         momentFetchingRef.current=rest
       }finally{
         setCoachThinkingCount(c=>c-1)
+        // Release the ordering gate and force the evaluator to re-run,
+        // whether this moment's reply landed or the fetch failed -- either
+        // way, the next-highest-priority still-eligible candidate (if any)
+        // should not be left waiting on a moment that already resolved.
+        momentInFlightRef.current=false
+        setMomentReevalTick(t=>t+1)
       }
     })()
   }
@@ -9425,6 +9448,16 @@ export default function PivotEngine(){
     candidates.sort((a,b)=>(b.entry.priority||0)-(a.entry.priority||0))
     const picked=candidates[0]
     if(!picked)return
+    // Ordering (live-side brief PR 1, item 1): never pick a new candidate
+    // while a generated moment's fetch is still in flight. Without this, a
+    // lower-priority moment (Next move) fired in a later pass could still
+    // WIN the race to land in chatMessages first, if its turn happened to
+    // resolve faster than a higher-priority one (Delivery) already in
+    // flight from an earlier pass -- the call order (which priority
+    // dictates) and the arrival order (which network timing dictates)
+    // are not the same thing for two independent async fetches. This pass
+    // is retried the instant the in-flight one settles (momentReevalTick).
+    if(momentInFlightRef.current)return
     const{entry,subKey,dedupeValue}=picked
     momentFiredRef.current.add(`${entry.key}:${subKey}`)
     setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
@@ -9437,7 +9470,7 @@ export default function PivotEngine(){
       if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold])
+  },[step,signedInUser,hasOnboardingConcierge,outputs,selectedLane,chosen,coachMoments,quietUntilReload,quietScreens,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and

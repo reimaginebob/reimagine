@@ -101,7 +101,9 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // stallEligible's own shape.
 check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible}'),
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
-check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold])'),
+// momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1): forces
+// a re-pick the instant an in-flight generated moment settles.
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---
