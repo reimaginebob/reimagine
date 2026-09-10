@@ -175,7 +175,7 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments } = {}) 
   }
 }
 
-export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false } = {}) {
+export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -209,9 +209,14 @@ export function buildMeResponse({ flagged = false, employmentStatus = 'employed'
       // (ctx.hasOnboardingConcierge in every MOMENT_CATALOG entry) -- a test
       // driving a real Delivery/Next move fire needs this one specifically,
       // independent of whether the embedded panel (coach_presence) is on.
+      // 'next_step' (NEXT_STEP_FLAG) is what Chat's sessionOpenEligible prop
+      // reads (App.jsx: sessionOpenEligible={hasNextStep}) -- a test driving
+      // the real session-open recap turn needs this one, independent of
+      // both of the above.
       feature_flags: [
         ...(flagged ? ['coach_presence'] : []),
         ...(onboardingConcierge ? ['onboarding_concierge'] : []),
+        ...(nextStep ? ['next_step'] : []),
       ],
       // Matches the live values in src/config/legal.js -- anything else
       // trips App.jsx's reaccept effect (~8956) and opens the fixed,

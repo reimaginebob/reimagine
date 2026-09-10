@@ -182,14 +182,27 @@ t('a conversation still ahead of NOW is not "happened" yet', (() => {
 })())
 t('a newly-added opportunity is never ALSO listed as "other movement" (no double count)', (() => {
   const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(1) })] }, [row('a', { updated_at: ago(1) })], [], sinceT)
-  return d.addedOpportunities.includes('Imerys') && !d.otherMovement.includes('Imerys')
+  return d.addedOpportunities.includes('Imerys') && !d.otherMovement.some(x => x.title === 'Imerys')
 })())
 t('an interview-happened opportunity is never ALSO listed as "other movement"', (() => {
   const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { next_conversation_at: ago(1), updated_at: ago(1) })], [], sinceT)
-  return d.interviewsHappened.length === 1 && !d.otherMovement.includes('Imerys')
+  return d.interviewsHappened.length === 1 && !d.otherMovement.some(x => x.title === 'Imerys')
 })())
 t('a row touched before the last visit is not reported as movement',
   D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] }, [row('a', { updated_at: ago(20) })], [], sinceT).otherMovement.length === 0)
+// Batch item 1.1.3 (2026-09-10): otherMovement carries the current stage
+// label so the recap has a real fact to name ("HOPE is at the offer
+// stage") instead of a bare title it can only gesture vaguely around.
+t('other movement carries the current stage label, not a bare title', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] },
+    [row('a', { updated_at: ago(1), stage: 'offer' })], [], sinceT)
+  return d.otherMovement.length === 1 && d.otherMovement[0].title === 'Imerys' && d.otherMovement[0].stage === 'Offer'
+})())
+t('other movement falls back to Researching when no stage is set on the row', (() => {
+  const d = D({ ...base3, savedPlaybooks: [opp('a', 'Imerys', { createdAt: ago(20) })] },
+    [row('a', { updated_at: ago(1) })], [], sinceT)
+  return d.otherMovement[0].stage === 'researching'
+})())
 t('a direction (not a live opportunity) created since the last visit is reported separately from opportunities', (() => {
   const d = D({ ...base3, savedPlaybooks: [{ id: 'x', title: 'Ops Director track', source: 'door1', createdAt: ago(1) }] }, [], [], sinceT)
   return d.addedDirections.includes('Ops Director track') && !d.addedOpportunities.includes('Ops Director track')

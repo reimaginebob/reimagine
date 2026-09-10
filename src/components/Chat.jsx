@@ -705,7 +705,18 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         setLoading(false)
         return
       }
-      if (isSilentTurn) setMessages(m => [...m, { role: 'assistant', content: '' }])
+      // Batch item 1.1.3 (2026-09-10, reported live -- L1: "the seed line
+      // stacked above the recap again"): the session-open recap used to
+      // always APPEND its placeholder, so it landed below the untouched
+      // "Hi, I'm your coach" seed (INTRO_MSG) instead of replacing it --
+      // Coach visibly greeting the person twice in one breath. Same
+      // replace-the-seed pattern App.jsx already uses for the onboarding
+      // framing message (setChatMessages near seenOnboardingFraming):
+      // only when the recap is the very first thing to say anything (the
+      // seed is still the sole, untouched message) does it take that
+      // slot; any other silent turn (post-capture, or a recap firing after
+      // a real conversation already exists) still appends as before.
+      if (isSilentTurn) setMessages(m => (silent && m.length === 1 && m[0] && m[0].role === 'assistant' && !m[0].banner && m[0].content === INTRO_MSG.content) ? [{ role: 'assistant', content: '' }] : [...m, { role: 'assistant', content: '' }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach

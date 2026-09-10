@@ -29,6 +29,7 @@
 // boundary, where `.mjs` is unsafe (CLAUDE.md section 8; the 2026-05-27
 // FUNCTION_INVOCATION_FAILED outage, PR #76, reverted at 940557b).
 import { sectionState } from './playbook-sections.js'
+import { PURSUIT_STAGE_LABELS } from './pursuit-stages.js'
 
 // The five sections of the book, in the book's own order. The staircase draws
 // all five; the arrow only ever sits on 2 through 5. Attitude is step one and
@@ -370,11 +371,15 @@ export function computeSessionDelta(state, pursuitRows, activityFacts, priorSess
   // Anything else that moved on an EXISTING opportunity -- a stage change, a
   // logged next move, a note -- that is not already counted above, so the
   // recap never mentions the same opportunity twice for two views of one fact.
+  // Carries the CURRENT stage label (batch item 1.1.3, 2026-09-10: Bob's
+  // exact target phrasing, "HOPE is at the offer stage") -- a bare title
+  // gave the recap nothing concrete to name, which is what produced vague
+  // shorthand like "real momentum on the live side" instead of a real fact.
   const alreadyNamed = new Set([...addedOpportunities, ...interviewsHappened.map(x => x.title)])
   const otherMovement = open
     .filter(o => after(o.status.updated_at) && !after(o.rec.createdAt))
-    .map(o => o.rec.title || 'an opportunity')
-    .filter(title => !alreadyNamed.has(title))
+    .map(o => ({ title: o.rec.title || 'an opportunity', stage: PURSUIT_STAGE_LABELS[o.status.stage] || o.status.stage || 'researching' }))
+    .filter(x => !alreadyNamed.has(x.title))
 
   const saved = Array.isArray(state && state.savedPlaybooks) ? state.savedPlaybooks.filter(r => r && !r.archivedAt) : []
   const addedDirections = saved
