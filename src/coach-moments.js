@@ -164,9 +164,11 @@ export const MOMENT_CATALOG = [
     // Never actually evaluated by the main loop (screen:null already rules
     // that out) -- false here is defensive, not load-bearing.
     eligible: () => false,
-    // Copy APPROVED (brief §2.3, Row C, verbatim; {the real reason} filled
-    // from ctx.selfOpenReason).
-    message: (ctx) => `I opened because something just happened that's worth talking about: ${ctx.selfOpenReason}. I'll do this when there's something real to say, after you build something, when you pick a role, when an interview is coming up. If you'd rather I hold off for now, tell me "I'm good" and I will.`,
+    // Copy corrected 2026-09-11 (F1 twenty-minute session, item 3): the
+    // closing line still pointed at "I'm good," the one-tap dismissal
+    // retired by batch item 1.1.1/1.1.4 and replaced with Minimize Coach
+    // for now. {the real reason} filled from ctx.selfOpenReason.
+    message: (ctx) => `I opened because something just happened that's worth talking about: ${ctx.selfOpenReason}. I'll do this when there's something real to say, after you build something, when you pick a role, when an interview is coming up. Tap Minimize Coach for now if you'd rather I hold off.`,
     quickReplies: [],
   },
   {
