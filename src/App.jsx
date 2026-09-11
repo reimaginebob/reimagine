@@ -65,6 +65,10 @@ import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
 import { isTrack, TRACK_PARAM, TRACK_INDEPENDENT } from "./tracks.js"
 import BrandChangeNote from "./components/BrandChangeNote"
 import { brandProse, diffBrandProse, checkBrandPreservation, describeBrandPreservationGap, mergeProofPoints, patchUnrelatedRegressions } from "./brand-diff.js"
+// Shared with api/verify-posting.js so the browser-side URL classification
+// (list page? host we cannot read?) and the server-side fetch never disagree.
+// Plain ES module with no imports, so it bundles into the client cleanly.
+import { isUnverifiableHost, isListPageUrl, unverifiableHostLabel } from "../api/_lib/posting-hosts.js"
 
 // voice-allow
 const SYS_BASE = `You are a Career Strategist within Reimagine, a career strategy tool by Career Club, built on Making Your Own Weather by Bob Goodwin.
@@ -1921,20 +1925,78 @@ IDENTITY CONTEXT (research the RIGHT company, never a different company with a s
 TARGET DIRECTION: ${role||'(unspecified)'}${laneLabel?' — lane: '+laneLabel:''}
 Match on FUNCTION, not exact title (the same function carries different titles at different companies). Only count roles that are CURRENTLY OPEN and accepting applications.
 
+Only return a match if you OPENED the posting page itself and read the role there. The url must be the posting page (a single job with its own page), never a careers home page, a jobs index, a search-results page, or an aggregator's company page. If the best you found is a list page or a search result, return match_count 0. An empty result is correct and useful; a link to a list page is a false promise. Prefer the company's own careers site or ATS (Workday, Greenhouse, Lever, iCIMS, SmartRecruiters) over LinkedIn, Indeed, Built In, or The Muse; if you only found it on one of those, say so in "source". Set confidence "high" only if you read a posted date within the last 60 days or the page shows it is accepting applications.
+
 Output JSON only, no preamble:
-{"company_confirmed":"<the exact company you researched>","match_count":<integer>,"matches":[{"title":"<open role title>","url":"<direct link if found, else empty string>","reason":"<one short plain sentence on why it is the same function>"}],"confidence":"high" or "medium" or "low"}
+{"company_confirmed":"<the exact company you researched>","match_count":<integer>,"matches":[{"title":"<open role title>","url":"<the posting page itself, else empty string>","reason":"<one short plain sentence on why it is the same function>","source":"first-party" or "aggregator"}],"confidence":"high" or "medium" or "low"}
 If no currently open matching role exists, return match_count 0 and an empty matches array.`
-// findOpeningMatches: run the web-search call and parse. Safe-defaults to a
-// zero-match result on any failure so the sweep never blocks a card.
+// verifyPostingUrl: ask the server to open the posting page and confirm it is
+// a live single posting that carries this title (api/verify-posting.js). The
+// browser cannot fetch a third-party job page cross-origin, so this is the one
+// hop between the model's answer and the render. Never throws; anything short
+// of a clean {ok:true} reads as "not verified," which the caller drops.
+const OPENINGS_VERIFY_TIMEOUT_MS=9000
+async function verifyPostingUrl(url,title){
+  const ctl=new AbortController()
+  const timer=setTimeout(()=>ctl.abort(),OPENINGS_VERIFY_TIMEOUT_MS)
+  try{
+    const r=await fetch('/api/verify-posting',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,title}),signal:ctl.signal})
+    if(!r.ok)return{ok:false,reason:'http_'+r.status}
+    const d=await r.json().catch(()=>null)
+    if(d&&d.ok===true)return{ok:true,reason:'verified'}
+    return{ok:false,reason:(d&&typeof d.reason==='string'&&d.reason)||'unverified'}
+  }catch(e){return{ok:false,reason:'fetch_failed'}}
+  finally{clearTimeout(timer)}
+}
+// findOpeningMatches: run the web-search call, parse, then VERIFY before
+// anything can render. Safe-defaults to a zero-match result on any failure so
+// the sweep never blocks a card.
+//
+// What comes back (2026-09-11, Output/handoff/2026-09-11_gtm-openings-
+// verification.md): the model's confidence used to be parsed and thrown away,
+// and every URL it returned rendered as a link. Now:
+//   - confidence 'low' drops everything from that company.
+//   - a match with no url, a non-http url, or a LIST-PAGE url (an Indeed
+//     search, a Built In company index, a careers home) is dropped. A title
+//     nobody can open is not evidence of an opening.
+//   - a match on a host we cannot read (LinkedIn, Glassdoor) is kept aside as
+//     `unverifiable`: it renders as a possible fit the person opens themselves,
+//     never as the green badge.
+//   - everything else goes through /api/verify-posting and is kept only on
+//     {ok:true}: HTTP 200, title present on the page, no closed-posting phrase.
+//   - `count` and `matches` (the green badge) are the verified matches when
+//     confidence is 'high'; at 'medium' the same verified matches land in
+//     `possible` and render under a quieter line instead.
+// `dropped` is returned for the console log in sweepOneOpening (the runtime
+// gate reads it on the preview) and is NOT persisted.
+const OPENINGS_CONFIDENCE=new Set(['high','medium','low'])
+function emptyOpeningsResult(){return{count:0,matches:[],possible:[],unverifiable:[],confidence:'low',dropped:[]}}
 async function findOpeningMatches(company,role,laneLabel){
   try{
-    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2500,effort:'low',step:'openings-match'})
+    const raw=await callClaude(OPENINGS_MATCH_PROMPT(company,role,laneLabel),{webSearch:true,maxTokens:2500,effort:'medium',step:'openings-match'})
     const a=raw.indexOf('{'),b=raw.lastIndexOf('}')
-    if(a<0||b<=a)return{count:0,matches:[]}
+    if(a<0||b<=a)return emptyOpeningsResult()
     const obj=JSON.parse(raw.slice(a,b+1))
-    const matches=(Array.isArray(obj.matches)?obj.matches:[]).map(m=>({title:(m.title||'').slice(0,160),url:typeof m.url==='string'?m.url:'',reason:(m.reason||'').slice(0,240)})).filter(m=>m.title)
-    return{count:matches.length,matches}
-  }catch(e){return{count:0,matches:[]}}
+    const confidence=OPENINGS_CONFIDENCE.has(obj.confidence)?obj.confidence:'low'
+    const rawMatches=(Array.isArray(obj.matches)?obj.matches:[]).map(m=>({title:(m.title||'').slice(0,160),url:typeof m.url==='string'?m.url.trim():'',reason:(m.reason||'').slice(0,240),source:(m.source==='first-party'||m.source==='aggregator')?m.source:''})).filter(m=>m.title)
+    if(confidence==='low')return{...emptyOpeningsResult(),dropped:rawMatches.map(m=>({title:m.title,url:m.url,why:'low_confidence'}))}
+    const verified=[],unverifiable=[],dropped=[]
+    const toFetch=[]
+    for(const m of rawMatches){
+      if(!m.url){dropped.push({title:m.title,url:'',why:'empty_url'});continue}
+      if(!/^https?:\/\//i.test(m.url)){dropped.push({title:m.title,url:m.url,why:'invalid_url'});continue}
+      if(isUnverifiableHost(m.url)){unverifiable.push({...m,verify:'unverifiable'});continue}
+      if(isListPageUrl(m.url)){dropped.push({title:m.title,url:m.url,why:'list_page'});continue}
+      toFetch.push(m)
+    }
+    const checks=await Promise.all(toFetch.map(m=>verifyPostingUrl(m.url,m.title)))
+    toFetch.forEach((m,i)=>{
+      if(checks[i].ok)verified.push({...m,verify:'verified'})
+      else dropped.push({title:m.title,url:m.url,why:checks[i].reason})
+    })
+    const high=confidence==='high'
+    return{count:high?verified.length:0,matches:high?verified:[],possible:high?[]:verified,unverifiable,confidence,dropped}
+  }catch(e){return emptyOpeningsResult()}
 }
 // ── Recruiters for This Path (executive-search contacts) ───────────────────
 // Reuses the PR #284 web-search resolution mechanic (one webSearch:true call,
@@ -5198,22 +5260,73 @@ function GtmContactLine({company,cc}){
   const note=contactSourceNote(found.source)
   return <div><strong>Contact:</strong> {found.contact}{found.contactLinkedIn&&/^https?:\/\//i.test(found.contactLinkedIn)&&<> · <a href={found.contactLinkedIn} target="_blank" rel="noreferrer" style={{color:C.gold}}>LinkedIn</a></>}{note&&<span style={{color:C.gray,fontWeight:400,fontSize:15}}> · {note}</span>}</div>
 }
-function GtmOpeningMatch({oc}){
+// Three states, in order of what the pipeline can actually stand behind
+// (2026-09-11, Output/handoff/2026-09-11_gtm-openings-verification.md):
+//   1. Green badge, dated: at least one match the server opened and confirmed
+//      (200, title on the page, not closed) AND the model rated 'high'.
+//      "We found a posting that fits · checked Sep 10".
+//   2. Quieter line, no green: a verified match the model rated 'medium'.
+//      "A posting that may fit: <title>".
+//   3. Quieter line, no green: only matches on a host we cannot read
+//      (LinkedIn). The person opens it to confirm it is still accepting
+//      applications -- the honest version of a four-month-old posting.
+// Nothing else renders. A result with no verifiedAt is from before
+// verification shipped and never renders; ensureOpeningsSweep re-checks it.
+// The old label ("A role that fits is open right now") asserted a certainty
+// the sweep could not support; the date says how fresh the check is.
+// Every state carries a Re-check tap that clears the cached result and runs
+// the sweep for that company again, now.
+function fmtOpeningsDate(iso){
+  const t=Date.parse(iso||'')
+  if(!Number.isFinite(t))return ''
+  try{return new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return ''}
+}
+const OPENINGS_RECHECK_STYLE={background:'transparent',border:'none',padding:0,margin:0,color:C.gray,fontSize:16,textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}
+function GtmOpeningMatch({oc,onRecheck}){
   const[open,setOpen]=useState(false)
-  if(!oc||oc.status!=='checked'||!(oc.count>0))return null
+  if(!oc)return null
+  if(oc.status==='checking')return <div style={{marginTop:12,fontSize:15,color:C.gray}}>Checking the posting…</div>
+  if(oc.status!=='checked'||!oc.verifiedAt)return null
   const matches=Array.isArray(oc.matches)?oc.matches:[]
-  const label=oc.count===1?'A role that fits is open right now':`${oc.count} roles that fit are open right now`
-  return <div style={{marginTop:12}}>
-    <button onClick={()=>setOpen(o=>!o)} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 15px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-      <Sparkles size={16}/>{label}<span style={{fontWeight:400}}>{open?'▲':'▼'}</span>
-    </button>
-    {open&&matches.length>0&&<ul style={{margin:'10px 0 0',paddingLeft:18}}>
-      {matches.map((m,i)=><li key={i} style={{fontSize:15,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
-        {m.url?<a href={m.url} target="_blank" rel="noreferrer" style={{color:'#12603F',fontWeight:700}}>{m.title}</a>:<strong>{m.title}</strong>}
-        {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
-      </li>)}
-    </ul>}
-  </div>
+  const possible=Array.isArray(oc.possible)?oc.possible:[]
+  const unverifiable=Array.isArray(oc.unverifiable)?oc.unverifiable:[]
+  const when=fmtOpeningsDate(oc.verifiedAt)
+  const checked=when?` · checked ${when}`:''
+  const recheck=onRecheck?<button type="button" onClick={onRecheck} style={OPENINGS_RECHECK_STYLE}>Re-check</button>:null
+  const link=(m)=><a href={m.url} target="_blank" rel="noreferrer" style={{color:'#12603F',fontWeight:700}}>{m.title}</a>
+  if(oc.count>0&&matches.length>0){
+    const label=oc.count===1?`We found a posting that fits${checked}`:`${oc.count} postings that fit${checked}`
+    return <div style={{marginTop:12}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+        <button onClick={()=>setOpen(o=>!o)} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 15px',background:'#E4F6EA',border:'1.5px solid #1A7F5A',borderRadius:8,color:'#12603F',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+          <Sparkles size={16}/>{label}<span style={{fontWeight:400}}>{open?'▲':'▼'}</span>
+        </button>
+        {recheck}
+      </div>
+      {open&&<ul style={{margin:'10px 0 0',paddingLeft:18}}>
+        {matches.map((m,i)=><li key={i} style={{fontSize:15,color:'#2D3748',lineHeight:1.5,marginBottom:8}}>
+          {link(m)}
+          {m.reason?<div style={{color:'#4A5568'}}>{m.reason}</div>:null}
+        </li>)}
+      </ul>}
+    </div>
+  }
+  if(possible.length>0){
+    return <div style={{marginTop:12,fontSize:15,color:'#2D3748',lineHeight:1.55}}>
+      {possible.map((m,i)=><div key={i} style={{marginBottom:4}}>A posting that may fit: {link(m)}</div>)}
+      {recheck}
+    </div>
+  }
+  if(unverifiable.length>0){
+    return <div style={{marginTop:12,fontSize:15,color:'#2D3748',lineHeight:1.55}}>
+      {unverifiable.map((m,i)=><div key={i} style={{marginBottom:4}}>
+        <span style={{color:C.gray}}>{unverifiableHostLabel(m.url)||'A job site'} shows a possible fit; open it to confirm it is still accepting applications.</span>
+        <div>{link(m)}</div>
+      </div>)}
+      {recheck}
+    </div>
+  }
+  return null
 }
 // RecruiterMatchRow: one recruiter match. Tier-aware. A name renders only when
 // the discovery pass confirmed it against a first-party source (findRecruiterMatches
@@ -13397,7 +13510,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       return <div key={company.name+'-'+idx} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
         <div style={{padding:'18px 22px'}}>
           <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:8}}>{company.name}</div>
-          <GtmOpeningMatch oc={oc}/>
+          <GtmOpeningMatch oc={oc} onRecheck={()=>recheckOpening(company)}/>
           <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:15,lineHeight:1.55,color:'#2D3748'}}>
             {company.what&&<div><strong>What they do:</strong> {company.what}</div>}
             {(company.industry||company.size||company.hq)&&<div>
@@ -14272,10 +14385,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // ── GTM "role open now" sweep ──────────────────────────────────────────────
   // Auto-fires when the list renders. For each company, one background web-search
   // reasoning call finds any currently-open functional match (findOpeningMatches).
-  // Capped concurrency, each durable key once, results hard-cached in openingsByKey
-  // + the saved record so a re-open never re-fires. Only green matches surface;
-  // misses stay silent. Independent of gtmCompanyReadBuilding (the prose read).
+  // Capped concurrency, each durable key once, results cached in openingsByKey
+  // + the saved record for OPENINGS_TTL_MS (7 days) -- a re-open inside that
+  // window never re-fires; past it, the key re-sweeps on the next render while
+  // the old result stays visible until the new one lands. Only verified matches
+  // surface; misses stay silent. Independent of gtmCompanyReadBuilding (the
+  // prose read).
+  //
+  // Verification runs inside findOpeningMatches, so the sweep gets slower by
+  // one server fetch per MATCH (6s timeout), not per company. The `dropped`
+  // list is console-logged per company for the runtime gate (which matches
+  // the model returned, which were dropped and why, what rendered) and is not
+  // persisted.
   const OPENINGS_CONCURRENCY=3
+  const OPENINGS_TTL_MS=7*24*60*60*1000
+  // A cached entry counts only if it went through verification (verifiedAt is
+  // set) and did so within the TTL. Entries from before verification shipped
+  // carry checkedAt alone and are treated as absent: their links were never
+  // opened, and a badge on an unopened link is exactly the report this fixes.
+  const openingsEntryFresh=(e)=>{
+    if(!e||typeof e!=='object'||!e.verifiedAt)return false
+    const t=Date.parse(e.verifiedAt)
+    return Number.isFinite(t)&&(Date.now()-t)<OPENINGS_TTL_MS
+  }
   const sweepOneOpening=async(company)=>{
     const key=openingsKeyFor(company)
     if(!key)return
@@ -14286,7 +14418,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const role=chosen||''
       const laneLabel=selectedLane?laneLabelFor(selectedLane):''
       const found=await findOpeningMatches(company,role,laneLabel)
-      const result={status:'checked',count:found.count,matches:found.matches,checkedAt:new Date().toISOString()}
+      const now=new Date().toISOString()
+      const result={status:'checked',count:found.count,matches:found.matches,possible:found.possible||[],unverifiable:found.unverifiable||[],confidence:found.confidence||'low',checkedAt:now,verifiedAt:now}
+      try{console.log('[openings-match]',JSON.stringify({company:company.name||'',confidence:result.confidence,badge:result.matches.map(m=>m.url),possible:result.possible.map(m=>m.url),unverifiable:result.unverifiable.map(m=>m.url),dropped:found.dropped||[]}))}catch{}
       s.done.add(key)
       setOpeningsByKey(prev=>({...prev,[key]:result}))
       const slotId=currentSavedSlotIdRef.current
@@ -14294,13 +14428,34 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         if(rec.id!==slotId||rec.source!=='door1')return rec
         return{...rec,companyOpenings:{...(rec.companyOpenings||{}),[key]:result}}
       }))
-    }catch(e){/* leave unmarked; a later sweep may retry this key */}
+    }catch(e){
+      // Leave unmarked so a later sweep may retry this key; if a Re-check had
+      // put the card into 'checking', hand it back its previous result.
+      setOpeningsByKey(prev=>(prev[key]&&prev[key].status==='checking')?{...prev,[key]:{...prev[key],status:'checked'}}:prev)
+    }
     finally{s.inflight.delete(key)}
   }
   const sweepOpenings=async(companies)=>{
     const queue=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
     const worker=async()=>{while(queue.length){await sweepOneOpening(queue.shift())}}
     await Promise.all(Array.from({length:Math.min(OPENINGS_CONCURRENCY,queue.length||1)},worker))
+  }
+  // Re-check tap: forget this company's cached result (memory + saved record),
+  // show "Checking…" in its place, and run the sweep for it again now.
+  const recheckOpening=(company)=>{
+    const key=openingsKeyFor(company)
+    if(!key)return
+    const s=openingsSweepRef.current
+    if(s.inflight.has(key))return
+    s.done.delete(key)
+    setOpeningsByKey(prev=>({...prev,[key]:{...(prev[key]||{}),status:'checking'}}))
+    const slotId=currentSavedSlotIdRef.current
+    setSavedPlaybooks(prev=>prev.map(rec=>{
+      if(rec.id!==slotId||rec.source!=='door1'||!rec.companyOpenings||!(key in rec.companyOpenings))return rec
+      const co={...rec.companyOpenings};delete co[key]
+      return{...rec,companyOpenings:co}
+    }))
+    sweepOneOpening(company)
   }
   const ensureOpeningsSweep=(companies)=>{
     const list=(Array.isArray(companies)?companies:[]).filter(c=>c&&openingsKeyFor(c))
@@ -14311,11 +14466,14 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const keys=new Set(list.map(openingsKeyFor))
       const rec=savedPlaybooks.find(r=>r.id===currentSavedSlotIdRef.current&&r.source==='door1')
       const persisted=(rec&&rec.companyOpenings)||{}
+      // Keep whatever is cached visible (fresh or not) so the card does not
+      // flicker empty while a stale key re-sweeps. GtmOpeningMatch itself
+      // refuses to render an entry that never went through verification.
       setOpeningsByKey(prev=>{const next={};for(const k of keys){if(prev[k])next[k]=prev[k];else if(persisted[k])next[k]=persisted[k]}return next})
       const s=openingsSweepRef.current
-      s.done=new Set([...keys].filter(k=>persisted[k]))
+      s.done=new Set([...keys].filter(k=>openingsEntryFresh(persisted[k])))
       s.inflight=new Set()
-      sweepOpenings(list.filter(c=>!persisted[openingsKeyFor(c)]))
+      sweepOpenings(list.filter(c=>!openingsEntryFresh(persisted[openingsKeyFor(c)])))
     },0)
   }
   // ── GTM contact gap-fill sweep ─────────────────────────────────────────────
@@ -16340,7 +16498,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             return <div key={company.name+'-'+idx} style={{background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
               <div style={{padding:'18px 22px'}}>
                 <div style={{fontSize:19,fontWeight:700,color:'#1A2540',marginBottom:8}}>{company.name}</div>
-                <GtmOpeningMatch oc={oc}/>
+                <GtmOpeningMatch oc={oc} onRecheck={()=>recheckOpening(company)}/>
                 <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:15,lineHeight:1.55,color:'#2D3748'}}>
                   {company.what&&<div><strong>What they do:</strong> {company.what}</div>}
                   {(company.industry||company.size||company.hq)&&<div>

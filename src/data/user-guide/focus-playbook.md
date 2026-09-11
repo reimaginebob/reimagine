@@ -442,9 +442,9 @@ Some people keep a "live" version of the CSV that they update as the search prog
 
 Right after Reimagine builds your company list, it quietly checks each company in the background for a job that is open **right now** and is a real match for the direction you chose, matched by function rather than exact title (a "Head of People" counts for a "Chief People Officer" search). This runs on its own; you do not click anything.
 
-When it finds one, a **green flag** appears at the top of that company's card: "A role that fits is open right now." Click it to see the specific role, a direct link to the posting, and a one-line note on why it fits. Companies without a current match stay quiet: no flag, no "nothing found" message. Most companies will not have a matching role open at any given moment, so the green flag is meant to feel like a find.
+When it finds one, a **green flag** appears at the top of that company's card: "We found a posting that fits," with the date it was checked. Click it to see the specific role, a direct link to the posting, and a one-line note on why it fits. Companies without a current match stay quiet: no flag, no "nothing found" message. Most companies will not have a matching role open at any given moment, so the green flag is meant to feel like a find.
 
-The check reads the open web, so it reflects what is actually posted now and updates as companies post new roles. It runs once per company and is saved with your playbook, so reopening the list is instant.
+Before the flag shows, Reimagine opens the posting page itself and confirms it is live, that the role is on it, and that it is still accepting applications; a link that does not pass that check is left out rather than shown. A posting that passes but looks less certain appears as a plainer line, "A posting that may fit," and one that lives on a site Reimagine cannot read (LinkedIn, for example) is shown for you to open and confirm yourself. The check runs when the list is built and again after a week, and a **Re-check** tap next to the flag runs it right now.
 
 ### Learn more about a company
 
