@@ -701,7 +701,7 @@ function momentPayloadOk(key, m) {
   if (key === 'choice-role') return typeof m.roleTitle === 'string' && !!m.roleTitle.trim() && typeof m.laneLabel === 'string' && !!m.laneLabel.trim()
   if (key.startsWith('delivery-')) return typeof m.text === 'string' && !!m.text.trim() && typeof m.sectionLabel === 'string' && !!m.sectionLabel.trim()
   if (key === 'next-move') return typeof m.justBuiltLabel === 'string' && !!m.justBuiltLabel.trim() && typeof m.nextLabel === 'string' && !!m.nextLabel.trim()
-  if (key === 'op-next-move') return typeof m.justBuiltLabel === 'string' && !!m.justBuiltLabel.trim() && typeof m.nextLabel === 'string' && !!m.nextLabel.trim() && typeof m.company === 'string' && !!m.company.trim()
+  if (key === 'op-next-move') return typeof m.justBuiltLabel === 'string' && !!m.justBuiltLabel.trim() && typeof m.nextLabel === 'string' && !!m.nextLabel.trim() && typeof m.company === 'string' && !!m.company.trim() && typeof m.actionPhrase === 'string' && !!m.actionPhrase.trim()
   return false
 }
 function buildChoiceLaneReactionText(laneLabel) {
@@ -729,8 +729,21 @@ function buildNextMoveReactionText(justBuiltLabel, nextLabel) {
 // stage and by what is built, not by section order), same division of labor
 // as Focus's own next-move: the model explains why it follows, it never
 // picks or names the target on its own.
-function buildOpNextMoveReactionText(justBuiltLabel, nextLabel, company) {
-  return `[They just finished ${justBuiltLabel} for ${company}. The next card Reimagine suggests for this opportunity is ${nextLabel}. Write one sentence saying why ${nextLabel} follows well from ${justBuiltLabel} for ${company} -- name one specific thing ${justBuiltLabel} gave them that ${nextLabel} will use. Do not explain what ${nextLabel} is in general terms. End by asking if they want you to build it now. ${PLAIN_ENGLISH} Do not mention that this is an automated check.]`
+//
+// Two fixes (F1 twenty-minute session, item 4), production report on
+// Deloitte (stage Interviewing, Interview Prep built): (1) the "grounded
+// only in what's given here" sentence -- the account's conversation history
+// can span several opportunities (HOPE, Deloitte, ...), and nothing
+// previously stopped the model naming a card built on a DIFFERENT record it
+// had discussed earlier in the same session ("Now that Offer & Negotiation
+// is built for Deloitte," when Offer & Negotiation was built on HOPE).
+// (2) actionPhrase -- the closing question used to unconditionally say
+// "build it now" even when the actual next card is already built and the
+// real tap is Practice it/Trade-off considerations/Open Who You Know Here,
+// never Build ("want me to build that into Interview Prep now?" when
+// Interview Prep was already built and the tap was Practice it).
+function buildOpNextMoveReactionText(justBuiltLabel, nextLabel, company, actionPhrase) {
+  return `[They just finished ${justBuiltLabel} for ${company}. The next card Reimagine suggests for this opportunity is ${nextLabel}. Write one sentence saying why ${nextLabel} follows well from ${justBuiltLabel} for ${company} -- name one specific thing ${justBuiltLabel} gave them that ${nextLabel} will use. Ground this only in ${company} and ${justBuiltLabel} exactly as given here -- never name a different company, opportunity, or card, even one discussed earlier in this conversation. Do not explain what ${nextLabel} is in general terms. End by asking if they want you to ${actionPhrase} now. ${PLAIN_ENGLISH} Do not mention that this is an automated check.]`
 }
 // Exported for scripts/eval-plain-english-live.mjs, same reason as
 // buildOrientationCheckTurnText just above.
@@ -743,7 +756,7 @@ export function buildMomentTurnText(key, ctx) {
   // directly, rather than this file looking it up per key from NAV_LABELS.
   if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text)
   if (key === 'next-move') return buildNextMoveReactionText(ctx.justBuiltLabel, ctx.nextLabel)
-  if (key === 'op-next-move') return buildOpNextMoveReactionText(ctx.justBuiltLabel, ctx.nextLabel, ctx.company)
+  if (key === 'op-next-move') return buildOpNextMoveReactionText(ctx.justBuiltLabel, ctx.nextLabel, ctx.company, ctx.actionPhrase)
   return ''
 }
 // Post-capture coaching follow-up (2026-09-06). OPPORTUNITY_UPDATE_CAPTURE_NOTE's

@@ -711,7 +711,7 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opNextMoveTarget,
     dedupeKey: (ctx) => ctx.opNextMoveTarget.recordId,
     dedupeValue: (ctx) => `${ctx.opNextMoveTarget.anchorLabel}::${ctx.opNextMoveTarget.nextId}`,
-    momentContext: (ctx) => ({ justBuiltLabel: ctx.opNextMoveTarget.anchorLabel, nextLabel: ctx.opNextMoveTarget.nextLabel, company: ctx.opNextMoveTarget.company }),
+    momentContext: (ctx) => ({ justBuiltLabel: ctx.opNextMoveTarget.anchorLabel, nextLabel: ctx.opNextMoveTarget.nextLabel, company: ctx.opNextMoveTarget.company, actionPhrase: ctx.opNextMoveTarget.actionPhrase }),
     actionReply: (ctx) => ({ label: ctx.opNextMoveTarget.tapLabel, value: `op-next:${ctx.opNextMoveTarget.nextId}` }),
     onTap: (value, ctx) => {
       if (value.startsWith('op-next:')) ctx.opNextMoveOnTap(value.slice('op-next:'.length))
