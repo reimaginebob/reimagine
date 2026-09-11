@@ -9496,7 +9496,15 @@ export default function PivotEngine(){
     // opts out (batch item 1.1.1; Phase 4 §2.3 Row A/B opt out via
     // dismissible:false -- neither a first-time introduction nor "where
     // Coach went" message is something that makes sense to decline).
-    const quickReplies=entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
+    //
+    // remindLater (F1 twenty-minute session, item 2): an entry can further
+    // opt OUT of just the "Remind me later" half -- op-playbook-arrival uses
+    // this for a message naming no built-card offer and no stage-fitting
+    // move, which has nothing left to be reminded about. Defaults to true
+    // (every entry before this one always got it) so no other entry changes
+    // behavior. Minimize is unaffected either way.
+    const includeRemindLater=entry.remindLater?entry.remindLater(ctx):true
+    const quickReplies=entry.dismissible?[...entryQuickReplies,...(includeRemindLater?[{label:'Remind me later',value:'moment-remind-later'}]:[]),{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
     // banner/replaceIfOnlySeed (Phase 4 §2.3, 'coach-intro'): a small
     // dismissing card next to the closed bubble rather than the full
     // panel, and -- when the chat is still exactly the untouched
@@ -10317,7 +10325,22 @@ export default function PivotEngine(){
     // every op- Delivery entry also requires this to be true, so nothing
     // can race the arrival to render first.
     const opArrivalFired=!!(opRecord&&coachMoments['op-playbook-arrival']&&coachMoments['op-playbook-arrival'][opRecord.id])
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded,hydrationStable}
+    // F1 twenty-minute session, item 2 (Cowork's live run, 2026-09-11
+    // evening): the top-down auto-build (lane inference -> About This
+    // Company -> Compensation Read -> The Role, App.jsx's _pendingAutoBuildRef
+    // chain) used to race op-playbook-arrival -- opRecord exists the instant
+    // the record is created, well before any of the three cards finish, so
+    // the arrival fired immediately with "Nothing is built on it yet." and,
+    // since its dedupeValue is the fixed literal 'fired' (fire once, ever),
+    // never corrected itself once the auto-build actually finished. True
+    // while lane inference/About This Company is still queued
+    // (_pendingAutoBuildRef.current holds this record's id start to finish
+    // of that phase) OR while Compensation Read/The Role is the section
+    // actively building for this record (the ref itself is cleared the
+    // moment The Role's build STARTS, not when it finishes, so the ref
+    // alone would let arrival fire mid-build on the last card).
+    const opAutoBuildActive=!!opRecord&&(_pendingAutoBuildRef.current===opRecord.id||(opBuildingSlot===opRecord.id&&(opSectionBuilding==='companyRead'||opSectionBuilding==='salaryRead'||opSectionBuilding==='p5')))
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
