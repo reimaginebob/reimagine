@@ -18698,10 +18698,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               beside Sign out, freeing that row for Coach's pill. No client analytics
               event ever wrapped the old standalone button (grepped every track(...)
               call site; none reference it), so there is no usage figure to report
-              here beyond that absence. */}
+              here beyond that absence. 
+              zIndex 60, not 50 (2026-09-11): the Focus Playbook breadcrumb bar
+              (data-sticky-region, above) is sticky at zIndex 50 in this same
+              stacking context and later in the DOM, so at 50 it painted over
+              the menu's second row -- Sign out -- on every saved playbook.
+              Nothing else sits between 50 and the modal layer at 1000. */}
           {!isDemo&&signedInUser&&<div ref={accountMenuRef} style={{position:'relative',marginLeft:8}}>
             <button onClick={()=>setAccountMenuOpen(o=>!o)} aria-haspopup="true" aria-expanded={accountMenuOpen} style={{background:'transparent',color:'#CBD5E0',border:'1px solid #2A3A55',borderRadius:6,padding:'6px 12px',fontSize:16,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6}}>Account<ChevronDown size={14}/></button>
-            {accountMenuOpen&&<div role="menu" style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'#FFFFFF',border:'1px solid #E2E5EA',borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.18)',minWidth:190,overflow:'hidden',zIndex:50}}>
+            {accountMenuOpen&&<div role="menu" style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:'#FFFFFF',border:'1px solid #E2E5EA',borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.18)',minWidth:190,overflow:'hidden',zIndex:60}}>
               <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);setStartFreshModal(true)}} title="Delete your profile and start over from scratch" style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Start Fresh</button>
               <button role="menuitem" onClick={()=>{setAccountMenuOpen(false);signOut()}} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',border:'none',borderTop:'1px solid #F0F1F4',padding:'10px 14px',fontSize:16,color:'#3D4A5C',cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
             </div>}
