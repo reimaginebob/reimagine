@@ -5949,20 +5949,6 @@ const CORRECTIONS_LOG_URL = 'https://script.google.com/macros/s/AKfycbzbw7MFbN0G
 // identifies the exact commit that produced the row.
 const APP_VERSION = BUILD_SHA
 
-// Per-prompt telemetry: which raw-content fields were surfaced into the
-// prompt at the time of generation. Lets us cohort post-Step-3 corrections
-// by Surface decision and evaluate whether surfacing improved or degraded
-// outputs in beta. Keep keys in sync with the prompts that read these
-// fields from `pc`; the build-time invariant in scripts/check-prompt-refs.mjs
-// catches mismatches between `${pr.X}` references and `pc` keys.
-const SURFACED_FIELDS = {
-  p3: ['lifeEvents', 'linkedin'],
-  p4: ['lifeEvents'],
-  p5: ['lifeEvents'],
-  p8: ['lifeEvents', 'linkedin'],
-  p11: ['lifeEvents'],
-}
-
 const COUNTRY_OPTIONS = [
   'United States', 'Canada', 'United Kingdom', 'Ireland', 'Australia',
   'New Zealand', 'Germany', 'France', 'Netherlands', 'Belgium',
@@ -11163,30 +11149,6 @@ export default function PivotEngine(){
     const nameFromForm=((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim()
     return {userEmail:email,userName:(nameFromAccount||nameFromForm)}
   }
-  const logCorrection=(correction)=>{
-    if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
-    try{
-      // sectionOutputLength: for p3, strip the JSON tail before measuring so
-      // the recorded length reflects what the user actually read (prose only),
-      // not the structured-emit bytes appended after. The tail is invisible
-      // in the UI; recording its length in the corrections sheet would be
-      // noise reviewers would have to subtract out by hand.
-      const rawOutput=outputs[correction.step]||''
-      const renderableOutput=correction.step==='p3'?stripPersonalBrandTail(rawOutput):rawOutput
-      const payload={
-        ...logIdentity(),
-        correctionId:correction.id,
-        step:correction.step,
-        stepDisplayName:STEP_DISPLAY_NAMES[correction.step]||correction.step,
-        sectionOutputLength:renderableOutput.length,
-        correctionText:correction.text,
-        surfaced:SURFACED_FIELDS[correction.step]||[],
-        appVersion:APP_VERSION,
-        browser:navigator.userAgent||'',
-      }
-      fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
-    }catch{}
-  }
   const logVoiceEvent=(evt)=>{
     if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
     try{
@@ -11243,7 +11205,11 @@ export default function PivotEngine(){
     // recordCorrection itself so every correction path is covered, not just the
     // p3/p6 RefineBox regens that already cascade.
     if(STAMPABLE_UPSTREAMS.includes(step)){const now=Date.now();setOutputs(o=>({...o,[`${step}_updated_at`]:now}))}
-    logCorrection(correction)
+    // Corrections capture into Postgres now happens server-side, in
+    // api/profile/save.js, as a byproduct of the autosave this triggers --
+    // no separate log call needed here. See that file's comment for why
+    // (the old client -> Apps Script POST this used to make was the fragile
+    // link that went silently dead 2026-08-20).
   }
   // Track 8: after a correction in a non-root section, offer to check the
   // upstream section(s) it was built from for the same pattern. Only when the
