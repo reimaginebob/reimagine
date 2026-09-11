@@ -109,7 +109,9 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // stallTarget appended by batch item 1.1.5; extended by live-side brief
 // PR 2, same day, with the op-side fields; next-move's own fields are
 // still present alongside both, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}'),
+  // done added by Phase 4 §2.3's coach-intro entry (Output/handoff/2026-09-
+  // 09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1): forces
 // a re-pick the instant an in-flight generated moment settles. savedPlaybooks/

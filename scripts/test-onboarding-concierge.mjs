@@ -2,14 +2,22 @@
 // the upfront framing message Coach opens with on a genuinely first-time
 // user's arrival at 'welcome'. Source-level rather than a live-call test for
 // the same reason test-coach-session-open.mjs is: this needs a real signed-in
-// browser session to exercise end to end, and cannot be run here. This pins
-// down the pieces a refactor could silently break: the flag exists and is
-// gated correctly (both server and client), the trigger fires only on a
-// genuinely first-time account (not the stale localStorage migration
-// signal), and the dedupe flag is threaded through both hydration paths and
-// the autosave blob -- losing any one of those three re-fires the message
-// every session, or fires it for a returning user, both of which are the
-// exact failure this file exists to catch.
+// browser session to exercise end to end, and cannot be run here.
+//
+// Rewritten for Phase 4 §2.3 (Output/handoff/2026-09-09_concierge-batch-
+// and-phase4-brief.md): the standalone hand-wired effect this test used to
+// pin down (seenOnboardingFraming/onboardingFramingFiredRef, a dedicated
+// useEffect firing framingMsg directly) is retired. The same trigger now
+// lives as the 'coach-intro' row in MOMENT_CATALOG (src/coach-moments.js),
+// fired through the shared Moments evaluator (src/App.jsx) -- dedupe rides
+// coachMoments like every other catalog entry, not a standalone seen*/ref
+// pair. This still pins down the three things that mattered before: the
+// flag is gated correctly (server and client, unchanged), the entry fires
+// only for a genuinely first-time account (done.length===0 && !outputs.p3,
+// not the unrelated hasProgress migration signal), and the evaluator
+// actually delivers it the way onboarding intends -- as the small banner
+// card next to the closed bubble, replacing the untouched seed rather than
+// stacking a second "hello" under it.
 import fs from 'node:fs'
 
 let failures = 0
@@ -31,46 +39,56 @@ const app = fs.readFileSync(APP, 'utf8')
 check(app.includes("hasOnboardingConcierge=(!!signedInUser&&/@career\\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))"),
   `${APP}: the client-side hasOnboardingConcierge mirror is missing or no longer matches the server gate`)
 
-// The trigger effect itself: must fire on 'welcome', must be gated on
-// hasOnboardingConcierge, and must NOT fire for anyone with existing
-// progress -- done.length or outputs.p3, not the unrelated hasProgress
-// migration flag (which answers "did this browser have local work before
-// signing up", a different and looser question).
-check(/if\(step!=='welcome'\|\|!signedInUser\)return/.test(app),
-  `${APP}: the framing effect no longer guards on step==='welcome'`)
-check(/if\(!hasOnboardingConcierge\)return/.test(app),
-  `${APP}: the framing effect lost its hasOnboardingConcierge gate`)
-check(/if\(seenOnboardingFraming\|\|onboardingFramingFiredRef\.current\)return/.test(app),
-  `${APP}: the framing effect lost its dedupe guard (flag + session ref)`)
-check(/if\(done\.length>0\|\|\(outputs&&outputs\.p3\)\)return/.test(app),
-  `${APP}: the framing effect no longer checks done.length/outputs.p3 for genuine first-time status`)
+// The old hand-wired mechanism must actually be gone, not just superseded --
+// a leftover copy firing alongside the new catalog row would double the
+// message.
+check(!/seenOnboardingFraming/.test(app.replace(/\/\/.*$/gm, '')),
+  `${APP}: seenOnboardingFraming still appears in live code -- the old hand-wired effect (or its dedupe threading) was not fully removed`)
 
-// Dedupe threading: the useState, both hydration paths, and the autosave
-// blob (JSON.stringify call plus its effect's dependency array) all need to
-// carry seenOnboardingFraming, or the "once" contract silently breaks on
-// reload / cross-device / autosave.
-check(/const\[seenOnboardingFraming,setSeenOnboardingFraming\]=useState\(false\)/.test(app),
-  `${APP}: seenOnboardingFraming useState declaration is missing`)
-const seenFieldSites = (app.match(/seenOnboardingFraming/g) || []).length
-check(seenFieldSites >= 6,
-  `${APP}: expected seenOnboardingFraming to appear at least 6 times (useState, both hydration paths, both places in the save effect, the trigger effect itself) -- found ${seenFieldSites}, one of the threading sites may have been dropped`)
-check(/if\(d\.seenOnboardingFraming\)setSeenOnboardingFraming\(true\)/.test(app),
-  `${APP}: at least one hydration path (local pe_v4 or server profile load) is missing the seenOnboardingFraming read-back`)
-const hydrationHits = (app.match(/if\(d\.seenOnboardingFraming\)setSeenOnboardingFraming\(true\)/g) || []).length
-check(hydrationHits === 2,
-  `${APP}: expected seenOnboardingFraming hydration in both the local pe_v4 path and the server profile/load path -- found ${hydrationHits}`)
-const saveBlobIdx = app.indexOf('const stateForSave={')
-const saveBlobLine = app.slice(saveBlobIdx, saveBlobIdx + 700)
-check(saveBlobIdx !== -1 && saveBlobLine.includes('seenOnboardingFraming'),
-  `${APP}: seenOnboardingFraming is missing from the autosave blob's state object -- the flag would never actually persist`)
-const saveDepsIdx = app.indexOf('saveRef.current=save')
-const saveDepsLine = app.slice(saveDepsIdx, saveDepsIdx + 500)
-check(saveDepsLine.includes('seenOnboardingFraming'),
-  `${APP}: seenOnboardingFraming is missing from the autosave effect's dependency array -- a change to it would not trigger a save`)
+const MOMENTS = 'src/coach-moments.js'
+const moments = fs.readFileSync(MOMENTS, 'utf8')
+
+const introIdx = moments.indexOf("key: 'coach-intro'")
+check(introIdx !== -1, `${MOMENTS}: the 'coach-intro' catalog entry (Row A) is missing`)
+const introBlock = introIdx !== -1 ? moments.slice(introIdx, introIdx + 2000) : ''
+
+check(introBlock.includes("screen: 'welcome'"), `${MOMENTS}: coach-intro is not scoped to the 'welcome' screen`)
+check(introBlock.includes("dismissible: false"), `${MOMENTS}: coach-intro should not be dismissible -- a "Remind me later" on meeting your coach for the first time makes no sense`)
+check(introBlock.includes('banner: true'), `${MOMENTS}: coach-intro lost the banner delivery (small card next to the closed bubble, not the full panel)`)
+check(introBlock.includes('replaceIfOnlySeed: true'), `${MOMENTS}: coach-intro lost replaceIfOnlySeed -- it would stack under the untouched "Hi, I'm your coach" seed instead of replacing it`)
+// Genuine first-time gate, carried over unchanged from the retired effect.
+check(introBlock.includes('ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3)'),
+  `${MOMENTS}: coach-intro's eligibility no longer checks done.length===0 && !outputs.p3 for genuine first-time status`)
+check(introBlock.includes('!!ctx.hasOnboardingConcierge'), `${MOMENTS}: coach-intro lost its hasOnboardingConcierge gate`)
+// Only APPROVED copy ships -- the brief's DRAFT closing line ("Ready?
+// We'll start with where you are right now.") must not appear as the
+// entry's actual message text; the already-shipped, already-approved
+// closer is reused instead. Checked against the message value itself
+// (introBlock), not the whole file, so a comment citing the DRAFT line by
+// name (to explain why it was not used) cannot trip this check.
+check(!introBlock.includes("Ready? We"),
+  `${MOMENTS}: coach-intro shipped the brief's DRAFT closing sentence -- CLAUDE.md's copy rule requires Bob's sign-off first`)
+check(introBlock.includes("Let\\'s start with where you are right now."),
+  `${MOMENTS}: coach-intro dropped the approved closing sentence (and its tap) entirely`)
+check(introBlock.includes("value: 'coach-intro-go'"), `${MOMENTS}: coach-intro's [Let's go] tap is missing`)
+check(introBlock.includes("ctx.advance('welcome', ctx.isIndependent ? 'orientation-intro' : 'location')"),
+  `${MOMENTS}: coach-intro's onTap no longer advances to the right next step for both tracks`)
+
+// Evaluator support: banner/replaceIfOnlySeed and the ctx fields coach-intro
+// needs (done, isIndependent) must actually be wired, not just declared on
+// the catalog entry with nothing reading them.
+check(/const ctx=\{hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,/.test(app),
+  `${APP}: the evaluator's ctx object no longer carries done (coach-intro's eligibility needs it)`)
+check(app.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,'),
+  `${APP}: the generic moment tap dispatcher no longer passes isIndependent (coach-intro's onTap needs it for the track-conditional advance)`)
+check(app.includes('entry.banner?{banner:true}:{}'), `${APP}: the evaluator's static-firing branch lost banner passthrough`)
+check(app.includes('entry.replaceIfOnlySeed'), `${APP}: the evaluator's static-firing branch lost replaceIfOnlySeed support`)
+check(app.includes('m[0].content===INTRO_MSG.content)?[newEntryMsg]:[...m,newEntryMsg]'),
+  `${APP}: the evaluator's replace-on-seed logic no longer matches the untouched INTRO_MSG seed correctly`)
 
 if (failures) {
   console.error(`test-onboarding-concierge: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-onboarding-concierge: OK (flag gated correctly, framing trigger fires only for genuine first-time accounts, dedupe threaded through both hydration paths and the autosave blob)')
+  console.log('test-onboarding-concierge: OK (flag gated correctly; the old hand-wired effect is gone; coach-intro fires only for genuine first-time accounts, delivered as a replacing banner card with only approved copy, and the evaluator actually carries the ctx fields and generic banner/replace support the entry depends on)')
 }

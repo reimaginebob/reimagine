@@ -61,7 +61,51 @@
 // comes from two new pieces of client state next to the evaluator itself:
 // a per-identity visit counter and a 90-second idle timer, both computed
 // once per pass and handed in on ctx rather than derived inside the entry.
+// Phase 4 (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+// Part 2 section 2.3) starts here: the first of the eighteen hand-wired
+// `seen*` triggers folded into this catalog. `coach-intro` (Row A) replaces
+// the standalone onboarding-framing effect that used to live directly in
+// App.jsx (Coach-as-Concierge Phase 1, 2026-09-04) -- same trigger window
+// (a genuinely first-time signed-in account landing on 'welcome'), same
+// delivery mechanics (the small banner card next to the closed bubble, and
+// REPLACING the untouched "Hi, I'm your coach" seed rather than stacking a
+// second hello under it -- see `banner`/`replaceIfOnlySeed` handling in the
+// evaluator, App.jsx), new copy. Row A's own brief-proposed closing line is
+// marked DRAFT there, not yet Bob-approved -- CLAUDE.md's copy rule is
+// explicit that DRAFT text does not ship. The line below instead reuses the
+// APPROVED closing sentence the pre-Phase-4 message already shipped with
+// (same batch, item 7b, verbatim in `message` below) -- same tap, same
+// destination, no unapproved words.
 export const MOMENT_CATALOG = [
+  {
+    key: 'coach-intro',
+    family: 'arrival',
+    screen: 'welcome',
+    // Ordinary, not 'open': Coach speaking on its own initiative the moment
+    // a new account lands, not reacting to something the person just did --
+    // same reasoning as every other Arrival entry (batch item 1.1.7).
+    significance: 'ordinary',
+    // No "Remind me later"/"Minimize Coach for now" -- this is a one-time
+    // orientation to who Coach is, not an offer that makes sense to decline
+    // or snooze. Its only tap is the one that starts the groundwork.
+    dismissible: false,
+    priority: 1,
+    promptCode: 'coach_intro',
+    banner: true,
+    replaceIfOnlySeed: true,
+    // "Genuinely first-time" -- not the pre-account localStorage migration
+    // signal, which answers a different question (did this BROWSER have
+    // local work before signing up). Carried over unchanged from the effect
+    // this entry replaces.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3),
+    // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3.
+    message: 'I\'m your coach, and I\'m with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I\'ll be right here while you put that in, and if you\'d rather tell me something than type it into a box, say it here and I\'ll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works. Let\'s start with where you are right now.',
+    quickReplies: [{ label: 'Let\'s go', value: 'coach-intro-go' }],
+    onTap: (value, ctx) => {
+      if (value === 'coach-intro-go') ctx.advance('welcome', ctx.isIndependent ? 'orientation-intro' : 'location')
+      return true
+    },
+  },
   {
     key: 'ptw-arrival',
     family: 'arrival',

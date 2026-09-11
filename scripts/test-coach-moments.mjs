@@ -90,7 +90,7 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // Interview-close, direction-resume-jump targets) sits between stallEligible
 // and the ctx object itself, ahead of evalIdx -- pushing the backward edge
 // well past the old -2400 edge.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 12500, evalIdx + 4900) : ''
+const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 12500, evalIdx + 5600) : ''
 // The old quiet-states early return is retired (batch item 1.1.4/1.1.7,
 // 2026-09-10): it used to block the WHOLE evaluator from running, which was
 // also the significance bug (observed B4, confirmed L8/L9) -- an ordinary
