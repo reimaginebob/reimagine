@@ -494,8 +494,28 @@ export function extractTrailer(text, name) {
 // unfiltered history (e.g. findInFocusRecord's scan for opportunity-name
 // mentions, including button-label taps) should read `history` directly --
 // that pinning is unaffected by what the model itself is shown.
+//
+// F1 twenty-minute session, item 1: that filter also caught the one
+// checkinKey-tagged shape that IS something the model itself said --
+// fireMoment's generated branch (src/App.jsx), the real reply to a Delivery
+// read / Next move / arrival reaction. checkinKey and banner are set on
+// that message too (dedupe and rendering still need them), so it was
+// stripped exactly like the static bubbles finding #2.4 was written for.
+// Production result: a Delivery read named "a bigger table," the person
+// asked what that meant, and Coach -- unable to see its own sentence --
+// asked where they had heard the phrase instead of just explaining it.
+// fireMoment marks that one shape generated:true; nothing else in this
+// file's checkinKey/banner push sites does, since every other one is
+// static, hardcoded copy the model never produced. Let generated:true
+// through regardless of checkinKey/banner; everything else (intro,
+// synthetic, and every static checkinKey/banner bubble) is still filtered,
+// keeping finding #2.4's original protection intact.
 export function sanitizeHistoryForModel(history) {
-  return (Array.isArray(history) ? history : []).filter(m => m && !m.intro && !m.banner && !m.checkinKey && !m.synthetic)
+  return (Array.isArray(history) ? history : []).filter(m => {
+    if (!m || m.intro || m.synthetic) return false
+    if (m.generated) return true
+    return !m.banner && !m.checkinKey
+  })
 }
 
 // Prelaunch audit, finding #2.2: a Coach message had no length limit at all.

@@ -86,6 +86,33 @@ const { sanitizeHistoryForModel } = await import('../api/coach.js')
     'the optimistic confirmation must not survive into what the model sees')
 }
 
+// F1 twenty-minute session, item 1: a generated:true moment reply (Delivery
+// read / Next move / arrival / Check -- fireMoment's real model output,
+// src/App.jsx) passes through even though it carries checkinKey and banner
+// too, since the model needs to see its own words on a later turn. A
+// production Delivery read said "a bigger table"; unable to see that
+// sentence in its own history, Coach asked where the person had heard the
+// phrase instead of just explaining it.
+{
+  const history = [
+    { role: 'assistant', content: "You're already naming what you'd want to build next at a bigger table.", checkinKey: 'moment:delivery-p3', banner: true, generated: true },
+  ]
+  const out = sanitizeHistoryForModel(history)
+  check(out.length === 1, 'a generated:true moment reply should NOT be stripped, even though it carries checkinKey and banner')
+  check(out[0] && out[0].content === history[0].content, 'a generated:true moment reply should keep its content intact')
+}
+
+// A static moment entry (fireStaticEntryMessage's own push -- Row A/B/C,
+// Stall, the personal-brand check-in, every hardcoded MOMENT_CATALOG
+// message) is still stripped exactly like before: it carries checkinKey and
+// often banner, but never generated, because the model never said it.
+{
+  const history = [
+    { role: 'assistant', content: "I'm your coach, and I'm with you for the whole search.", checkinKey: 'moment:coach-intro' },
+  ]
+  check(sanitizeHistoryForModel(history).length === 0, 'a static moment entry (no generated flag) should still be stripped')
+}
+
 // A malformed/non-array history is a clean no-op, not a throw.
 {
   check(Array.isArray(sanitizeHistoryForModel(null)) && sanitizeHistoryForModel(null).length === 0,
@@ -126,9 +153,19 @@ check(chat.includes('content: fallback, synthetic: true'),
 check(chat.includes("content: 'Sorry, I could not reach your coach just now. Try again in a moment.', synthetic: true"),
   `${CHAT}: the network-error fallback is no longer tagged synthetic`)
 
+// fireMoment's real-reply push (App.jsx) is the one checkinKey/banner shape
+// that IS the model's own words -- confirm it is tagged generated:true and
+// that fireStaticEntryMessage's own push (the static-copy sibling) is NOT.
+const APP = 'src/App.jsx'
+const app = fs.readFileSync(APP, 'utf8')
+check(app.includes("setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies,generated:true}])"),
+  `${APP}: fireMoment's generated-reply push no longer tags generated:true`)
+check(!app.includes("const newEntryMsg={role:'assistant',content:entryMessage,checkinKey:`moment:${entry.key}`,quickReplies,...(entry.banner?{banner:true}:{}),generated:true}"),
+  `${APP}: fireStaticEntryMessage's static push must never tag generated:true -- that would feed hardcoded copy back as the model's own words`)
+
 if (failures) {
   console.error(`test-coach-history-sanitize: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-history-sanitize: OK (real turns pass through, checkinKey/banner/intro/synthetic turns stripped, malformed history is a clean no-op, findInFocusRecord still scans the raw history, all 6 client-side synthetic push sites tagged)')
+  console.log('test-coach-history-sanitize: OK (real turns pass through, checkinKey/banner/intro/synthetic turns stripped, a generated:true moment reply passes through despite carrying checkinKey/banner while a static moment entry with no generated flag still strips, malformed history is a clean no-op, findInFocusRecord still scans the raw history, all 6 client-side synthetic push sites tagged, fireMoment/fireStaticEntryMessage tag generated correctly)')
 }
