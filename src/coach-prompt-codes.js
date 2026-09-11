@@ -5,33 +5,36 @@
 // into one-off values over time. Imported by both api/coach-prompt-
 // engagement.js and src/App.jsx (.js extension across the api/src boundary,
 // per CLAUDE.md's Vercel bundler rule).
+import { MOMENT_CATALOG } from './coach-moments.js'
 
-// The QUESTION being asked. Add a new code here when a new proactive prompt
-// ships; never repurpose an existing one for a different question, or past
-// and future rows silently mean different things under the same label.
-export const PROMPT_CODES = [
+// Codes fired from call sites with no MOMENT_CATALOG row -- the employment/
+// search/life-events/brand/values checks predate the catalog and still fire
+// directly from App.jsx/Chat.jsx, not through the evaluator, so they can't
+// be derived and are listed by hand.
+const NON_CATALOG_PROMPT_CODES = [
   'employment_status',
   'search_intake',
   'opportunity_archive',
   'life_events_thin',
   'brand_richness',
   'values_thin',
-  'ptw_arrival',
-  'career_paths_arrival',
-  'choice_lane',
-  'choice_role',
-  'delivery_p5',
-  'delivery_p6',
-  'delivery_p9',
-  'delivery_comp_read',
-  'delivery_p11',
-  'delivery_p_res',
-  'delivery_p8',
-  'delivery_p7',
-  'delivery_income',
-  'next_move',
-  'stall',
 ]
+
+// The QUESTION being asked. Every MOMENT_CATALOG row that carries a
+// promptCode is picked up automatically -- this used to be a second,
+// hand-maintained list that had to be edited in lockstep with the catalog,
+// and #861's op-side rows (op_pipeline_arrival, delivery_op_*, op_next_move,
+// op_interview_close, op_resume_jump) never got added here, so every one of
+// their logPromptEngagement calls 400'd silently (this endpoint is
+// best-effort by design, so nothing surfaced the gap until someone went
+// looking). Deriving from the catalog closes the two-lists gap for good
+// (the #848 lesson, same shape as src/coach-nav-map.js's generate-and-
+// compare gate): a new catalog row with a promptCode is covered with no
+// second edit required.
+export const PROMPT_CODES = [...new Set([
+  ...NON_CATALOG_PROMPT_CODES,
+  ...MOMENT_CATALOG.map(entry => entry.promptCode).filter(Boolean),
+])]
 
 // The MECHANISM that caused one particular firing of a prompt_code.
 //   hub_arrival        a scripted one-time prompt fired on arrival at a hub
