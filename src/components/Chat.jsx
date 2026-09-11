@@ -528,6 +528,21 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // /api/pb-checkin, drops the buttons, and continues the conversation with a
   // canned, on-voice follow-up. The user can keep chatting normally from there.
   const tapQuickReply = async (idx, opt, checkinKey) => {
+    // Minimize is a presence control, not an answer to the offer the message
+    // carried (App.jsx's own moment-minimize comment says exactly this) --
+    // unlike every other quick reply, tapping it must not touch the
+    // message's own taps. F1 twenty-minute session, item 2: the generic
+    // clear-and-echo below (the pattern every ANSWERED offer uses to close
+    // itself out) was wiping Practice it/Do it now/Remind me later off the
+    // SAME message Minimize was tapped from, so reopening the panel showed
+    // no way left to act on the offer -- only Minimize's own echo bubble.
+    // onQuickReply still runs the real minimize side effect (beginCoach
+    // Minimize/setCoachOpen(false), App.jsx); nothing else about this
+    // message changes.
+    if (opt.value === 'moment-minimize') {
+      if (onQuickReply) await onQuickReply(checkinKey, opt.value)
+      return
+    }
     setMessages(m => {
       const c = [...m]
       if (c[idx]) c[idx] = { ...c[idx], quickReplies: null }
