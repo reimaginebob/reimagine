@@ -97,7 +97,7 @@ export const FEATURE_MAP = [
   { slug: 'bridge-story',         reach: 'focus-gated', labelId: 'p6',
     does: 'builds the "tell me about yourself" pitch for a chosen direction. On the Go Independent track it is called "Your Pitch" and is anchored on the person\'s earned authority to operate on their own, told to a prospective client deciding whether to buy rather than to an interviewer deciding whether to hire' },
   { slug: 'go-to-market',         reach: 'focus-gated', labelId: 'p7',
-    does: 'researches target companies live, flags any with a role open right now that fits, and drafts the outreach. On the Go Independent track it is called "Find Your Clients" and starts from the buyer the person named in Where You Think You Fit, treating that as a hypothesis to confirm or productively contradict rather than a directive' },
+    does: 'researches target companies live, flags any with a posting that fits (each link is opened and confirmed live before the flag shows, dated, with a Re-check tap on the card), and drafts the outreach. On the Go Independent track it is called "Find Your Clients" and starts from the buyer the person named in Where You Think You Fit, treating that as a hypothesis to confirm or productively contradict rather than a directive' },
   { slug: 'recruiters',           reach: 'focus-gated', labelId: 'recruiters',
     does: 'finds executive-search recruiters who specialize in the target function, industry, and level — boutique firms and named practice leaders at the big firms, with a note to reach out; available for a chosen direction in the Focus Playbook and for a specific role in an Opportunity Playbook' },
   { slug: 'linkedin-remix',       reach: 'focus-gated', labelId: 'p8',
