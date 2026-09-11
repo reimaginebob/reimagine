@@ -7808,6 +7808,19 @@ export default function PivotEngine(){
   const[signedUp,setSignedUp]=useState(isDemo||isTest)
   const[signupForm,setSignupForm]=useState({firstName:'',lastName:'',email:'',source:'',sourceDetail:''})
   const[signupSubmitting,setSignupSubmitting]=useState(false)
+  // Synchronous double-submit guard for submitEmailStep/submitDetailsStep,
+  // separate from signupSubmitting (React state, which does not block a
+  // second call arriving before the disabling re-render has committed).
+  // Live evidence (2026-09-11): the Continue/Send-my-link buttons produced
+  // two /api/auth/request-link calls -- and two magic-link emails -- per
+  // attempt, tokens milliseconds to a few hundred ms apart in the DB.
+  // Enter-to-submit on the email field and the button's own onClick both
+  // route through the same handler; the leading suspect is Chrome's
+  // built-in sign-in-form heuristic firing its own synthetic click on the
+  // nearby button when Enter is pressed in input[type=email], alongside the
+  // app's own keydown handler, both within the same tick. A plain ref is
+  // synchronous and closes the race regardless of which path double-fires.
+  const submitLockRef=useRef(false)
   const[signupError,setSignupError]=useState('')
   const[privacyAccepted,setPrivacyAccepted]=useState(false)
   const[termsAccepted,setTermsAccepted]=useState(false)
@@ -11983,11 +11996,13 @@ export default function PivotEngine(){
     const em=signupForm.email.trim()
     if(!em){setSignupError('Please enter your email.');return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){setSignupError('Please enter a valid email.');return}
+    if(submitLockRef.current)return
+    submitLockRef.current=true
     setSignupError('')
     setSignupSubmitting(true)
     try{
       const cr=await fetch('/api/auth/check-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
-      if(!cr.ok){setSignupError('Something went wrong. Try again.');setSignupSubmitting(false);return}
+      if(!cr.ok){setSignupError('Something went wrong. Try again.');return}
       const cdata=await cr.json().catch(()=>({}))
       if(cdata.exists){
         const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
@@ -11995,7 +12010,6 @@ export default function PivotEngine(){
           const data=await r.json().catch(()=>({}))
           if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
           else setSignupError(data.error||'Something went wrong. Try again.')
-          setSignupSubmitting(false)
           return
         }
         setMagicLinkSentTo(em)
@@ -12004,8 +12018,10 @@ export default function PivotEngine(){
       }
     }catch{
       setSignupError('Could not reach the server. Check your connection and try again.')
+    }finally{
+      setSignupSubmitting(false)
+      submitLockRef.current=false
     }
-    setSignupSubmitting(false)
   }
   const submitDetailsStep=async()=>{
     const fn=signupForm.firstName.trim()
@@ -12013,6 +12029,8 @@ export default function PivotEngine(){
     const em=signupForm.email.trim()
     if(!fn||!ln){setSignupError('Please fill in your first and last name.');return}
     if(!privacyAccepted||!termsAccepted){setSignupError('Please review and accept the Privacy Agreement and Terms of Service to continue.');return}
+    if(submitLockRef.current)return
+    submitLockRef.current=true
     setSignupError('')
     setSignupSubmitting(true)
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
@@ -12023,14 +12041,15 @@ export default function PivotEngine(){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
         else setSignupError(data.error||'Something went wrong. Try again.')
-        setSignupSubmitting(false)
         return
       }
       setMagicLinkSentTo(em)
     }catch{
       setSignupError('Could not reach the server. Check your connection and try again.')
+    }finally{
+      setSignupSubmitting(false)
+      submitLockRef.current=false
     }
-    setSignupSubmitting(false)
   }
   // Keys sign-out and Start Fresh clear. This used to be a prefix sweep over
   // every reimagine_* / pe_* key, which also deleted the flags recording which
