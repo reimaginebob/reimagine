@@ -97,7 +97,20 @@ export const MOMENT_CATALOG = [
     // signal, which answers a different question (did this BROWSER have
     // local work before signing up). Carried over unchanged from the effect
     // this entry replaces.
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3),
+    //
+    // hydrationStable (2026-09-11 fix, F1 twenty-minute session item 1):
+    // outputs/done start empty (IO/[]) on every mount and are only
+    // overwritten once localStorage AND the server profile fetch have both
+    // settled -- but hasOnboardingConcierge flips true as soon as /api/me
+    // resolves, a full fetch earlier than /api/profile/load's outputs.p3.
+    // Without this gate, a returning account with a built brand could land
+    // on 'welcome' (e.g. mid-navigation) in that window and see
+    // done.length===0/!outputs.p3 read as literally true -- the empty
+    // pre-load state, not the account's actual one. hydrationStable
+    // (App.jsx) is the same localHydrationDone&&serverLoadDone signal the
+    // orientationCheckFields catch-up effect already gates on for the
+    // identical reason (see its own comment there).
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.hydrationStable && ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3),
     // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3.
     message: 'I\'m your coach, and I\'m with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I\'ll be right here while you put that in, and if you\'d rather tell me something than type it into a box, say it here and I\'ll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works. Let\'s start with where you are right now.',
     quickReplies: [{ label: 'Let\'s go', value: 'coach-intro-go' }],

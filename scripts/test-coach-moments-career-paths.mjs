@@ -114,7 +114,7 @@ check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: deliver
 // opHasRecords, opNearestRecord, opPipelineArrivalCopy, opRecord,
 // opNextMoveTarget, opInterviewCloseTarget, opResumeJumpTarget) -- Career
 // Paths' own six fields are still present alongside both, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded,hydrationStable}'),
   // done added by Phase 4 §2.3's coach-intro entry, whose eligibility needs
   // it (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/done/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)

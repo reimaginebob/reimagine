@@ -7486,6 +7486,13 @@ export default function PivotEngine(){
   // initial empty state pre-hydration.
   const[localHydrationDone,setLocalHydrationDone]=useState(false)
   const[serverLoadDone,setServerLoadDone]=useState(false)
+  // Declared here (not down near its original call sites) because the
+  // Moments evaluator's ctx object and the search-intake prompt effect both
+  // need it well above where it used to live (2026-09-11 fix, F1 twenty-
+  // minute session item 1) -- referencing a const before its declaration in
+  // source order throws in JS regardless of render order, so this has to
+  // sit right after its own two dependencies, not near its most recent use.
+  const hydrationStable=localHydrationDone&&serverLoadDone
   // Ref mirror of serverLoadDone, written in the same .finally that sets the
   // state. Feeds the one-shot landing decision below, which needs to know the
   // load has SETTLED (success or failure) so a dead /api/me can never wedge
@@ -10115,7 +10122,7 @@ export default function PivotEngine(){
     // every op- Delivery entry also requires this to be true, so nothing
     // can race the arrival to render first.
     const opArrivalFired=!!(opRecord&&coachMoments['op-playbook-arrival']&&coachMoments['op-playbook-arrival'][opRecord.id])
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
@@ -10178,7 +10185,7 @@ export default function PivotEngine(){
       fireStaticEntryMessage(entry,ctx)
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and
@@ -10336,6 +10343,14 @@ export default function PivotEngine(){
     // are hidden on the practice track, so their guard never clears and the
     // Coach would ask someone who is not job hunting how her search is going.
     if(isIndependent)return
+    // hydrationStable (2026-09-11 fix, F1 twenty-minute session item 1):
+    // searchGoingWell/searchFocus/seenSearchIntakePrompt all start at their
+    // empty/false defaults on every mount, same as coach-intro's outputs/
+    // done -- without this gate, a returning account whose real answers
+    // just haven't loaded yet reads as "never asked" and this fires,
+    // landing right alongside a Row A that was firing under the identical
+    // race (both now closed the same way).
+    if(!hydrationStable)return
     const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
     if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
     if(searchGoingWell||searchFocus||seenSearchIntakePrompt||searchIntakePromptFiredRef.current)return
@@ -10353,7 +10368,7 @@ export default function PivotEngine(){
     // the first question; the answer to it chains to the second.
     setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
+  },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest,hydrationStable])
   // Life Events thinness prompt, hub_arrival variant (2026-09-07). Mirrors
   // the employment/search-intake prompts' own dashboard-arrival effect
   // exactly, including their yield order (employment, then search-intake,
@@ -10667,7 +10682,9 @@ export default function PivotEngine(){
   // pe_* localStorage including pe_saved_v1, and pe_saved_v1 has no server
   // backup in v1; Neon sync is the durable fix and is deferred to V2).
   const isReturningExplorer=done.includes('p3')&&(activePlaybooks.length>0||exploredRoleTitles.length>0)
-  const hydrationStable=localHydrationDone&&serverLoadDone
+  // hydrationStable itself now lives up near localHydrationDone/
+  // serverLoadDone's own declarations (2026-09-11 fix) -- still in scope
+  // here unchanged, just declared earlier.
   // One-time catch-up for the 8 screen-tied orientationCheckFields (not
   // brand-richness, which has its own effect above): a field can be `done`
   // with no reaction on record if a prior attempt failed silently (see

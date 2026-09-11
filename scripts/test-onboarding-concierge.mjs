@@ -50,7 +50,7 @@ const moments = fs.readFileSync(MOMENTS, 'utf8')
 
 const introIdx = moments.indexOf("key: 'coach-intro'")
 check(introIdx !== -1, `${MOMENTS}: the 'coach-intro' catalog entry (Row A) is missing`)
-const introBlock = introIdx !== -1 ? moments.slice(introIdx, introIdx + 2000) : ''
+const introBlock = introIdx !== -1 ? moments.slice(introIdx, introIdx + 3200) : ''
 
 check(introBlock.includes("screen: 'welcome'"), `${MOMENTS}: coach-intro is not scoped to the 'welcome' screen`)
 check(introBlock.includes("dismissible: false"), `${MOMENTS}: coach-intro should not be dismissible -- a "Remind me later" on meeting your coach for the first time makes no sense`)
@@ -60,6 +60,38 @@ check(introBlock.includes('replaceIfOnlySeed: true'), `${MOMENTS}: coach-intro l
 check(introBlock.includes('ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3)'),
   `${MOMENTS}: coach-intro's eligibility no longer checks done.length===0 && !outputs.p3 for genuine first-time status`)
 check(introBlock.includes('!!ctx.hasOnboardingConcierge'), `${MOMENTS}: coach-intro lost its hasOnboardingConcierge gate`)
+// hydrationStable gate (2026-09-11 fix, F1 twenty-minute session item 1):
+// outputs/done both start at their pre-load empty defaults on every mount,
+// so a RETURNING account with a built Personal Brand could read as
+// genuinely-first-time in the window before hydration settles. Reproduced:
+// coach-intro fired for an account with a built brand and three pipeline
+// records. hydrationStable (App.jsx) is the same localHydrationDone&&
+// serverLoadDone signal the orientationCheckFields catch-up effect already
+// uses for the identical reason.
+check(introBlock.includes('!!ctx.hydrationStable'),
+  `${MOMENTS}: coach-intro's eligibility no longer waits on hydrationStable -- a returning account with a built brand could see Row A again during the pre-hydration window`)
+check(/const ctx=\{[^}]*hydrationStable\}/.test(app),
+  `${APP}: the evaluator's ctx object no longer carries hydrationStable through to catalog entries`)
+// hydrationStable is declared once, well above both its Moments-evaluator
+// and search-intake-effect use sites -- referencing a const before its
+// declaration throws in JS regardless of render order. Guards against the
+// fix regressing back into the temporal-dead-zone bug it was written to
+// avoid (hydrationStable used to be declared much further down, after both
+// of these use sites).
+const hydrationStableDeclIdx = app.indexOf('const hydrationStable=localHydrationDone&&serverLoadDone')
+check(hydrationStableDeclIdx !== -1, `${APP}: hydrationStable's declaration is missing`)
+const ctxIdx = app.indexOf('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,')
+check(hydrationStableDeclIdx !== -1 && ctxIdx !== -1 && hydrationStableDeclIdx < ctxIdx,
+  `${APP}: hydrationStable is declared AFTER the Moments evaluator's ctx object reads it -- this throws (temporal dead zone), not just returns undefined`)
+const searchIntakeEffectIdx = app.indexOf('if(!hydrationStable)return\n    const onPromptSurface=')
+check(hydrationStableDeclIdx !== -1 && searchIntakeEffectIdx !== -1 && hydrationStableDeclIdx < searchIntakeEffectIdx,
+  `${APP}: hydrationStable is declared AFTER the search-intake prompt effect reads it -- this throws (temporal dead zone), not just returns undefined`)
+// The search-intake prompt shares the identical pre-hydration race (its own
+// searchGoingWell/searchFocus/seenSearchIntakePrompt also read as empty
+// pre-load), which is how it could land stacked right alongside a
+// wrongly-firing Row A in the same account's chat -- same fix, same gate.
+check(searchIntakeEffectIdx !== -1,
+  `${APP}: the search-intake hub_arrival prompt effect no longer gates on hydrationStable -- it can still stack with (or fire independently during) the same pre-hydration window Row A's fix closes`)
 // Only APPROVED copy ships -- the brief's DRAFT closing line ("Ready?
 // We'll start with where you are right now.") must not appear as the
 // entry's actual message text; the already-shipped, already-approved
