@@ -16,9 +16,11 @@ and capture is server-side in `api/profile/save.js` rather than a client POST
 to a dedicated V2 API -- the autosave path already existed and is already
 proven reliable, so there was nothing to build there. `original_inference` and
 `field_type` are unchanged: still NULL until a later capture path / classifier
-backfill fills them in. Read access is `api/admin/corrections.js` (ADMIN_TOKEN
-auth, same pattern as `api/admin/feedback-dashboard.js`) -- no dashboard tab
-yet; a natural follow-up if the raw query view isn't enough.
+backfill fills them in. Read access is `api/admin/corrections.js` (session +
+ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS, same pattern as `api/admin/growth.js`
+-- not the older ADMIN_TOKEN pattern `api/admin/feedback-dashboard.js` still
+carries) -- no dashboard tab yet; a natural follow-up if the raw query view
+isn't enough.
 
 ## Table: `corrections`
 

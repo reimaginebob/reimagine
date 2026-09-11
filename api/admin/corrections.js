@@ -4,29 +4,23 @@
 // user makes across any section now lands here automatically via
 // api/profile/save.js; this just reads it back.
 //
-// Auth mirrors api/admin/feedback-dashboard.js: ADMIN_TOKEN as
-// Authorization: Bearer <token> OR ?t=<token>; missing env -> 500, neither
-// credential -> 403. CORS block so the same-origin admin page can read it.
+// Auth: signed-in session + ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS
+// (api/_lib/admin-auth.js) -- same pattern as api/admin/growth.js. Read-only,
+// so analyst access is enough.
 
 import { sql } from '../_lib/db.js'
+import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const expected = process.env.ADMIN_TOKEN
-  if (!expected) {
-    console.error('admin/corrections: ADMIN_TOKEN not configured')
+  if (adminLoginEmailsMissing()) {
+    console.error('admin/corrections: ADMIN_LOGIN_EMAILS not configured')
     return res.status(500).json({ error: 'Server misconfigured' })
   }
-  const auth = req.headers.authorization || ''
-  const headerOk = auth === `Bearer ${expected}`
-  const queryToken = (req.query && typeof req.query.t === 'string') ? req.query.t : ''
-  const queryOk = queryToken !== '' && queryToken === expected.trim()
-  if (!headerOk && !queryOk) return res.status(403).json({ error: 'Forbidden' })
+  if (!(await checkAdminAuth(req, res, { allowAnalyst: true }))) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
 
   const rawLimit = (req.query && typeof req.query.limit === 'string') ? parseInt(req.query.limit, 10) : 200
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 1000) : 200
