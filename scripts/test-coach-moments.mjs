@@ -40,8 +40,10 @@ check(moments.includes("label: 'Yes, I have one', value: 'in_motion'") && moment
 check(/onTap:\s*\(value,\s*ctx\)\s*=>\s*\{\s*if\s*\(value === 'in_motion'\)\s*\{\s*ctx\.markDone\('twoDoors'\);\s*ctx\.addNewOpportunity\(\)\s*\}\s*else if\s*\(value === 'fresh'\)\s*\{\s*ctx\.advance\('twoDoors', 'laneSelect'\)\s*\}\s*return true\s*\}/.test(moments),
   `${MOMENTS}: ptw-arrival's onTap no longer routes to exactly the same two actions the twoDoors screen's own door buttons perform`)
 
-// --- The canonical prompt code ---
-check(codes.includes("'ptw_arrival'"), `${CODES}: PROMPT_CODES is missing 'ptw_arrival'`)
+// --- The canonical prompt code (derived from MOMENT_CATALOG, not listed
+// literally in coach-prompt-codes.js -- check the real exported value) ---
+const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
+check(PROMPT_CODES.includes('ptw_arrival'), `${CODES}: PROMPT_CODES is missing 'ptw_arrival'`)
 
 // --- The old mechanism is fully retired, not just superseded ---
 check(!app.includes('setSeenOrientationRoute') && !app.includes('orientationRouteFiredRef'),

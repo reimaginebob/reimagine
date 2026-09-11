@@ -30,6 +30,27 @@ const codes = fs.readFileSync(CODES, 'utf8')
 for (const code of ['employment_status', 'search_intake', 'opportunity_archive', 'life_events_thin']) {
   check(codes.includes(`'${code}'`), `${CODES}: PROMPT_CODES is missing '${code}'`)
 }
+
+// The allowlist must be DERIVED from MOMENT_CATALOG, not a second
+// hand-maintained list (2026-09-11 fix): #861 added a dozen op-side catalog
+// rows with their own promptCode, and every one of their logPromptEngagement
+// calls 400'd silently because nobody remembered to add the code to this
+// file too -- the endpoint is best-effort by design, so nothing surfaced the
+// gap until someone went looking. Assert the source actually imports the
+// catalog and derives from it, then walk the real catalog and confirm every
+// promptCode it carries is in the real exported PROMPT_CODES -- this is the
+// check that would have caught #861 and blocks the same gap from recurring
+// under a future catalog row.
+check(codes.includes("import { MOMENT_CATALOG } from './coach-moments.js'"),
+  `${CODES}: PROMPT_CODES should import MOMENT_CATALOG and derive catalog codes from it, not hand-list them -- that is what let #861's op-side rows go missing`)
+const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
+const { MOMENT_CATALOG } = await import('../src/coach-moments.js')
+for (const entry of MOMENT_CATALOG) {
+  if (entry.promptCode) {
+    check(PROMPT_CODES.includes(entry.promptCode),
+      `${CODES}: PROMPT_CODES is missing '${entry.promptCode}' from MOMENT_CATALOG entry '${entry.key}' -- every logPromptEngagement call for this row will 400`)
+  }
+}
 for (const trig of ['hub_arrival', 'model_detected', 'topic_close_tap', 'topic_close_language']) {
   check(codes.includes(`'${trig}'`), `${CODES}: TRIGGER_TYPES is missing '${trig}'`)
 }

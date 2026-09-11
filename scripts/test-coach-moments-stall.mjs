@@ -113,8 +113,9 @@ check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,
 check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick])'),
   `${APP}: the evaluator effect's dependency array no longer includes focusVisitCounts and stallIdleReached -- a visit or an idle timeout would not cause it to reconsider`)
 
-// --- Prompt codes ---
-check(codes.includes("'stall',"), `${CODES}: PROMPT_CODES is missing 'stall'`)
+// --- Prompt codes (derived from MOMENT_CATALOG -- check the real exported value) ---
+const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
+check(PROMPT_CODES.includes('stall'), `${CODES}: PROMPT_CODES is missing 'stall'`)
 
 if (failures) {
   console.error(`test-coach-moments-stall: ${failures} check(s) failed`)

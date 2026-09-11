@@ -134,8 +134,9 @@ check(coach.includes('The next section Reimagine builds, in order, is ${nextLabe
   `${COACH}: buildNextMoveReactionText no longer states the deterministic target directly -- the model must not be left to infer or choose it`)
 check(coach.includes('${PLAIN_ENGLISH}'), `${COACH}: buildNextMoveReactionText should reference the shared PLAIN_ENGLISH instruction like every other reaction template`)
 
-// --- Prompt codes ---
-check(codes.includes("'next_move',"), `${CODES}: PROMPT_CODES is missing 'next_move'`)
+// --- Prompt codes (derived from MOMENT_CATALOG -- check the real exported value) ---
+const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
+check(PROMPT_CODES.includes('next_move'), `${CODES}: PROMPT_CODES is missing 'next_move'`)
 
 // --- Docs: Next move is a genuinely new capability (Coach's first ability
 // to trigger an action beyond writing a profile field) -- CLAUDE.md's

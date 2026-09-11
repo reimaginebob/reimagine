@@ -167,9 +167,10 @@ check(coach.includes('as an offer: "If you want, we could add..."') && coach.inc
 check(coach.includes("const isSilentTurn = turnKind && turnKind !== 'user'"), `${COACH}: isSilentTurn no longer generalizes over turnKind -- a new turnKind value would need explicit handling`)
 check(coach.includes("const effort = turnKind === 'user' ? 'medium' : 'low'"), `${COACH}: effort no longer generalizes over turnKind`)
 
-// --- Prompt codes ---
+// --- Prompt codes (derived from MOMENT_CATALOG -- check the real exported value) ---
+const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
 for (const code of ['career_paths_arrival', 'choice_lane', 'choice_role', 'delivery_p5', 'delivery_p6', 'delivery_p9', 'delivery_comp_read', 'delivery_p11', 'delivery_p_res', 'delivery_p8', 'delivery_p7', 'delivery_income']) {
-  check(codes.includes(`'${code}'`), `${CODES}: PROMPT_CODES is missing '${code}'`)
+  check(PROMPT_CODES.includes(code), `${CODES}: PROMPT_CODES is missing '${code}'`)
 }
 
 if (failures) {
