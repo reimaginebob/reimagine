@@ -109,7 +109,7 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // stallTarget appended by batch item 1.1.5; extended by live-side brief
 // PR 2, same day, with the op-side fields; next-move's own fields are
 // still present alongside both, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,pursuitStatusLoaded,hydrationStable}'),
   // done added by Phase 4 §2.3's coach-intro entry (Output/handoff/2026-09-
   // 09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
@@ -117,7 +117,7 @@ check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,
 // a re-pick the instant an in-flight generated moment settles. savedPlaybooks/
 // activePlaybooks/pursuitStatus/connNetwork/connManual/connSearch appended by
 // live-side brief PR 2, same day, for the op-side ctx fields above.
-check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick])'),
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---
