@@ -1395,24 +1395,29 @@ function parseEcosystemCategoriesJSON(raw){
 // returned: every category key present, each with a description/count/
 // examples of the right type. No existing parser in this file enforces a
 // fixed key count (parseGtmJSON etc. fail fast and discard on a missing
-// required key instead), so this backstop is new, not reused.
+// required key instead), so this backstop is new, not reused. Also backstops
+// the top-level "industry" label (2026-09-11 fix: the hub's center node had
+// no industry name at all) -- empty string when the model omitted it or the
+// whole response failed to parse, so the render side can fall back to a
+// generic label rather than showing nothing.
 function backstopEcosystemCategories(obj){
   const src=obj&&typeof obj==='object'?obj:{}
   const okStr=v=>typeof v==='string'&&v.trim().length>0
-  const out={}
+  const industry=okStr(src.industry)?src.industry.trim().slice(0,60):''
+  const byKey={}
   ECOSYSTEM_CATEGORY_KEYS.forEach(k=>{
     const c=src[k]
     if(c&&typeof c==='object'&&okStr(c.description)){
-      out[k]={
+      byKey[k]={
         description:c.description.trim(),
         count:Number.isFinite(c.count)?c.count:(typeof c.count==='string'&&/^\d+$/.test(c.count.trim())?Number(c.count):0),
         examples:Array.isArray(c.examples)?c.examples.filter(e=>typeof e==='string'&&e.trim()).slice(0,3):[],
       }
     }else{
-      out[k]={description:'Not a factor in this industry.',count:0,examples:[]}
+      byKey[k]={description:'Not a factor in this industry.',count:0,examples:[]}
     }
   })
-  return out
+  return {industry,byKey}
 }
 function extractEcosystemCategoryStrings(obj){
   if(!obj||typeof obj!=='object')return ''
@@ -3568,6 +3573,8 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   // exactly (same pc fields, already proven against check-prompt-refs.mjs).
   iiEcosystem:(pr,o3,o3Structured,ecosystemRefine)=>{const _struct=buildSynthesisContext(o3Structured);const _catList=ECOSYSTEM_CATEGORIES.map(c=>`${c.key} (${c.label})`).join('; ');const _catKeys=ECOSYSTEM_CATEGORY_KEYS.map(k=>`"${k}"`).join(', ');return `Map the ecosystem around this person's industry into exactly these seven fixed categories: ${_catList}.
 
+FIRST, name this person's specific industry in a short, common name (2 to 5 words, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate") -- the same industry the seven categories below are built around. This becomes the "industry" field described below.
+
 For EACH of the seven categories, whether or not it turns out to be a real factor in this industry, produce:
 - description: one to two plain sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label). If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
 - count: your best rough estimate of how many organizations exist in this category for this industry, as a plain integer. Use 0 when the category is not a factor.
@@ -3595,9 +3602,9 @@ Read the profile above to identify what industry this person is actually in, the
 
 ${ecosystemRefine?`This person asked the map to focus on: "${ecosystemRefine}". Weight the categories and examples toward that, without inventing a company or an entire category to satisfy it.\n\n`:''}VOICE: plain language, no jargon. Never compare this person to other people ("most people," "many candidates," unnamed groups) anywhere in this output. Refuse "X is not Y, it is Z" cadence and AI-coaching phrases ("worth sitting with," "lean into," "trust the process"). Ground every claim about a category in what is actually true of the industry, not a rhetorical flourish.
 
-Return ONLY a single fenced JSON object, no prose before or after it, with exactly these seven top-level keys: ${_catKeys}. Each value is an object with exactly the keys "description", "count", "examples" (an array of strings, up to 3):
+Return ONLY a single fenced JSON object, no prose before or after it, with exactly these eight top-level keys: "industry" (the short industry name described above, a plain string) and ${_catKeys}. Each category value is an object with exactly the keys "description", "count", "examples" (an array of strings, up to 3):
 \`\`\`json
-{"primary":{"description":"...","count":40,"examples":["Company A","Company B"]}}
+{"industry":"Consumer Packaged Goods (CPG)","primary":{"description":"...","count":40,"examples":["Company A","Company B"]}}
 \`\`\`
 `},
   // Per-category role list (level 2 of the ecosystem view). Output feeds
@@ -5630,12 +5637,15 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
 // same division of labor ReshapeBox and RefineBox already use.
 // Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
 // one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
-// clear both the center hub and each other at the node width below.
+// clear both the center hub and each other at the node width below. Widened
+// 2026-09-11 (Bob's review: cards were too small to show a full description)
+// -- radius 36 / node width 27% keeps the same clearance margin the original
+// 34/25% pairing had.
 const ECOSYSTEM_NODE_POS=[
-  {x:50,y:16},{x:76.6,y:28.8},{x:83.15,y:57.57},{x:64.75,y:80.63},
-  {x:35.25,y:80.63},{x:16.85,y:57.57},{x:23.4,y:28.8},
+  {x:50,y:14},{x:78.16,y:27.56},{x:85.1,y:58.01},{x:65.62,y:82.43},
+  {x:34.38,y:82.43},{x:14.9,y:58.01},{x:21.84,y:27.56},
 ]
-function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
   return <div>
     {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
     {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
@@ -5656,25 +5666,25 @@ function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,busy,err,onGene
         busy={busy}
         onSubmit={onRefine}
       />
-      <div style={{position:'relative',width:'100%',maxWidth:860,aspectRatio:'1/1',margin:'28px auto 0'}}>
+      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'28px auto 0'}}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
           {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
         </svg>
-        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'17%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:8,boxSizing:'border-box'}}>
+        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'19%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:10,boxSizing:'border-box'}}>
           <Compass size={20} color="#FFFFFF"/>
-          <div style={{fontSize:15,color:C.gold,marginTop:4,textAlign:'center',lineHeight:1.2}}>your industry</div>
+          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
         </div>
         {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
           const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
           const isEmpty=!c.count
           const p=ECOSYSTEM_NODE_POS[i]
-          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'25%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
+          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'27%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
-              <div style={{fontSize:16,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
+              <div style={{fontSize:17,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
               {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
             </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.4,marginTop:4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
-            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:6,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
+            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
+            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:8,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
           </button>
         })}
       </div>
@@ -15434,7 +15444,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // the same switchToRole the p4 OPTION click uses. State lives in one
   // object, matching buyerRead's shape; busy/err are separate, matching every
   // other on-demand generation in this file (buyerReadBusy/buyerReadErr).
-  const[ecosystem,setEcosystem]=useState({categories:null,expanded:'',rolesByCategory:{},refineText:''})
+  const[ecosystem,setEcosystem]=useState({categories:null,industry:'',expanded:'',rolesByCategory:{},refineText:''})
   const[ecosystemBusy,setEcosystemBusy]=useState(false)
   const[ecosystemErr,setEcosystemErr]=useState(null)
   const[ecosystemRoleBusy,setEcosystemRoleBusy]=useState('')
@@ -15445,6 +15455,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const ecosystemRoleStoreRef=useRef(null)
   const ecosystemCategoryStore=()=>{if(ecosystemCategoryStoreRef.current===null){try{ecosystemCategoryStoreRef.current=JSON.parse(localStorage.getItem(ECOSYSTEM_CATEGORY_STORAGE_KEY)||'{}')}catch{ecosystemCategoryStoreRef.current={}}}return ecosystemCategoryStoreRef.current}
   const ecosystemRoleStore=()=>{if(ecosystemRoleStoreRef.current===null){try{ecosystemRoleStoreRef.current=JSON.parse(localStorage.getItem(ECOSYSTEM_ROLES_STORAGE_KEY)||'{}')}catch{ecosystemRoleStoreRef.current={}}}return ecosystemRoleStoreRef.current}
+  // normalizeEcosystemCatData (2026-09-11 fix): backstopEcosystemCategories
+  // now returns {industry,byKey} instead of a bare 7-key map, so an entry
+  // already sitting in a returning account's localStorage cache from before
+  // this fix (the old bare-map shape) is read back as industry:'' rather than
+  // crashing on a missing byKey.
+  const normalizeEcosystemCatData=(raw)=>(raw&&typeof raw==='object'&&raw.byKey&&typeof raw.byKey==='object')?{industry:typeof raw.industry==='string'?raw.industry:'',byKey:raw.byKey}:{industry:'',byKey:(raw&&typeof raw==='object')?raw:{}}
   const generateEcosystemCategories=async(refineOverride)=>{
     if(ecosystemBusy)return
     const refineText=refineOverride===undefined?ecosystem.refineText:refineOverride
@@ -15452,16 +15468,16 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const cacheKey=`${sig}|${refineText.toLowerCase().trim()}`
     const store=ecosystemCategoryStore()
     const hit=getEcosystemCategories(store,cacheKey)
-    if(hit){setEcosystem(e=>({...e,categories:hit.categories,refineText,expanded:''}));return}
+    if(hit){const catData=normalizeEcosystemCatData(hit.categories);setEcosystem(e=>({...e,categories:catData.byKey,industry:catData.industry,refineText,expanded:''}));return}
     setEcosystemBusy(true);setEcosystemErr(null)
     try{
       const fn=()=>correctionsBlock(profile.corrections)+P.iiEcosystem(pc,outputs.p3,outputs.p3_structured,refineText)
       const r=await callClaudeWithVoiceGate(fn,{webSearch:true,maxTokens:4000},{step:'ecosystem-categories',onEvent:logVoiceEvent})
-      const categories=backstopEcosystemCategories(parseEcosystemCategoriesJSON(r))
-      const next=putEcosystemCategories(store,cacheKey,categories)
+      const catData=backstopEcosystemCategories(parseEcosystemCategoriesJSON(r))
+      const next=putEcosystemCategories(store,cacheKey,catData)
       ecosystemCategoryStoreRef.current=next
       try{localStorage.setItem(ECOSYSTEM_CATEGORY_STORAGE_KEY,JSON.stringify(next))}catch{}
-      setEcosystem(e=>({...e,categories,refineText,expanded:''}))
+      setEcosystem(e=>({...e,categories:catData.byKey,industry:catData.industry,refineText,expanded:''}))
     }catch(e){setEcosystemErr(e.message||'Generation failed. Try again.')}finally{setEcosystemBusy(false)}
   }
   const generateEcosystemRoles=async(categoryKey)=>{
@@ -16481,6 +16497,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           onBack={()=>nav(hubStep)}
           hubLabel={hubLabel}
           categories={ecosystem.categories}
+          industry={ecosystem.industry}
           busy={ecosystemBusy}
           err={ecosystemErr}
           onGenerate={()=>generateEcosystemCategories()}
