@@ -18,17 +18,18 @@
 // Fix: a new opAutoBuildActive (App.jsx, computed in the Moments evaluator)
 // is true from the moment the auto-build sequence is queued through the
 // moment its last card (The Role) finishes building, and op-playbook-
-// arrival's eligible() now requires it to be false. A message with no
-// built-card offer and no stage-fitting move (arrivalTarget/arrivalPick
-// both null -- true of a fresh record with no stage yet) now also drops the
-// "Remind me later" tap via a new remindLater entry field (App.jsx's
-// fireStaticEntryMessage); Minimize is unaffected.
+// arrival's eligible() now requires it to be false. A remindLater entry
+// field (App.jsx's fireStaticEntryMessage) lets a message with genuinely
+// nothing to act on drop the "Remind me later" tap -- but item 3 (same
+// evening's batch) gives a stage-less record a real question to come back
+// to (where does this stand), so THIS scenario (fresh record, no stage)
+// legitimately keeps Remind me later; the true no-offer-no-move case (a
+// stage already set to one with no move of its own) is covered in
+// test-op-stage-prompt-browser.mjs instead.
 //
 // Test: fresh record, assert no arrival while a build is in progress,
 // assert the arrival names the company and at least one built card and
-// offers one card. Also asserts the no-move case drops Remind me later,
-// which the reported repro's own screenshot shows was still attached to a
-// message with nothing to act on.
+// offers one card.
 import { chromium } from 'playwright'
 import { existsSync } from 'node:fs'
 import { DEV_URL, INPUT, VIEWPORT, dismissCookieBanner } from './browser-tests/page-helpers.mjs'
@@ -103,8 +104,12 @@ async function run() {
     check(!arrivalText.includes('Nothing is built on it yet'), 'the arrival does not carry the stale pre-auto-build copy')
 
     // No stage has been set on this record, so arrivalTarget/arrivalPick are
-    // both null -- nothing to build and nothing to remind about later.
-    check(!(await arrivalMsg.locator('button', { hasText: 'Remind me later' }).count()), 'a message with no offer and no move does not carry a Remind me later tap')
+    // both null -- but item 3 (Cowork's live run, same evening) adds a real
+    // stage question in that case, so there IS something to come back to;
+    // Remind me later legitimately reappears. The genuine no-offer-no-move
+    // case (a stage already set to one with no move of its own) is covered
+    // in test-op-stage-prompt-browser.mjs instead.
+    check(await arrivalMsg.locator('button', { hasText: 'Remind me later' }).isVisible(), 'a message asking where the record stands still offers Remind me later')
     check(await arrivalMsg.locator('button', { hasText: 'Minimize Coach for now' }).isVisible(), 'Minimize Coach for now is still offered regardless')
 
     await context.close()
@@ -116,7 +121,7 @@ async function run() {
     console.error(`test-op-arrival-waits-for-autobuild-browser: ${failures} check(s) failed`)
     process.exit(1)
   } else {
-    console.log('test-op-arrival-waits-for-autobuild-browser: OK (op-playbook-arrival does not fire while the top-down auto-build is still running, fires once it finishes naming the company and what got built, and a message with nothing to build and nothing to remind about drops the Remind me later tap while keeping Minimize)')
+    console.log('test-op-arrival-waits-for-autobuild-browser: OK (op-playbook-arrival does not fire while the top-down auto-build is still running, and fires once it finishes naming the company and what got built, with Remind me later and Minimize both still offered since the arrival now asks where the record stands)')
   }
 }
 

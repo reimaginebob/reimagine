@@ -581,14 +581,16 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded && !ctx.opAutoBuildActive,
     dedupeKey: (ctx) => ctx.opRecord.id,
     message: (ctx) => ctx.opRecord.arrivalCopy,
-    // A message naming no built-card offer and no stage-fitting move (a
-    // brand-new record with nothing yet to act on, or with a stage that has
-    // no move of its own -- researching/phone_screen/closed) has nothing to
-    // be reminded about later; the shared decline pair (App.jsx's
-    // fireStaticEntryMessage) would otherwise attach "Remind me later" to
-    // it regardless. "Minimize Coach for now" still applies unconditionally
-    // -- it is a presence control, not tied to this message having an offer.
-    remindLater: (ctx) => !!(ctx.opRecord.arrivalTarget || ctx.opRecord.arrivalPick),
+    // A message naming no built-card offer, no stage-fitting move, and no
+    // stage question (a stage IS set but has no move of its own --
+    // researching/phone_screen/closed) has nothing to be reminded about
+    // later; the shared decline pair (App.jsx's fireStaticEntryMessage)
+    // would otherwise attach "Remind me later" to it regardless. A
+    // fully unset stage DOES have something to come back to (the stage
+    // question itself, via opStageQuickReplies below), so it keeps the tap.
+    // "Minimize Coach for now" still applies unconditionally -- it is a
+    // presence control, not tied to this message having an offer.
+    remindLater: (ctx) => !!(ctx.opRecord.arrivalTarget || ctx.opRecord.arrivalPick || (ctx.opStageQuickReplies && ctx.opStageQuickReplies.length)),
     // Production fix (Bob's read on Imerys/Lindsey, 2026-09-10): the arrival
     // row's copy already named the one card that fits the stage even when it
     // was a pseudo-key (knownContacts/practice/tradeoff), but the tap below
@@ -602,11 +604,30 @@ export const MOMENT_CATALOG = [
       if (pick === 'knownContacts') return [{ label: 'Open Who You Know Here', value: 'op-arrival-pick:knownContacts' }]
       if (pick === 'practice') return [{ label: 'Practice it', value: 'op-arrival-pick:practice' }]
       if (pick === 'tradeoff') return [{ label: 'Trade-off considerations', value: 'op-arrival-pick:tradeoff' }]
-      return ctx.opRecord.arrivalTarget ? [{ label: `Build ${ctx.opRecord.arrivalTarget.label}`, value: `op-build:${ctx.opRecord.arrivalTarget.key}` }] : []
+      if (ctx.opRecord.arrivalTarget) return [{ label: `Build ${ctx.opRecord.arrivalTarget.label}`, value: `op-build:${ctx.opRecord.arrivalTarget.key}` }]
+      // F1 twenty-minute session, item 3: no stage-fitting move to offer
+      // because there is no stage yet -- opStageQuickReplies (App.jsx,
+      // built from the same one-tap picker My Search's own pursuit-stage
+      // capture uses) is the "where does this stand" question the arrival
+      // copy just asked. Empty for a record that already has a stage.
+      return ctx.opStageQuickReplies || []
     },
     onTap: (value, ctx) => {
       if (value.startsWith('op-build:')) ctx.generateOpSectionFor(value.slice('op-build:'.length))
       else if (value.startsWith('op-arrival-pick:')) ctx.opNextMoveOnTap(value.slice('op-arrival-pick:'.length))
+      else {
+        // Stage picker tap: value is JSON ({stage, targetId}), the exact
+        // shape pursuitStageQuickReplies (App.jsx) already produces for My
+        // Search's own capture -- same write, same ctx.savePursuit, just
+        // reachable from the arrival too now.
+        let payload = null
+        try { payload = JSON.parse(value) } catch { /* not a stage pick */ }
+        if (payload && payload.stage && payload.targetId && ctx.savePursuit) {
+          const patch = { stage: payload.stage }
+          if (payload.stage === 'closed') patch.closed_at = new Date().toISOString()
+          ctx.savePursuit(payload.targetId, patch)
+        }
+      }
       return true
     },
   },
