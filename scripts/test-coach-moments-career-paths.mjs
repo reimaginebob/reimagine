@@ -147,9 +147,9 @@ check(coach.includes('const turnKind = computeTurnKind(rawMessage, { orientation
 // --- The reaction-text builders: one template shared by all 9 Delivery keys ---
 check(/function buildChoiceLaneReactionText\(laneLabel\) \{/.test(coach), `${COACH}: buildChoiceLaneReactionText is missing`)
 check(/function buildChoiceRoleReactionText\(roleTitle, laneLabel\) \{/.test(coach), `${COACH}: buildChoiceRoleReactionText is missing`)
-check(/function buildFocusDeliveryReactionText\(sectionLabel, text\) \{/.test(coach), `${COACH}: buildFocusDeliveryReactionText is missing`)
+check(/function buildFocusDeliveryReactionText\(sectionLabel, text, key\) \{/.test(coach), `${COACH}: buildFocusDeliveryReactionText is missing`)
 check(coach.includes('function buildMomentTurnText(key, ctx) {'), `${COACH}: buildMomentTurnText dispatch is missing`)
-check(coach.includes("if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text)"),
+check(coach.includes("if (key.startsWith('delivery-')) return buildFocusDeliveryReactionText(ctx.sectionLabel, ctx.text, key)"),
   `${COACH}: buildMomentTurnText no longer dispatches every delivery- key through the shared template using the client-supplied sectionLabel -- a per-key NAV_LABELS lookup here would miss the independent track`)
 // Delivery's template follows the Brand richness precedent: a genuine
 // strength, at most one invitation-framed suggestion, positive framing

@@ -46,9 +46,9 @@ const strippers = fs.readFileSync(STRIPPERS, 'utf8')
 
 // 1. Prompt instruction: buildFocusDeliveryReactionText no longer lets the
 // model offer something contingent on a future event.
-const fnIdx = coach.indexOf('function buildFocusDeliveryReactionText(sectionLabel, text) {')
+const fnIdx = coach.indexOf('function buildFocusDeliveryReactionText(sectionLabel, text, key) {')
 check(fnIdx !== -1, `${COACH}: could not find buildFocusDeliveryReactionText`)
-const fnBlock = fnIdx !== -1 ? coach.slice(fnIdx, fnIdx + 1400) : ''
+const fnBlock = fnIdx !== -1 ? coach.slice(fnIdx, fnIdx + 1800) : ''
 check(fnBlock.includes('never something that depends on an event that has not happened yet'),
   `${COACH}: buildFocusDeliveryReactionText no longer forbids offering something contingent on a future event`)
 check(fnBlock.includes('treat that the same as having nothing to add') && fnBlock.includes('If nothing would make it better, say it is good as it is and stop'),
