@@ -1,4 +1,16 @@
+# Force LF on checkout for every text file, regardless of a contributor's
+# local core.autocrlf. Without this, a Windows machine with the common
+# core.autocrlf=true setting checks text files out as CRLF, and any script
+# doing exact-match parsing against source content (a regex ending in \n, a
+# multi-line .includes() literal, markdown.split('\n') compared against
+# literal heading strings, or a fixed-length .slice() offset) silently
+# breaks on that machine while passing everywhere else, Linux CI included --
+# invisible until someone runs the suite on Windows. Listed first so the
+# more specific PDF rule below can override it.
+* text=auto eol=lf
+
 # Treat PDFs as binary so autocrlf does not corrupt them (CR-byte injection
 # was inflating public/reimagine-user-guide.pdf on checkout and stripping CR
-# bytes on commit). Binary = no EOL conversion, no textual diff.
+# bytes on commit). Binary = no EOL conversion, no textual diff. Listed after
+# the general text rule above so this more specific pattern wins.
 *.pdf binary
