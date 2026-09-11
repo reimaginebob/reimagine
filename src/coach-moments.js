@@ -138,6 +138,37 @@ export const MOMENT_CATALOG = [
     message: 'I\'m right up here. Click me anytime and we pick up where we left off.',
     quickReplies: [],
   },
+  // Row C (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+  // §2.3): first self-open, once per account, ever -- Coach explains itself
+  // the first time it opens on its OWN initiative (a significance:'open'
+  // entry firing while the panel was minimized), not when the person opens
+  // it themselves. Same screen:null shape as Row B: no step to belong to,
+  // so the screen-scoped evaluator loop never reaches it. Fired directly by
+  // maybeFireSelfOpenExplanation (App.jsx, called from both fireMoment and
+  // fireStaticEntryMessage right before they set coachPresence to 'open')
+  // -- never through the main loop, so `eligible` here is a formality, not
+  // a live gate. `message` reads ctx.selfOpenReason, a string the caller
+  // interpolates in from the ACTUAL firing entry's own selfOpenReason(ctx)
+  // -- every significance:'open' entry above now carries one. This message
+  // is its own standalone bubble ahead of that entry's real reaction, not a
+  // rewrite of it -- "the real reason" is named in one short phrase, not
+  // the full generated content.
+  {
+    key: 'coach-self-open-explained',
+    family: 'panel',
+    screen: null,
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'coach_self_open_explained',
+    // Never actually evaluated by the main loop (screen:null already rules
+    // that out) -- false here is defensive, not load-bearing.
+    eligible: () => false,
+    // Copy APPROVED (brief §2.3, Row C, verbatim; {the real reason} filled
+    // from ctx.selfOpenReason).
+    message: (ctx) => `I opened because something just happened that's worth talking about: ${ctx.selfOpenReason}. I'll do this when there's something real to say, after you build something, when you pick a role, when an interview is coming up. If you'd rather I hold off for now, tell me "I'm good" and I will.`,
+    quickReplies: [],
+  },
   {
     key: 'ptw-arrival',
     family: 'arrival',
@@ -200,6 +231,7 @@ export const MOMENT_CATALOG = [
     priority: 1,
     promptCode: 'ecosystem_suggest',
     eligible: (ctx) => !!ctx.hasIndustryEcosystemView && !(ctx.outputs && ctx.outputs.p4 && ctx.outputs.p4.insider),
+    selfOpenReason: () => "Career Paths works a little differently here, and I wanted to flag it before you start",
     message: 'One thing before you pick a direction: Industry Insider works differently here. Instead of a straight role list, it opens a map of your industry\'s categories, then the roles inside each one, so you can start broad and narrow in from there.',
     quickReplies: [
       { label: 'Show me the ecosystem view', value: 'ecosystem-open' },
@@ -221,6 +253,7 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.selectedLane,
     dedupeKey: (ctx) => ctx.selectedLane,
     momentContext: (ctx) => ({ lane: ctx.selectedLane, laneLabel: ctx.laneLabelFor(ctx.selectedLane) }),
+    selfOpenReason: (ctx) => `you picked ${ctx.laneLabelFor(ctx.selectedLane)}, and I have some thoughts`,
   },
   {
     key: 'choice-role',
@@ -234,6 +267,7 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && !!ctx.selectedLane,
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     momentContext: (ctx) => ({ roleTitle: ctx.chosen, laneLabel: ctx.laneLabelFor(ctx.selectedLane) }),
+    selfOpenReason: (ctx) => `you picked ${ctx.chosen}, and I have a read on it`,
   },
   {
     key: 'delivery-p5',
@@ -248,6 +282,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p5,
     momentContext: (ctx) => ({ section: 'p5', sectionLabel: ctx.focusLabelFor('p5', ctx.isIndependent), text: ctx.outputs.p5 }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p5', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p6',
@@ -269,6 +304,7 @@ export const MOMENT_CATALOG = [
     // reload (re-firing every session for affected accounts).
     dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6),
     momentContext: (ctx) => ({ section: 'p6', sectionLabel: ctx.focusLabelFor('p6', ctx.isIndependent), text: ctx.bridgeStoryToProse(ctx.outputs.p6) }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p6', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p9',
@@ -283,6 +319,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p9,
     momentContext: (ctx) => ({ section: 'p9', sectionLabel: ctx.focusLabelFor('p9', ctx.isIndependent), text: ctx.outputs.p9 }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p9', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-salaryRead',
@@ -301,6 +338,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.salaryRead,
     momentContext: (ctx) => ({ section: 'salaryRead', sectionLabel: ctx.focusLabelFor('salaryRead', ctx.isIndependent), text: ctx.outputs.salaryRead }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('salaryRead', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p11',
@@ -315,6 +353,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p11,
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.focusLabelFor('p11', ctx.isIndependent), text: ctx.outputs.p11 }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p11', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p_res',
@@ -329,6 +368,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p_res,
     momentContext: (ctx) => ({ section: 'p_res', sectionLabel: ctx.focusLabelFor('p_res', ctx.isIndependent), text: ctx.outputs.p_res }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p_res', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p8',
@@ -343,6 +383,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p8,
     momentContext: (ctx) => ({ section: 'p8', sectionLabel: ctx.focusLabelFor('p8', ctx.isIndependent), text: ctx.outputs.p8 }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p8', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-p7',
@@ -357,6 +398,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.p7,
     momentContext: (ctx) => ({ section: 'p7', sectionLabel: ctx.focusLabelFor('p7', ctx.isIndependent), text: ctx.outputs.p7 }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p7', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'delivery-income',
@@ -371,6 +413,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
     dedupeValue: (ctx) => ctx.outputs.income,
     momentContext: (ctx) => ({ section: 'income', sectionLabel: ctx.focusLabelFor('income', ctx.isIndependent), text: ctx.outputs.income }),
+    selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('income', ctx.isIndependent)}, and I have a read on it`,
   },
   {
     key: 'next-move',
@@ -547,6 +590,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('companyRead'),
     momentContext: (ctx) => ({ section: 'companyRead', sectionLabel: ctx.opRecord.cardLabel('companyRead'), text: ctx.opRecord.cardText('companyRead') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('companyRead')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-salaryRead',
@@ -561,6 +605,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('salaryRead'),
     momentContext: (ctx) => ({ section: 'salaryRead', sectionLabel: ctx.opRecord.cardLabel('salaryRead'), text: ctx.opRecord.cardText('salaryRead') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('salaryRead')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-p5',
@@ -575,6 +620,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p5'),
     momentContext: (ctx) => ({ section: 'p5', sectionLabel: ctx.opRecord.cardLabel('p5'), text: ctx.opRecord.cardText('p5') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p5')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-p_res',
@@ -589,6 +635,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p_res'),
     momentContext: (ctx) => ({ section: 'p_res', sectionLabel: ctx.opRecord.cardLabel('p_res'), text: ctx.opRecord.cardText('p_res') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p_res')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-p_cover',
@@ -603,6 +650,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p_cover'),
     momentContext: (ctx) => ({ section: 'p_cover', sectionLabel: ctx.opRecord.cardLabel('p_cover'), text: ctx.opRecord.cardText('p_cover') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p_cover')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-p11',
@@ -617,6 +665,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('p11'),
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.opRecord.cardText('p11') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p11')}, and I have a read on it`,
   },
   {
     key: 'delivery-op-offerNegotiation',
@@ -631,6 +680,7 @@ export const MOMENT_CATALOG = [
     dedupeKey: (ctx) => ctx.opRecord.id,
     dedupeValue: (ctx) => ctx.opRecord.cardText('offerNegotiation'),
     momentContext: (ctx) => ({ section: 'offerNegotiation', sectionLabel: ctx.opRecord.cardLabel('offerNegotiation'), text: ctx.opRecord.cardText('offerNegotiation') }),
+    selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('offerNegotiation')}, and I have a read on it`,
   },
   {
     key: 'op-next-move',
@@ -671,6 +721,7 @@ export const MOMENT_CATALOG = [
     // interview later in the same pipeline record is worth its own check.
     dedupeValue: (ctx) => ctx.opInterviewCloseTarget.dateIso,
     message: (ctx) => ctx.opInterviewCloseTarget.copy,
+    selfOpenReason: () => "an interview is coming up",
     quickReplies: (ctx) => [{ label: ctx.opInterviewCloseTarget.tapLabel, value: `op-interview-close:${ctx.opInterviewCloseTarget.recordId}` }],
     onTap: (value, ctx) => {
       if (value.startsWith('op-interview-close:')) ctx.opInterviewCloseOnTap(value.slice('op-interview-close:'.length))

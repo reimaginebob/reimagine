@@ -98,6 +98,22 @@ async function run() {
     check(await page.locator(INPUT).isVisible(), 'Panel reopened (composer visible again) once Delivery on the newly-built section fired')
     check(!(await page.locator(OPEN_PILL).isVisible().catch(() => false)), 'Header pill is gone -- the panel is genuinely open, not still minimized')
 
+    // --- Row C (Phase 4 §2.3): this exact sequence -- a significant entry
+    // reopening a minimized panel -- is precisely what "first self-open"
+    // means. Coach's own explanation should land as its own bubble ahead of
+    // delivery-p9's real reply, naming Industry Background (p9's label) by
+    // way of its selfOpenReason. ---
+    const selfOpenText = "I opened because something just happened that's worth talking about: you finished Industry Background, and I have a read on it."
+    await page.locator(`text=${selfOpenText}`).first().waitFor({ state: 'attached', timeout: 5000 })
+    check(true, 'Row C: the self-open explanation fired, naming Industry Background as the real reason')
+    const chatHistory = await page.evaluate(() => localStorage.getItem('reimagine_chat_history'))
+    const selfOpenIdx = chatHistory.indexOf('coach-self-open-explained')
+    const deliveryIdx = chatHistory.indexOf('DELIVERY_P9_REPLY')
+    check(selfOpenIdx !== -1 && deliveryIdx !== -1 && selfOpenIdx < deliveryIdx,
+      'Row C: the explanation lands BEFORE delivery-p9\'s own reply, not after or interleaved wrong')
+    const selfOpenOccurrences = (chatHistory.match(/coach-self-open-explained/g) || []).length
+    check(selfOpenOccurrences === 1, `Row C: fires exactly once, not once per significant entry (found ${selfOpenOccurrences})`)
+
     await context.close()
   } finally {
     await browser.close()
@@ -107,7 +123,7 @@ async function run() {
     console.error(`test-coach-moments-minimize-significant: ${failures} check(s) failed`)
     process.exit(1)
   } else {
-    console.log('test-coach-moments-minimize-significant: OK (minimizing the panel does not block the Moments evaluator -- Delivery still fires on a section built while minimized, and reopens the panel since it is a significant moment)')
+    console.log('test-coach-moments-minimize-significant: OK (minimizing the panel does not block the Moments evaluator -- Delivery still fires on a section built while minimized, reopens the panel since it is a significant moment, and Phase 4 §2.3 Row C\'s self-open explanation lands once, ahead of the real reply, naming the actual section)')
   }
 }
 

@@ -9297,6 +9297,11 @@ export default function PivotEngine(){
   // with the generated branch, before calling this; a lifecycle caller
   // uses fireStaticEntry below instead, which writes dedupe first.
   const fireStaticEntryMessage=(entry,ctx)=>{
+    // Row C (Phase 4 §2.3): if this is a genuine self-open (significant,
+    // panel currently minimized), Coach's own explanation lands as its own
+    // bubble BEFORE this entry's real message -- called first, so its
+    // setChatMessages queues ahead of this function's own.
+    if(entry.significance==='open')maybeFireSelfOpenExplanation(entry,ctx)
     // message/quickReplies may be a plain value or a function of ctx
     // (Stall, batch item 1.1.5: its copy names the actual next section).
     const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message
@@ -9363,6 +9368,36 @@ export default function PivotEngine(){
     prevCoachOpenForMinimizeRef.current=coachOpen
     if(was===true&&coachOpen===false)fireCoachMinimizeIntroOnce()
   },[coachOpen])
+  // Row C (Phase 4 §2.3): "I opened because..." fires once, ever, the first
+  // time a significance:'open' entry actually opens the EMBEDDED panel from
+  // minimized -- not when the person opens it themselves. Scoped to the
+  // embedded surface only: the floating bubble already force-opens on
+  // EVERY moment via pbCheckinOpenReq (the evaluator, below), significant
+  // or not, so there is no comparable "opened because something
+  // SIGNIFICANT happened" transition to explain there -- every open on
+  // that surface already has an obvious, person-visible cause (their own
+  // last message, or literally anything Coach just said). Called from both
+  // fireMoment and fireStaticEntryMessage, right before they set
+  // coachPresence to 'open'; reads the CURRENT coachPresence (this
+  // render's own closure, unchanged until the caller's own
+  // setCoachPresence('open') runs after this returns) to tell a genuine
+  // self-open from an already-open panel.
+  const maybeFireSelfOpenExplanation=(entry,ctx)=>{
+    if(coachPresence!=='minimized')return
+    if(!entry.selfOpenReason)return
+    const explainEntry=MOMENT_CATALOG.find(e=>e.key==='coach-self-open-explained')
+    if(!explainEntry)return
+    const subKey='_'
+    const dedupeValue='fired'
+    if(momentFiredRef.current.has(`${explainEntry.key}:${subKey}`))return
+    const stored=coachMoments[explainEntry.key]&&coachMoments[explainEntry.key][subKey]
+    if(stored&&stored.value===dedupeValue)return
+    momentFiredRef.current.add(`${explainEntry.key}:${subKey}`)
+    setCoachMoments(m=>({...m,[explainEntry.key]:{...m[explainEntry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
+    const reason=entry.selfOpenReason(ctx)
+    const content=typeof explainEntry.message==='function'?explainEntry.message({...ctx,selfOpenReason:reason}):explainEntry.message
+    setChatMessages(m=>[...m,{role:'assistant',content,checkinKey:`moment:${explainEntry.key}`,quickReplies:[]}])
+  }
   // Arriving at the dedicated My Coach step counts as opening the coach, so the
   // floating panel that remounts on the way back out is already open rather
   // than collapsed -- otherwise someone who reached My Coach straight from the
@@ -9748,6 +9783,10 @@ export default function PivotEngine(){
           // header minimize does, on whichever surface is showing). Every
           // live-side brief PR 2 op- entry uses this same shared pair too.
           const quickReplies=entry.dismissible?[...offerTap,...action,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:[...offerTap,...action]
+          // Row C (Phase 4 §2.3): same self-open explanation as the static
+          // branch (fireStaticEntryMessage), called first so it lands ahead
+          // of this entry's own reply.
+          if(entry.significance==='open')maybeFireSelfOpenExplanation(entry,ctx)
           setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
           if(entry.significance==='open')setCoachPresence('open')
         }
