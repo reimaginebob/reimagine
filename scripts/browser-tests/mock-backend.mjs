@@ -17,7 +17,19 @@ export async function mockBackend(page, { step = 'focus', flagged = false, coach
 
   // Catch-all first (lowest precedence): anything not explicitly mocked
   // below gets a harmless empty 200 rather than a real network attempt.
-  await page.route('**/api/**', route => route.fulfill(json({})))
+  // Scoped to actual fetch/XHR calls (resourceType), not the URL pattern
+  // alone: src/App.jsx imports a shared constant from ../api/_lib/ (a
+  // legitimate cross-directory module import, Vite serves it as a 'script'
+  // request), and that path also matches **/api/**. Fulfilling it with {}
+  // as JSON broke the whole module graph (Vite's module-script MIME check
+  // rejects it), which meant every test in this suite hung waiting for the
+  // rail to ever render. Only intercept the resource types a real backend
+  // call actually uses.
+  await page.route('**/api/**', route => {
+    const type = route.request().resourceType()
+    if (type !== 'fetch' && type !== 'xhr') return route.fallback()
+    return route.fulfill(json({}))
+  })
 
   await page.route('**/api/me', route => route.fulfill(json(buildMeResponse({ flagged, employmentStatus, onboardingConcierge, nextStep }))))
   await page.route('**/api/profile/load', route => route.fulfill(json(buildProfileLoadResponse({ step, coachMoments, savedPlaybooksOverride, chosenOverride }))))
