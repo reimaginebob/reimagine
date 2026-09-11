@@ -119,6 +119,17 @@ check(evalBlock.includes("setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key]
   `${APP}: firing a moment does not record it in coachMoments under its sub-key -- it would fire again on the next render`)
 check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMoment(entry,ctx)'),
   `${APP}: a generated entry does not dispatch through fireMoment`)
+// Phase 4 §2.3 (Rows B/C) extracted the static branch's own message-firing
+// logic into a standalone fireStaticEntryMessage function (near
+// beginCoachRestore) so panel-lifecycle entries -- which never go through
+// this screen-scoped evaluator loop at all -- can share it. The evaluator's
+// static branch itself now just calls it; the checks below moved from
+// evalBlock to fireStaticEntryMessage's own definition.
+const staticFireIdx = app.indexOf('const fireStaticEntryMessage=(entry,ctx)=>{')
+check(staticFireIdx !== -1, `${APP}: fireStaticEntryMessage is missing`)
+const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 2000) : ''
+check(evalBlock.includes('fireStaticEntryMessage(entry,ctx)'),
+  `${APP}: the evaluator's static branch no longer calls fireStaticEntryMessage`)
 // Taps decided (batch item 1.1.1, 2026-09-10): the old two dismissal taps
 // (session/screen quiet) are replaced by one decline (Remind me later) and
 // one presence control (Minimize Coach for now) -- superseding the
@@ -130,18 +141,18 @@ check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMome
 // interpolated copy (My Pipeline arrival's nearest-opportunity name, e.g.).
 // No op-specific override of the tap pair itself; every op- entry uses the
 // same shared Remind me later / Minimize Coach for now default.
-check(evalBlock.includes("const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message"),
-  `${APP}: the static branch no longer resolves entry.message as either a plain value or a function of ctx`)
-check(evalBlock.includes("const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies"),
-  `${APP}: the static branch no longer resolves entry.quickReplies as either a plain value or a function of ctx`)
-check(evalBlock.includes("entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies"),
+check(staticFireBlock.includes("const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message"),
+  `${APP}: fireStaticEntryMessage no longer resolves entry.message as either a plain value or a function of ctx`)
+check(staticFireBlock.includes("const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies"),
+  `${APP}: fireStaticEntryMessage no longer resolves entry.quickReplies as either a plain value or a function of ctx`)
+check(staticFireBlock.includes("entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies"),
   `${APP}: a dismissible static entry's message does not append the Remind me later / Minimize Coach for now taps`)
-check(evalBlock.includes('checkinKey:`moment:${entry.key}`'),
+check(staticFireBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)
-check(evalBlock.includes("if(entry.significance==='open')setCoachPresence('open')"),
+check(staticFireBlock.includes("if(entry.significance==='open')setCoachPresence('open')"),
   `${APP}: a significant static entry does not open the panel from minimized (Phase 1b's coachPresence)`)
-check(evalBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')"),
-  `${APP}: the evaluator does not log a 'shown' engagement event when a static moment fires, unlike every other one-shot arrival prompt`)
+check(staticFireBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')"),
+  `${APP}: fireStaticEntryMessage does not log a 'shown' engagement event when a static moment fires, unlike every other one-shot arrival prompt`)
 
 // --- fireMoment (Phase 2b): the model-generated-reaction sibling of
 // fireOrientationCheck, same POST-and-push shape. ---

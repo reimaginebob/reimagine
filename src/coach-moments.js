@@ -106,6 +106,38 @@ export const MOMENT_CATALOG = [
       return true
     },
   },
+  // Row B (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+  // §2.3): first minimize, once per account, ever. Unlike every entry
+  // above, this doesn't fire through the screen-scoped evaluator loop
+  // (App.jsx) -- `screen: null` never matches a real step, so the loop's
+  // own screen guard always skips it. Instead two small, independent
+  // effects (App.jsx, next to beginCoachMinimize/beginCoachRestore) watch
+  // the embedded panel's coachPresence and the floating bubble's coachOpen
+  // for the open->closed transition and fire this entry directly via the
+  // same fireStaticEntry helper the main loop's static branch now also
+  // calls -- there is no "screen" for a panel-lifecycle event to belong to.
+  {
+    key: 'coach-minimize-intro',
+    family: 'panel',
+    screen: null,
+    // Ordinary: minimizing already means the person just put Coach away --
+    // firing something that reopens the panel would contradict the action
+    // they just took.
+    significance: 'ordinary',
+    // No "Remind me later"/"Minimize Coach for now" -- a decline option on
+    // a message that explains where Coach went makes no sense here.
+    dismissible: false,
+    priority: 1,
+    promptCode: 'coach_minimize_intro',
+    // No banner: this message's only job is to land in chatMessages so the
+    // header pill's own preview line (coachHeaderPreview, App.jsx) picks it
+    // up as it lands, exactly as the brief specifies -- nothing else reads
+    // .banner while minimized.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge,
+    // Copy APPROVED (brief §2.3, Row B, verbatim).
+    message: 'I\'m right up here. Click me anytime and we pick up where we left off.',
+    quickReplies: [],
+  },
   {
     key: 'ptw-arrival',
     family: 'arrival',
