@@ -116,6 +116,32 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     note: 'Logic-flip cadence in comma form: state the positive claim on its own.',
   },
+  // Logic-flip cadence, CONTRACTED-SUBJECT PARALLEL-GERUND form: "that's not
+  // X-ing, it's Y-ing". F1 twenty-minute session (2026-09-11), a Compensation
+  // Read Delivery reply: "that's not just averaging four numbers together,
+  // it's judging which ones" reached a live reply uncaught.
+  //
+  // logic-flip-is-not-comma above requires the literal word "is"/"are"/
+  // "was"/"were" before "not" -- "that's" is the contraction "that is", not
+  // a standalone "is" token, so the apostrophe form walks straight through
+  // every existing pattern in this family (verified: none of is-not,
+  // is-not-comma, do-not-just, or not-but match the sentence above).
+  //
+  // Anchored on parallel gerunds either side of the comma rather than on the
+  // contracted subject, so it also catches the subject-dropped form ("Not
+  // just averaging four numbers, it's judging which ones") and doesn't need
+  // a separate branch per contraction spelling. This is narrower than a bare
+  // "not X, it's Y" rule -- an ordinary conditional's second clause is rarely
+  // itself a matching -ing form ("if it's not raining, it's worth asking" has
+  // an adjective, not a gerund, after "it's") -- so it should not fire on
+  // ordinary conditionals the way a laxer rule would.
+  {
+    name: 'logic-flip-contraction-parallel-gerund',
+    re: /\bnot\s+(?:just\s+|only\s+|merely\s+|simply\s+)?[a-z]+ing\b[^,;.!?\n]{0,60},['"’”)\]]*\s*(?:it|that|this|there)['’]s\s+[a-z]+ing\b/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    note: 'Logic-flip cadence, contracted-subject parallel-gerund form: state the positive claim on its own.',
+  },
   // Logic-flip cadence: "not X, but Y" inside a sentence
   {
     name: 'logic-flip-not-but',
@@ -980,6 +1006,24 @@ export const HARD_PATTERNS = [
     appliesTo: ['runtime'],
     surface: 'The honest [read/answer/truth/...]',
     note: 'Noun-phrase sincerity qualifier ("the honest read/answer/truth") that sets up a hierarchy where the default is not honest. State the claim directly.',
+  },
+
+  // Truth-announcement, COLON-LABEL form: "Straight answer: ...", "Short
+  // answer: ...", "Bottom line: ...". F1 twenty-minute session (2026-09-11):
+  // Coach opened a typed reply with "Straight answer:" -- the same
+  // sincerity-qualifier move as "the honest answer" (truth-the-honest-noun
+  // above), but as a sentence-initial label rather than a noun phrase inside
+  // a sentence, so neither existing truth-* pattern's shape matches it.
+  // Same reasoning as truth-the-honest-noun: covers the sibling labels in
+  // this exact shape (short/quick/honest answer, bottom line) rather than
+  // just the one reported word, since they are the same discourse move.
+  {
+    name: 'truth-label-opener',
+    re: /\b(?:(?:straight|short|quick|honest)\s+answer|bottom\s+line)\s*:/i,
+    severity: 'hard',
+    appliesTo: ['runtime'],
+    surface: 'Straight answer:/Short answer:/Bottom line:',
+    note: 'Truth-announcement colon-label opener. State the answer directly, with no label in front of it.',
   },
 
   // Insight flagging (flag-*). Announcing that a point deserves attention
