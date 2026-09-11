@@ -162,6 +162,32 @@ export default function AdminDashboard() {
     } catch { setTrackMsg("Network error. Try again.") }
     finally { setTrackBusy(false) }
   }
+  // F1 twenty-minute session, item 3: reset one internal account's My Coach
+  // moment dedupe state so a tester can replay arrivals, Deliveries, and
+  // Row A/B/C on demand instead of a moment's fire history staying
+  // permanently consumed by an earlier verification pass. Server-side
+  // restricted to an @career.club account -- this wipes every moment's
+  // history at once, not something meant to point at a real user.
+  const [resetMomentsEmail, setResetMomentsEmail] = useState("")
+  const [resetMomentsBusy, setResetMomentsBusy] = useState(false)
+  const [resetMomentsMsg, setResetMomentsMsg] = useState("")
+  const doResetMoments = async () => {
+    const email = resetMomentsEmail.trim()
+    if (!email) { setResetMomentsMsg("Enter an email address first."); return }
+    setResetMomentsBusy(true); setResetMomentsMsg("")
+    try {
+      const res = await fetch("/api/admin/reset-moments", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setResetMomentsMsg(data.error || `Failed (HTTP ${res.status})`); return }
+      setResetMomentsMsg(`Cleared moment state for ${data.email}. They'll see arrivals/Deliveries/Row A-C fire again on their next reload.`)
+    } catch { setResetMomentsMsg("Network error. Try again.") }
+    finally { setResetMomentsBusy(false) }
+  }
   const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "growth" | "economics"
   // Bumped by the header Refresh button so child tabs that own their own fetch
   // can react to it.
@@ -400,6 +426,20 @@ export default function AdminDashboard() {
               <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>On Go Independent</div>
               {trackMembers.map((m) => <div key={m.email} style={{ padding: "2px 0" }}>{m.email}</div>)}
             </div>}
+          </Panel>
+
+          {/* Reset My Coach moment state: internal-account-only replay tool */}
+          <Panel title="Reset My Coach moments (internal accounts only)">
+            <div style={{ fontSize: 15, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+              Clears an account's arrival/Delivery/Row A-C fire history so they can be replayed on demand while testing
+              Coach-as-Concierge. Restricted to an @career.club account server-side — this is a developer tool, not
+              something to point at a real user's account.
+            </div>
+            <input value={resetMomentsEmail} onChange={(e) => setResetMomentsEmail(e.target.value)} placeholder="teammate@career.club"
+              style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 15, border: "1px solid #E2E5EA", borderRadius: 8, marginBottom: 10, fontFamily: "inherit" }} />
+            <button onClick={doResetMoments} disabled={resetMomentsBusy}
+              style={{ background: "#C8924A", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 15, fontWeight: 600, cursor: resetMomentsBusy ? "default" : "pointer", opacity: resetMomentsBusy ? 0.6 : 1, fontFamily: "inherit" }}>Reset moments</button>
+            {resetMomentsMsg && <div style={{ fontSize: 15, color: "#1A2540", marginTop: 10 }}>{resetMomentsMsg}</div>}
           </Panel>
 
           {/* Account holds: the current hold list plus every account that has been
