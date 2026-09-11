@@ -395,7 +395,14 @@ export function computeSessionDelta(state, pursuitRows, activityFacts, priorSess
     otherMovement.length || addedDirections.length || newActivity.length
   )
 
-  return { addedOpportunities, interviewsHappened, otherMovement, addedDirections, newActivity, hasMaterialChange }
+  // F1 twenty-minute session, item 2: the currently-open opportunities'
+  // titles, regardless of whether anything changed. Without this, a session
+  // with nothing new had nothing left to name -- the recap fell back to a
+  // totally stateless greeting ("how are you doing today?") that named none
+  // of the person's own pipeline, on an account with real records in it.
+  const openTitles = open.map(o => o.rec.title || 'an opportunity')
+
+  return { addedOpportunities, interviewsHappened, otherMovement, addedDirections, newActivity, hasMaterialChange, openTitles }
 }
 
 // Back-compat for callers that want the single leading move. The doors are the
