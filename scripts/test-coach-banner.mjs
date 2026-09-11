@@ -15,20 +15,32 @@ const app = fs.readFileSync(APP, 'utf8')
 
 // Both narration-only messages carry banner:true. Losing either regresses
 // straight back to "Coach sits on top of the field it just told the person
-// to use."
-check(app.includes("{role:'assistant',banner:true,content:`Welcome — I'm glad you're here."),
-  `${APP}: the first-arrival framing message lost its banner:true flag`)
+// to use." The first-arrival framing message moved into MOMENT_CATALOG as
+// 'coach-intro' by Phase 4 §2.3 (Output/handoff/2026-09-09_concierge-
+// batch-and-phase4-brief.md) -- its banner:true now lives on the catalog
+// entry (src/coach-moments.js), read generically by the evaluator
+// (App.jsx) rather than hardcoded on a standalone framingMsg literal.
+const MOMENTS = 'src/coach-moments.js'
+const moments = fs.readFileSync(MOMENTS, 'utf8')
+const introIdx = moments.indexOf("key: 'coach-intro'")
+check(introIdx !== -1, `${MOMENTS}: the 'coach-intro' catalog entry is missing`)
+const introBlock = introIdx !== -1 ? moments.slice(introIdx, introIdx + 2000) : ''
+check(introBlock.includes('banner: true'),
+  `${MOMENTS}: coach-intro lost its banner:true flag`)
+check(app.includes('...(entry.banner?{banner:true}:{})'),
+  `${APP}: the evaluator no longer reads a catalog entry's banner flag generically`)
 check(app.includes("{role:'assistant',banner:true,content:line}"),
   `${APP}: the per-step narration message lost its banner:true flag`)
 
-// Neither effect force-opens the full panel any more -- banner:true alone
-// does nothing if a setPbCheckinOpenReq bump is still sitting right next to
-// where the message gets pushed.
-const framingIdx = app.indexOf('onboardingFramingFiredRef.current=true')
-check(framingIdx !== -1, `${APP}: could not find the framing effect's fire marker`)
-const framingBlock = app.slice(framingIdx, framingIdx + 700)
-check(!framingBlock.includes('setPbCheckinOpenReq'),
-  `${APP}: the framing effect still force-opens the full panel`)
+// coach-intro does not force-open the full panel: it is significance
+// 'ordinary' (Coach's own initiative, not a reaction), and the evaluator
+// only ever calls setCoachPresence('open') for significance 'open' --
+// checked generically here rather than pinning an isolated effect's own
+// fire marker, since coach-intro no longer has one of its own.
+check(introBlock.includes("significance: 'ordinary'"),
+  `${MOMENTS}: coach-intro is not 'ordinary' significance -- it would force the full panel open on a screen it is meant to sit beside, not cover`)
+check(app.includes("if(entry.significance==='open')setCoachPresence('open')"),
+  `${APP}: the evaluator no longer gates setCoachPresence('open') on significance -- an 'ordinary' entry like coach-intro could now force the panel open`)
 
 const narrationIdx = app.indexOf('narratedOrientationStepsFiredRef.current.add(step)')
 check(narrationIdx !== -1, `${APP}: could not find the per-step narration effect's fire marker`)
@@ -93,8 +105,10 @@ check(app.includes('import Chat, { INTRO_MSG } from "./components/Chat"'),
   `${APP}: App.jsx no longer imports INTRO_MSG from Chat.jsx -- it may have reverted to a second hardcoded copy of the intro text, which is exactly the drift that caused the double-stack`)
 check(app.includes('return[INTRO_MSG]'),
   `${APP}: chatMessages no longer seeds from the shared INTRO_MSG constant`)
-check(app.includes("setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[framingMsg]:[...m,framingMsg])"),
-  `${APP}: the framing effect no longer replaces an untouched intro-only chat with the framing message -- it would append after INTRO_MSG again, stacking two "hello" bubbles on arrival`)
+check(introBlock.includes('replaceIfOnlySeed: true'),
+  `${MOMENTS}: coach-intro lost replaceIfOnlySeed -- it would stack under the untouched "Hi, I'm your coach" seed instead of replacing it`)
+check(app.includes("m[0].content===INTRO_MSG.content)?[newEntryMsg]:[...m,newEntryMsg]"),
+  `${APP}: the evaluator's generic replaceIfOnlySeed support no longer replaces an untouched intro-only chat -- it would append after INTRO_MSG again, stacking two "hello" bubbles on arrival`)
 
 // "See how this works" (2026-09-07): gated on hasOnboardingConcierge, not
 // removed outright. Coach's framing message says the same thing out loud

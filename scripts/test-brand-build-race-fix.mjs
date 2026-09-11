@@ -34,13 +34,22 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-// Fix 1: the framing message.
-check(!app.includes("Let's start with your resume."),
-  `${APP}: the old, wrong "let's start with your resume" line is still present -- the real first step is Your Current Situation, not Resume`)
-check(app.includes("Let's start with where you are right now."),
-  `${APP}: the framing message's closing line was not corrected to match the real first step`)
-check(app.includes('where things stand for you right now, your resume, your LinkedIn, an assessment if you have one'),
-  `${APP}: the framing message's field list still omits Your Current Situation and LinkedIn`)
+// Fix 1: the framing message. Moved into MOMENT_CATALOG as 'coach-intro' by
+// Phase 4 §2.3 (Output/handoff/2026-09-09_concierge-batch-and-phase4-
+// brief.md) -- new Bob-approved copy (2026-09-10, fifth pass), a shorter
+// relational introduction rather than an itemized field list, so the old
+// field-list-completeness half of this fix no longer applies to what ships
+// (that check is retired below, not silently dropped -- the copy's SHAPE
+// changed by an approved product decision, not by accident). What still
+// must hold: the corrected closing line -- pointing at the real first step,
+// Your Current Situation, not Resume -- survived the rewrite, and the
+// original wrong line never reappears anywhere the message could live.
+const MOMENTS = 'src/coach-moments.js'
+const moments = fs.readFileSync(MOMENTS, 'utf8')
+check(!app.includes("Let's start with your resume.") && !moments.includes("Let's start with your resume."),
+  `${APP}/${MOMENTS}: the old, wrong "let's start with your resume" line is present -- the real first step is Your Current Situation, not Resume`)
+check(moments.includes("Let\\'s start with where you are right now."),
+  `${MOMENTS}: coach-intro's closing line was not corrected to match the real first step`)
 
 // Fix 2: pendingBrandGenerate state, decoupled from the click.
 check(app.includes('const[pendingBrandGenerate,setPendingBrandGenerate]=useState(false)'),
@@ -72,5 +81,5 @@ if (failures) {
   console.error(`test-brand-build-race-fix: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-brand-build-race-fix: OK (framing message names the real first step and lists every orientation field, Build buttons no longer race advance()\'s deferral -- generation now starts only once step has actually become p3)')
+  console.log('test-brand-build-race-fix: OK (coach-intro\'s closing line still names the real first step and the old wrong line never reappears, Build buttons no longer race advance()\'s deferral -- generation now starts only once step has actually become p3)')
 }
