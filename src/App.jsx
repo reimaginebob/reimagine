@@ -9288,6 +9288,81 @@ export default function PivotEngine(){
       setTimeout(()=>{setCoachDock(null);setCoachDockArmed(false)},320)
     })
   }
+  // Fires a static MOMENT_CATALOG entry's message -- shared between the
+  // screen-scoped evaluator's own static branch (below) and the
+  // panel-lifecycle entries (Phase 4 §2.3 Rows B/C) that never go through
+  // that evaluator's screen-matched loop at all, since a panel-lifecycle
+  // event has no "screen" to belong to. Does NOT write the coachMoments
+  // dedupe record itself -- the evaluator already does that once, shared
+  // with the generated branch, before calling this; a lifecycle caller
+  // uses fireStaticEntry below instead, which writes dedupe first.
+  const fireStaticEntryMessage=(entry,ctx)=>{
+    // message/quickReplies may be a plain value or a function of ctx
+    // (Stall, batch item 1.1.5: its copy names the actual next section).
+    const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message
+    const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies
+    // An entry's own quickReplies (its offer) keep their own labels, plus
+    // one Remind me later and one Minimize Coach for now, unless the entry
+    // opts out (batch item 1.1.1; Phase 4 §2.3 Row A/B opt out via
+    // dismissible:false -- neither a first-time introduction nor "where
+    // Coach went" message is something that makes sense to decline).
+    const quickReplies=entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
+    // banner/replaceIfOnlySeed (Phase 4 §2.3, 'coach-intro'): a small
+    // dismissing card next to the closed bubble rather than the full
+    // panel, and -- when the chat is still exactly the untouched
+    // "Hi, I'm your coach" seed -- REPLACING it instead of appending, so
+    // Coach's own first two things to say never stack as two "hello"
+    // bubbles. Both default off; most entries get the exact append-only
+    // behavior every static entry before Row A always had.
+    const newEntryMsg={role:'assistant',content:entryMessage,checkinKey:`moment:${entry.key}`,quickReplies,...(entry.banner?{banner:true}:{})}
+    if(entry.replaceIfOnlySeed){
+      setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[newEntryMsg]:[...m,newEntryMsg])
+    }else{
+      setChatMessages(m=>[...m,newEntryMsg])
+    }
+    if(entry.significance==='open')setCoachPresence('open')
+    if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
+  }
+  // Full fire, dedupe write included -- for a caller outside the main
+  // evaluator loop (which already writes this same record itself, shared
+  // with the generated branch, before it ever reaches a static entry).
+  const fireStaticEntry=(entry,ctx,subKey,dedupeValue)=>{
+    momentFiredRef.current.add(`${entry.key}:${subKey}`)
+    setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
+    fireStaticEntryMessage(entry,ctx)
+  }
+  // Row B (Phase 4 §2.3): "I'm right up here..." fires once, ever, the
+  // first time the person minimizes Coach -- on whichever surface they're
+  // actually using. Two independent transition-watchers rather than one
+  // effect switching on conciergeEmbedded: that flag itself can flip
+  // between renders for the same account (it's a function of `step`), so
+  // watching each surface's own state directly is simpler and cannot be
+  // confused by a surface change that isn't really a minimize at all.
+  // Shares one dedupe record (coachMoments['coach-minimize-intro']) --
+  // whichever surface's transition happens first marks it done for both.
+  const fireCoachMinimizeIntroOnce=()=>{
+    if(isDemo||isTest||!signedInUser||!hasOnboardingConcierge)return
+    const entry=MOMENT_CATALOG.find(e=>e.key==='coach-minimize-intro')
+    if(!entry||!entry.eligible({hasOnboardingConcierge}))return
+    const subKey='_'
+    const dedupeValue='fired'
+    if(momentFiredRef.current.has(`${entry.key}:${subKey}`))return
+    const stored=coachMoments[entry.key]&&coachMoments[entry.key][subKey]
+    if(stored&&stored.value===dedupeValue)return
+    fireStaticEntry(entry,{hasOnboardingConcierge},subKey,dedupeValue)
+  }
+  const prevCoachPresenceForMinimizeRef=useRef(coachPresence)
+  useEffect(()=>{
+    const was=prevCoachPresenceForMinimizeRef.current
+    prevCoachPresenceForMinimizeRef.current=coachPresence
+    if(was==='open'&&coachPresence==='minimized')fireCoachMinimizeIntroOnce()
+  },[coachPresence])
+  const prevCoachOpenForMinimizeRef=useRef(coachOpen)
+  useEffect(()=>{
+    const was=prevCoachOpenForMinimizeRef.current
+    prevCoachOpenForMinimizeRef.current=coachOpen
+    if(was===true&&coachOpen===false)fireCoachMinimizeIntroOnce()
+  },[coachOpen])
   // Arriving at the dedicated My Coach step counts as opening the coach, so the
   // floating panel that remounts on the way back out is already open rather
   // than collapsed -- otherwise someone who reached My Coach straight from the
@@ -10048,36 +10123,14 @@ export default function PivotEngine(){
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{
-      // message/quickReplies may be a plain value (every entry before Stall)
-      // or a function of ctx (Stall, batch item 1.1.5: its copy names the
-      // actual next section, resolved from ctx.stallTarget, so it cannot be
-      // a fixed string the way every earlier static entry's was).
-      const entryMessage=typeof entry.message==='function'?entry.message(ctx):entry.message
-      const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies
-      // Same tap set as fireMoment's generated branch above (batch item
-      // 1.1.1) -- an entry's own quickReplies (its offer) keep their own
-      // labels, plus one Remind me later and one Minimize Coach for now.
-      // Live-side brief PR 2 (2026-09-10): the same message/quickReplies-as-
-      // function-of-ctx support above also covers My Pipeline arrival's
-      // per-user interpolated copy (the nearest opportunity's name) and its
-      // sibling op- rows; every Focus-side entry still uses a plain literal,
-      // which this passes through unchanged.
-      const quickReplies=entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies
-      // banner/replaceIfOnlySeed (Phase 4 §2.3, 'coach-intro'): a small
-      // dismissing card next to the closed bubble rather than the full
-      // panel, and -- when the chat is still exactly the untouched
-      // "Hi, I'm your coach" seed -- REPLACING it instead of appending, so
-      // Coach's own first two things to say never stack as two "hello"
-      // bubbles. Both default off; every entry before this one gets the
-      // exact append-only behavior it always had.
-      const newEntryMsg={role:'assistant',content:entryMessage,checkinKey:`moment:${entry.key}`,quickReplies,...(entry.banner?{banner:true}:{})}
-      if(entry.replaceIfOnlySeed){
-        setChatMessages(m=>(m.length===1&&m[0]&&m[0].role==='assistant'&&!m[0].banner&&m[0].content===INTRO_MSG.content)?[newEntryMsg]:[...m,newEntryMsg])
-      }else{
-        setChatMessages(m=>[...m,newEntryMsg])
-      }
-      if(entry.significance==='open')setCoachPresence('open')
-      if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
+      // Dedupe record already written above, shared with the generated
+      // branch -- fireStaticEntryMessage only builds and fires the
+      // message itself. See its own definition (near beginCoachRestore)
+      // for what it handles: message/quickReplies as plain value or
+      // function of ctx, the Remind-me-later/Minimize pair, banner/
+      // replaceIfOnlySeed, opening the panel for a significant entry, and
+      // engagement logging.
+      fireStaticEntryMessage(entry,ctx)
     }
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick])
