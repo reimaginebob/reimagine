@@ -38,6 +38,7 @@
 //   node scripts/eval-plain-english-live.mjs
 
 import { buildCoachRequest, buildMomentTurnText, buildOrientationCheckTurnText } from '../api/coach.js'
+import { detectVoiceViolations } from '../src/voice-patterns.js'
 
 const TODAY = new Date()
 const isoDaysAgo = n => new Date(TODAY.getTime() - n * 86400000).toISOString().slice(0, 10)
@@ -57,6 +58,15 @@ const JORDAN_RECORD = {
 const SYNTHETIC_P3 = 'Golden Thread: turns account chaos into retention, learned from rebuilding a 40-person support org through a system migration that could have sunk renewals. Where This Transfers: customer-success leadership roles at companies mid-transition, where the team needs someone who has actually run the fire drill, not just read about one.'
 
 const SYNTHETIC_P6 = 'When our billing platform migration went sideways six weeks before renewal season, I pulled together a cross-functional war room and personally called our twenty highest-risk accounts. We cut onboarding time on the new platform from six weeks to two, and we finished the quarter with retention actually up two points over the prior year.'
+
+// Synthetic Compensation Read -- deliberately built around several data
+// points (four comparable postings) so the scenario below puts the same
+// kind of material in front of the model that produced the F1 twenty-minute
+// session's live failure ("that's not just averaging four numbers together,
+// it's judging which ones" -- a not-X-it's-Y logic-flip in contracted-
+// subject, parallel-gerund form; see logic-flip-contraction-parallel-gerund
+// in src/voice-patterns.js).
+const SYNTHETIC_SALARY_READ = 'Four comparable Director of Customer Success postings in your metro put base salary between $145,000 and $172,000, with the two postings closest to your background (companies mid-platform-migration, 30+ person teams) clustering at the top of that range. Your own base target should open at $165,000.'
 
 const baseProfileState = {
   profile: {
@@ -118,6 +128,26 @@ const SCENARIOS = [
     label: 'Personal Brand richness check (Delivery\'s prototype)',
     message: buildOrientationCheckTurnText('brand-richness', SYNTHETIC_P3),
     profileState: baseProfileState,
+  },
+  {
+    // F1 twenty-minute session (2026-09-11): a typed question got a reply
+    // opening "Straight answer: ..." -- a truth-announcement colon-label
+    // (truth-label-opener in src/voice-patterns.js) distinct from every
+    // scenario above, which all send a system-triggered moment message, not
+    // a real typed question. This is the shape most likely to invite that
+    // opener: a direct, answerable question with a real yes/no or a-number
+    // shape underneath it.
+    label: 'Typed reply: a direct question',
+    message: 'Is Interview Prep or Bridge Story the stronger thing to build next for this role?',
+    profileState: { ...baseProfileState, outputs: { ...baseProfileState.outputs, p6: SYNTHETIC_P6 } },
+  },
+  {
+    // F1 twenty-minute session (2026-09-11): the Compensation Read Delivery
+    // reply that shipped "that's not just averaging four numbers together,
+    // it's judging which ones" -- see SYNTHETIC_SALARY_READ above.
+    label: 'Delivery: shared template (Compensation Read)',
+    message: buildMomentTurnText('delivery-salaryRead', { section: 'salaryRead', text: SYNTHETIC_SALARY_READ }),
+    profileState: { ...baseProfileState, outputs: { ...baseProfileState.outputs, salaryRead: SYNTHETIC_SALARY_READ } },
   },
   {
     label: 'Return: session-open recap',
@@ -204,12 +234,20 @@ async function main() {
     for (let i = 1; i <= RUNS_PER_SCENARIO; i++) {
       const reply = await callClaude(system, messages)
       const { verdict, failingSentence } = await judge(reply)
-      if (verdict === 'YES') passCount++
+      // Checked against the RAW model reply, before api/coach.js's own
+      // strip-and-retry chain ever touches it -- this is a check on the
+      // prompt's own instructions, the same thing the judge rubric checks,
+      // not a re-test of the production strip/retry mechanism (which has no
+      // equivalent here since this script calls the model directly).
+      const hardViolations = detectVoiceViolations(reply, { scope: 'runtime' })
+      const passed = verdict === 'YES' && hardViolations.length === 0
+      if (passed) passCount++
       console.log(`\n--- Run ${i} ---`)
       console.log(reply)
       console.log(`Judge: ${verdict}${failingSentence ? ` -- failing sentence: "${failingSentence}"` : ''}`)
+      if (hardViolations.length) console.log(`Voice-pattern violations: ${hardViolations.map(v => v.name).join(', ')}`)
     }
-    console.log(`\n${scenario.label}: ${passCount}/${RUNS_PER_SCENARIO} passed the rubric`)
+    console.log(`\n${scenario.label}: ${passCount}/${RUNS_PER_SCENARIO} passed`)
     summary.push({ label: scenario.label, passCount, total: RUNS_PER_SCENARIO })
   }
 

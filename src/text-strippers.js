@@ -306,6 +306,14 @@ const HONEST_HEADER_RE = /(^|\n)#{1,6}\s*the honest (?:read|reading|answer|truth
 // "I'll give you the honest read." / "Let me give you the honest take." -- a
 // throat-clear sentence announcing honesty; drop the whole sentence.
 const GIVE_HONEST_RE = /(^|[.!?]\s+|\n+)(?:I['’]?ll\s+|I will\s+|let me\s+|so\s+)?give you the honest (?:read|reading|answer|truth|take|view|assessment|appraisal)\b[^.!?\n]*?[.!?]\s*/gi
+// F1 twenty-minute session (2026-09-11): "Straight answer: ..." opened a
+// typed reply -- a sentence-initial colon-label, the same truth-announcement
+// move as "the honest answer" (HONEST_NOUN_RE above) but without the "the"
+// article, so it walked through every existing sincerity regex. Covers the
+// sibling labels (short/quick/honest answer, bottom line) for the same
+// reason HONEST_NOUN_RE covers its own siblings -- same discourse move.
+const LABEL_ANSWER_RE = /(^|[.!?]\s+|\n+)(?:straight|short|quick|honest)\s+answer\s*:\s*([^\n]+)/gi
+const BOTTOM_LINE_RE = /(^|[.!?]\s+|\n+)bottom\s+line\s*:\s*([^\n]+)/gi
 export function stripSincerityQualifiers(text) {
   if (typeof text !== 'string' || !text) return text
   let count = 0
@@ -318,6 +326,8 @@ export function stripSincerityQualifiers(text) {
   out = out.replace(BRUTAL_HONESTY_RE, (_match, lead) => { count++; return lead })
   out = out.replace(HERES_HONEST_RE, (_match, lead) => { count++; return lead })
   out = out.replace(SINCERITY_MID_RE, () => { count++; return '' })
+  out = out.replace(LABEL_ANSWER_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
+  out = out.replace(BOTTOM_LINE_RE, (_match, lead, claim) => { count++; return `${lead}${cap(claim)}` })
   if (count > 0) {
     console.warn(`[stripSincerityQualifiers] stripped ${count} sincerity qualifier${count === 1 ? '' : 's'} from LLM output`)
   }
