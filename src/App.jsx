@@ -10063,7 +10063,15 @@ export default function PivotEngine(){
       if(!pick||pick===anchorKey)return null
       const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
       const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':pick==='tradeoff'?'Trade-off considerations':`Build ${nextLabel}`
-      return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel}
+      // actionPhrase (F1 twenty-minute session, item 4): only p_cover/p11/
+      // offerNegotiation are something to BUILD -- knownContacts is already
+      // there to open, practice/tradeoff revisit a card that already exists. The server's closing question used to say "build it now"
+      // unconditionally, which read as offering to build a card that was
+      // already built (the tap itself was Practice it/Trade-off
+      // considerations, never Build). This is what makes the closing
+      // question match the tap it is actually attached to.
+      const actionPhrase=pick==='knownContacts'?'open Who You Know Here':pick==='practice'?'practice the weakest answer':pick==='tradeoff'?'walk through the trade-offs':`build ${opRecord.cardLabel(pick)}`
+      return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel,actionPhrase}
     })()
     // Interview is close (Check family): scans every active opportunity, not
     // just the one open now -- eligible from either 'pipeline' or 'op' (this

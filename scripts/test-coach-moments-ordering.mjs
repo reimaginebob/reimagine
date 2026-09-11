@@ -201,14 +201,38 @@ async function run() {
     // fireMoment's own situation:computeSituation() always reflects
     // currentSavedSlotIdRef, never the chat history it POSTs alongside it.
     {
-      const recA = { ...DOOR2_RECORD, id: 'test-ordering-recA', title: 'Director of Ops, Record A', company: 'Record A Co', sections: { companyRead: { content: '', builtAt: null }, salaryRead: { content: '', builtAt: null }, p5: { content: 'Built Where You Fit for Record A.', builtAt: '2026-09-10T12:00:00.000Z' }, p6: '', p_res: { content: '', builtAt: null }, p_cover: { content: '', builtAt: null }, p11: { content: '', builtAt: null }, offerNegotiation: { content: '', builtAt: null } } }
-      const recB = { ...DOOR2_RECORD, id: 'test-ordering-recB', title: 'Director of Ops, Record B', company: 'Record B Co' }
+      // Item 4 (F1 twenty-minute session), production report: on Deloitte
+      // (stage Interviewing, Interview Prep built), op-next-move opened with
+      // "Now that Offer & Negotiation is built for Deloitte" (Offer &
+      // Negotiation was built on HOPE, a DIFFERENT record, not Deloitte) and
+      // closed with "want me to build that into Interview Prep now?"
+      // (Interview Prep was already built; the real tap was Practice it,
+      // never Build). Record A here reproduces Deloitte's exact shape
+      // (Interview Prep built, interviewing stage -> opPickByStage resolves
+      // to 'practice', not 'p11'); Record B reproduces HOPE's -- built cards
+      // Record A never touched (salaryRead, offerNegotiation), discussed in
+      // the transcript first, the shape a cross-record leak would surface
+      // through. No live model call happens in this harness (api/coach.js's
+      // prompt builder is exercised without a real completion), so what
+      // this asserts is the REQUEST DATA op-next-move actually sends --
+      // justBuiltLabel/nextLabel/company/actionPhrase, api/coach.js's
+      // buildOpNextMoveReactionText's only inputs -- names nothing built
+      // only on B or unbuilt on A, and the built-card case (practice) gets
+      // a practice actionPhrase, never a build one.
+      const recA = { ...DOOR2_RECORD, id: 'test-ordering-recA', title: 'Director of Ops, Record A', company: 'Record A Co', sections: { companyRead: { content: '', builtAt: null }, salaryRead: { content: '', builtAt: null }, p5: { content: 'Built Where You Fit for Record A.', builtAt: '2026-09-10T12:00:00.000Z' }, p6: '', p_res: { content: '', builtAt: null }, p_cover: { content: '', builtAt: null }, p11: { content: 'Built Interview Prep for Record A.', builtAt: '2026-09-10T12:00:00.000Z' }, offerNegotiation: { content: '', builtAt: null } } }
+      const recB = { ...DOOR2_RECORD, id: 'test-ordering-recB', title: 'Director of Ops, Record B', company: 'Record B Co', sections: { ...DOOR2_RECORD.sections, salaryRead: { content: 'Built Compensation for Record B.', builtAt: '2026-09-10T12:00:00.000Z' }, offerNegotiation: { content: 'Built Offer & Negotiation for Record B.', builtAt: '2026-09-10T12:00:00.000Z' } } }
       const coachMoments = {
         'op-playbook-arrival': { [recA.id]: { value: 'fired', firedAt: '2026-09-01T12:00:00.000Z' } },
         'delivery-op-p5': { [recA.id]: { value: 'Built Where You Fit for Record A.', firedAt: '2026-09-01T12:05:00.000Z' } },
+        // p11 fires AFTER p5 (later firedAt) so it, not p5, is next-move's
+        // anchor -- matching Deloitte's own report ("Now that Offer &
+        // Negotiation is built" implied Interview Prep, not Where you fit,
+        // had just been reacted to).
+        'delivery-op-p11': { [recA.id]: { value: 'Built Interview Prep for Record A.', firedAt: '2026-09-01T12:10:00.000Z' } },
       }
       // stage drives opPickByStage (src/App.jsx) -- interviewing + Interview
-      // Prep unbuilt gives a clean, single target (recA has only p5 built).
+      // Prep BUILT resolves to 'practice' (not 'p11'), the exact Deloitte
+      // shape: a built card offering to revisit it, never to build it again.
       const pursuitStatusRows = [{ record_id: recA.id, stage: 'interviewing' }]
       const context2 = await browser.newContext({ viewport: VIEWPORT })
       const page2 = await context2.newPage()
@@ -238,6 +262,24 @@ async function run() {
       await page2.locator(ASSISTANT_MSG).filter({ hasText: 'NEXT_MOVE_RECORD_A_REPLY' }).first().waitFor({ state: 'attached', timeout: 10000 })
       check(!!nextMoveRequestBody && nextMoveRequestBody.situation && nextMoveRequestBody.situation.record && nextMoveRequestBody.situation.record.id === recA.id,
         `Next move's request names Record A (the one actually open), not Record B (last discussed in chat) -- got record: ${JSON.stringify(nextMoveRequestBody && nextMoveRequestBody.situation && nextMoveRequestBody.situation.record)}`)
+
+      // --- Item 4: the request data api/coach.js's prompt builder actually
+      // grounds on -- justBuiltLabel/nextLabel/company/actionPhrase -- names
+      // nothing unbuilt on A or built only on B, and the built-card case
+      // (Interview Prep already built) gets a practice actionPhrase, not a
+      // build one. ---
+      const moment = nextMoveRequestBody && nextMoveRequestBody.moment
+      check(moment && moment.company === recA.company,
+        `op-next-move's company is Record A's own ("${recA.company}"), not Record B's -- got ${JSON.stringify(moment && moment.company)}`)
+      check(moment && moment.justBuiltLabel === 'Interview Prep',
+        `op-next-move's justBuiltLabel names the card most recently reacted to on Record A itself (Interview Prep, fired after Where you fit) -- got ${JSON.stringify(moment && moment.justBuiltLabel)}`)
+      check(moment && !['Compensation', 'Offer & Negotiation'].includes(moment.nextLabel),
+        `op-next-move's nextLabel names no card built only on Record B (Compensation/Offer & Negotiation), which Record A never touched -- got ${JSON.stringify(moment && moment.nextLabel)}`)
+      check(moment && moment.actionPhrase === 'practice the weakest answer',
+        `A built card (Interview Prep, already built on Record A) offers to practice it, never to build it again -- got actionPhrase ${JSON.stringify(moment && moment.actionPhrase)}`)
+      check(moment && !/^build /i.test(moment.actionPhrase || ''),
+        `The closing question's verb never says "build" for a card that already exists -- got actionPhrase ${JSON.stringify(moment && moment.actionPhrase)}`)
+
       await context2.close()
     }
   } finally {
