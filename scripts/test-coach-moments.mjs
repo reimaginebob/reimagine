@@ -169,13 +169,15 @@ check(fireMomentIdx !== -1, `${APP}: fireMoment is missing`)
 // Widened again for the live-side brief PR 2 production fix's offer
 // detection (2026-09-10): the offerTap comment/computation ahead of
 // setChatMessages pushed it further still.
-const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 3500) : ''
+// Widened for F1 twenty-minute session item 1 (2026-09-11): the generated:true
+// comment block pushed the target push line past the old 3500-char edge.
+const fireMomentBlock = fireMomentIdx !== -1 ? app.slice(fireMomentIdx, fireMomentIdx + 4000) : ''
 check(app.includes('const momentFetchingRef=useRef({})'), `${APP}: momentFetchingRef state is missing`)
 check(fireMomentBlock.includes('if(momentFetchingRef.current[trackKey])return'), `${APP}: fireMoment is missing its in-flight guard`)
 check(fireMomentBlock.includes("body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})"),
   `${APP}: fireMoment's /api/coach request body has drifted -- moment.key + momentContext, history, currentStep, situation, and surface are all expected`)
-check(fireMomentBlock.includes("setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])"),
-  `${APP}: fireMoment does not push the model's reply into chat with the generic moment:<key> checkinKey`)
+check(fireMomentBlock.includes("setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies,generated:true}])"),
+  `${APP}: fireMoment does not push the model's reply into chat with the generic moment:<key> checkinKey and generated:true (F1 twenty-minute session, item 1 -- generated:true is what lets sanitizeHistoryForModel keep this real model reply instead of stripping it like a static bubble)`)
 
 // --- The generic tap handler ---
 const tapIdx = app.indexOf("checkinKey.startsWith('moment:')")

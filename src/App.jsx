@@ -9962,7 +9962,13 @@ export default function PivotEngine(){
           // branch (fireStaticEntryMessage), called first so it lands ahead
           // of this entry's own reply.
           if(entry.significance==='open')maybeFireSelfOpenExplanation(entry,ctx)
-          setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies}])
+          // generated:true (F1 twenty-minute session, item 1): this reply is
+          // real model output from /api/coach above, unlike every other
+          // checkinKey-tagged message in this file (all static, hardcoded
+          // copy). sanitizeHistoryForModel (api/coach.js) reads this flag to
+          // let the model see its own words on a later turn -- checkinKey and
+          // banner stay set too, since those still drive dedupe/rendering.
+          setChatMessages(m=>[...m,{role:'assistant',banner:true,content:reply,checkinKey:`moment:${entry.key}`,quickReplies,generated:true}])
           if(entry.significance==='open')setCoachPresence('open')
         }
       }catch{
