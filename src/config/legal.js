@@ -10,3 +10,8 @@ export const TOS_VERSION = "2026-09-11";
 // the corresponding _MATERIAL constant on the previous value.
 export const PRIVACY_VERSION_MATERIAL = "2026-06-24";
 export const TOS_VERSION_MATERIAL = "2026-09-11";
+
+// One-time acknowledgment gate on the Offer & Negotiation card (src/App.jsx).
+// Bump this if the disclaimer text changes materially -- accounts that
+// already accepted an older version will be asked again.
+export const OFFER_DISCLAIMER_VERSION = "2026-09-11";
