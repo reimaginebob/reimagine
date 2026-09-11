@@ -448,7 +448,7 @@ Before the flag shows, Reimagine opens the posting page itself and confirms it i
 
 ### Learn more about a company
 
-Each company carries a full-width amber button anchored to the bottom of its card, labeled **Learn more about [Company Name]**. Click it for a focused read on that company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
+Each company carries a full-width amber button anchored to the bottom of its card, labeled **Learn more about [Company Name]**. Click it for a focused read on the company: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
 
 The button is deliberately prominent because the read is one of the most useful things you can pull from this page. Once you have built it, the content takes the place of the button inline within the same company card; a smaller **Rebuild** button at the bottom right lets you refresh against newer signal if the original is more than a few weeks old.
 

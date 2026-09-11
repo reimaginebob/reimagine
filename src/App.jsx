@@ -17458,7 +17458,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=(opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current)||_opAutoBuildPending
                 return _cardWrap(<>
-                  {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {_head('About This Company','A read on the company: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
                   {_crBusy&&<div style={{marginTop:14}}><Loading msg="Building About This Company…" step="companyRead"/></div>}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
