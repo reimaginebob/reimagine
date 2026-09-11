@@ -10179,7 +10179,16 @@ export default function PivotEngine(){
     }
     const opCurrentRecordRaw=(()=>{
       const rec=currentSavedSlotIdRef.current?savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current):null
-      return(rec&&rec.source==='door2'&&rec.schemaVersion===2)?rec:null
+      // F1 twenty-minute session, item 4: this used to also require
+      // schemaVersion===2, so the Opportunity Playbook arrival never fired
+      // for a record saved at an earlier schema version -- computeSituation
+      // (above) resolves the same door2 record with no version check at
+      // all, so Coach already had the record; only the arrival moment could
+      // not see it. opRecord below already falls back cleanly on a v1
+      // record (sections||{} reads as nothing built, per opRecord's own
+      // cardBuilt/cardText helpers), so there is nothing v2-specific left
+      // to require here.
+      return(rec&&rec.source==='door2')?rec:null
     })()
     const opKnownCountFor=(rec)=>rec?matchConnections(withManual(connNetwork?connNetwork.people:[],connManual),resolveSearch(connSearch[rec.id],rec.company||'').company).length:0
     const opRecord=opCurrentRecordRaw?(()=>{
