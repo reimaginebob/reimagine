@@ -67,6 +67,7 @@ export async function getSessionUser(req, res = null) {
     SELECT u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login_at,
            u.prior_session_at,
            u.privacy_version, u.terms_version, u.employment_status, u.suspended_at,
+           u.offer_disclaimer_accepted_at, u.offer_disclaimer_version,
            u.feature_flags, u.track,
            u.search_going_well, u.search_going_well_updated_at,
            u.search_focus, u.search_focus_updated_at
