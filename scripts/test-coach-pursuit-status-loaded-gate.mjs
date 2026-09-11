@@ -45,14 +45,17 @@ check(effectBlock.includes(".finally(()=>setPursuitStatusLoaded(true))"),
 // Wired into the Moments evaluator: ctx carries it, the dependency array
 // re-runs the evaluator once it flips, and op-playbook-arrival's own
 // eligible() actually waits on it.
-check(app.includes(',viewedSection,opArrivalFired,pursuitStatusLoaded,hydrationStable}'),
+check(app.includes(',viewedSection,opArrivalFired,opAutoBuildActive,pursuitStatusLoaded,hydrationStable}'),
   `${APP}: the evaluator's ctx no longer carries pursuitStatusLoaded`)
 check(app.includes(',pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
   `${APP}: the evaluator effect's dependency array no longer includes pursuitStatusLoaded -- it would not re-run once the real fetch settles`)
 
 const MOMENTS = 'src/coach-moments.js'
 const moments = fs.readFileSync(MOMENTS, 'utf8')
-check(moments.includes("eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded,"),
+// opAutoBuildActive added by F1 twenty-minute session item 2 (2026-09-11
+// evening): a separate race (the auto-build sequence), not a replacement
+// for the pursuitStatusLoaded gate this file is about.
+check(moments.includes("eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded && !ctx.opAutoBuildActive,"),
   `${MOMENTS}: op-playbook-arrival's eligible() no longer waits on pursuitStatusLoaded`)
 
 if (failures) {

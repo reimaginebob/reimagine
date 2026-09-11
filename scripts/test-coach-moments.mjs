@@ -129,7 +129,10 @@ check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMome
 // evalBlock to fireStaticEntryMessage's own definition.
 const staticFireIdx = app.indexOf('const fireStaticEntryMessage=(entry,ctx)=>{')
 check(staticFireIdx !== -1, `${APP}: fireStaticEntryMessage is missing`)
-const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 2400) : ''
+// Widened again for F1 twenty-minute session item 2 (2026-09-11 evening):
+// the remindLater comment + includeRemindLater line pushed everything after
+// the quickReplies assignment past the old 2400-char edge.
+const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 3100) : ''
 check(evalBlock.includes('fireStaticEntryMessage(entry,ctx)'),
   `${APP}: the evaluator's static branch no longer calls fireStaticEntryMessage`)
 // Taps decided (batch item 1.1.1, 2026-09-10): the old two dismissal taps
@@ -147,7 +150,14 @@ check(staticFireBlock.includes("const entryMessage=typeof entry.message==='funct
   `${APP}: fireStaticEntryMessage no longer resolves entry.message as either a plain value or a function of ctx`)
 check(staticFireBlock.includes("const entryQuickReplies=typeof entry.quickReplies==='function'?entry.quickReplies(ctx):entry.quickReplies"),
   `${APP}: fireStaticEntryMessage no longer resolves entry.quickReplies as either a plain value or a function of ctx`)
-check(staticFireBlock.includes("entry.dismissible?[...entryQuickReplies,{label:'Remind me later',value:'moment-remind-later'},{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies"),
+// remindLater (F1 twenty-minute session, item 2, 2026-09-11 evening): an
+// entry can opt OUT of just the Remind-me-later half (op-playbook-arrival
+// does, for a message with nothing left to be reminded about); Minimize
+// stays unconditional. Defaults to true, so every entry before this one
+// keeps the exact behavior the old literal array gave it.
+check(staticFireBlock.includes("const includeRemindLater=entry.remindLater?entry.remindLater(ctx):true"),
+  `${APP}: fireStaticEntryMessage no longer resolves whether to include the Remind me later tap`)
+check(staticFireBlock.includes("entry.dismissible?[...entryQuickReplies,...(includeRemindLater?[{label:'Remind me later',value:'moment-remind-later'}]:[]),{label:'Minimize Coach for now',value:'moment-minimize'}]:entryQuickReplies"),
   `${APP}: a dismissible static entry's message does not append the Remind me later / Minimize Coach for now taps`)
 check(staticFireBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)

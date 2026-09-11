@@ -564,9 +564,31 @@ export const MOMENT_CATALOG = [
     // would never correct itself. Waiting for pursuitStatusLoaded (true
     // immediately when there is nothing to wait for) means arrival's first
     // and only message always reflects the real stage.
-    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded,
+    //
+    // opAutoBuildActive gate (F1 twenty-minute session, item 2, Cowork's
+    // live run 2026-09-11 evening): same reasoning, different race -- a
+    // record created via Add an Opportunity kicks off the top-down auto-
+    // build (About This Company, Compensation Read, The Role) the instant
+    // it exists, and opRecord is truthy from that same instant, well before
+    // any of the three cards finish. Without this, arrival fired
+    // immediately with "Nothing is built on it yet." and, since dedupeValue
+    // never re-evaluates once fired, stayed wrong forever even after the
+    // auto-build went on to finish all three cards a moment later. Waiting
+    // for the auto-build to clear (App.jsx's own opAutoBuildActive) means
+    // arrival's one message reflects what is actually built, and reads the
+    // record's own company/role fields once inferJdMetadata has had the
+    // chance to fill them in -- both bugs shared the same root cause.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && !!ctx.pursuitStatusLoaded && !ctx.opAutoBuildActive,
     dedupeKey: (ctx) => ctx.opRecord.id,
     message: (ctx) => ctx.opRecord.arrivalCopy,
+    // A message naming no built-card offer and no stage-fitting move (a
+    // brand-new record with nothing yet to act on, or with a stage that has
+    // no move of its own -- researching/phone_screen/closed) has nothing to
+    // be reminded about later; the shared decline pair (App.jsx's
+    // fireStaticEntryMessage) would otherwise attach "Remind me later" to
+    // it regardless. "Minimize Coach for now" still applies unconditionally
+    // -- it is a presence control, not tied to this message having an offer.
+    remindLater: (ctx) => !!(ctx.opRecord.arrivalTarget || ctx.opRecord.arrivalPick),
     // Production fix (Bob's read on Imerys/Lindsey, 2026-09-10): the arrival
     // row's copy already named the one card that fits the stage even when it
     // was a pseudo-key (knownContacts/practice/tradeoff), but the tap below
