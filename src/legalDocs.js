@@ -164,7 +164,7 @@ We will respond to verified requests within the time required by applicable law,
 export const TERMS_MD = `# Reimagine Terms of Service
 
 **Effective date:** May 15, 2026
-**Last updated:** May 15, 2026
+**Last updated:** September 11, 2026
 
 These Terms of Service ("Terms") govern your use of Reimagine, a career strategy tool operated by Decima LLC, doing business as Career Club. When these Terms say "we," "us," or "Reimagine," they refer to Decima LLC (dba Career Club). When they say "you" or "your," they refer to you as a person using Reimagine.
 
@@ -199,6 +199,8 @@ Reimagine helps you reflect on your career and develop strategy, framing, and ma
 **Reimagine does not guarantee outcomes.** Reimagine helps you prepare for and pursue career opportunities. It does not guarantee that you will receive a job offer, an interview, a particular salary, a promotion, or any other specific career outcome. Your results depend on many factors that no tool can control.
 
 You are responsible for the decisions you make using Reimagine and for the actions you take in your career.
+
+**Offer and Negotiation, My Coach, and other AI-generated guidance.** Reimagine's Offer and Negotiation feature, My Coach, and other features generate analysis, insights, recommendations, scripts, and messages using artificial intelligence, including messages sent to you without your having asked a question. All such output is provided for informational purposes only and constitutes suggestions, not advice. The output is not legal, financial, tax, medical, mental health, or professional negotiation advice, does not create any attorney-client, advisor-client, therapist-client, or fiduciary relationship, and should not be relied upon as a substitute for the advice of a qualified professional. The output may be incomplete, inaccurate, outdated, or inapplicable to your circumstances, and any encouragement it offers is not a prediction or promise of any outcome. You acknowledge that you are solely responsible for evaluating the output, for any decision to accept, decline, counter, or negotiate any offer, for any decision to leave or remain in a job, and for all communications with any employer or third party. To the fullest extent permitted by law, Career Club, Decima LLC, and their owners, officers, employees, contractors, and licensors disclaim all liability for any loss, damage, or consequence of any kind arising from or related to your use of, or reliance on, these features, including any lost, reduced, or withdrawn offer.
 
 ## 4. Your content and your outputs
 
