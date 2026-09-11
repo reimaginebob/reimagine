@@ -111,8 +111,12 @@ export const MOMENT_CATALOG = [
     // orientationCheckFields catch-up effect already gates on for the
     // identical reason (see its own comment there).
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.hydrationStable && ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3),
-    // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3.
-    message: 'I\'m your coach, and I\'m with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I\'ll be right here while you put that in, and if you\'d rather tell me something than type it into a box, say it here and I\'ll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works. Let\'s start with where you are right now.',
+    // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3. One
+    // sentence added 2026-09-11 (offer-disclaimer-caveats brief, Tier 4b),
+    // which the brief calls out as a change to already-approved copy that
+    // needs Bob's sign-off again -- flag in the PR description, don't
+    // assume it here.
+    message: 'I\'m your coach, and I\'m with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I\'ll be right here while you put that in, and if you\'d rather tell me something than type it into a box, say it here and I\'ll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works. One thing to know up front: I\'m an AI, so treat what I say as a starting point you check against your own judgment, and bring anything legal, financial, or medical to a professional. Let\'s start with where you are right now.',
     quickReplies: [{ label: 'Let\'s go', value: 'coach-intro-go' }],
     onTap: (value, ctx) => {
       if (value === 'coach-intro-go') ctx.advance('welcome', ctx.isIndependent ? 'orientation-intro' : 'location')

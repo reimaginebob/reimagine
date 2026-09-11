@@ -13,7 +13,7 @@ import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 // also feeding the closed-bubble preview-card effect, which keys on
 // banner:true specifically -- this is the generic greeting, not a "here's
 // what's coming" line worth surfacing as a popup.
-export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation — and I'll work from what Reimagine already knows about you." }
+export const INTRO_MSG = { role: 'assistant', intro: true, content: "Hi, I'm your coach. Ask me anything about your search — where to focus, how to tell your story, how to prepare for a conversation. One thing to know up front: I'm an AI, so treat what I say as a starting point you check against your own judgment, and bring anything legal, financial, or medical to a professional. I'll work from what Reimagine already knows about you." }
 
 // Plain-language employment mentions. Deliberately conservative: it gates only
 // WHETHER to offer the save prompt (all three options are always shown, so the
@@ -370,6 +370,11 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // carries meaning: bold, headings, lists, the structure itself. The paste then
   // lands in whatever font the destination is already using.
   const COPY_STRIP_PROPS = ['font-size', 'font-family', 'line-height', 'color']
+  // Disclaimer suffix (offer-disclaimer-caveats brief 2026-09-11): a copied
+  // reply is the one way Coach's output leaves the app with none of the
+  // in-conversation disclaimers (composer footer, intro line) attached to
+  // it, so it travels on the clipboard content itself.
+  const COPY_DISCLAIMER = 'AI suggestion from your Reimagine coach, not professional advice'
   const copyReply = async (id, content) => {
     const el = contentRefs.current[id]
     let html = ''
@@ -378,20 +383,27 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       clone.querySelectorAll('*').forEach(n => {
         if (n.style) COPY_STRIP_PROPS.forEach(p => n.style.removeProperty(p))
       })
+      const notice = document.createElement('p')
+      notice.style.marginTop = '10px'
+      notice.style.fontSize = '0.85em'
+      notice.style.color = '#8A9BB8'
+      notice.textContent = `— ${COPY_DISCLAIMER}`
+      clone.appendChild(notice)
       html = clone.innerHTML
     }
+    const plain = `${content}\n\n— ${COPY_DISCLAIMER}`
     try {
       if (html && navigator.clipboard && typeof window !== 'undefined' && window.ClipboardItem) {
         await navigator.clipboard.write([new window.ClipboardItem({
           'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([content], { type: 'text/plain' }),
+          'text/plain': new Blob([plain], { type: 'text/plain' }),
         })])
       } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(content)
+        await navigator.clipboard.writeText(plain)
       }
       setCopiedId(id)
     } catch {
-      try { if (navigator.clipboard) await navigator.clipboard.writeText(content); setCopiedId(id) } catch { /* clipboard blocked */ }
+      try { if (navigator.clipboard) await navigator.clipboard.writeText(plain); setCopiedId(id) } catch { /* clipboard blocked */ }
     }
   }
   // Same cap for the My Search pursuit-status save-offer.
@@ -1534,6 +1546,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       >
         {loading ? 'Stop' : 'Send'}
       </button>
+      </div>
+      <div style={{ padding: '0 12px 10px', fontSize: 15, color: '#8A9BB8', lineHeight: 1.4 }}>
+        Your coach is AI. It works from what you've shared and can be wrong or incomplete. Decisions are yours; for legal, financial, or medical questions, talk to a professional.
       </div>
     </div>
   )
