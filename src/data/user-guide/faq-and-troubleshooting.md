@@ -12,7 +12,10 @@ Yes, by email. The welcome screen asks for your email and sends a magic-link to 
 30 days, but the clock resets every time you use Reimagine. If you open it once a week, you essentially never need to sign in again. If you go a full month without opening it, you sign in once and you are back where you left off. Your account and your work are preserved regardless; only the session times out.
 
 **Is there a cost?**
-No, not today. Reimagine is in active beta and free to use.
+No. Reimagine is free to use, and if you are in a job search and feeling the pinch of no paycheck, please use it as much as you want with no expectation of payment. Nothing in Reimagine is gated on whether you give.
+
+**How do I support Reimagine?**
+If it has been useful and you have the capacity, the gold Support Reimagine card at the top of the left sidebar opens a panel with one-time options ($20, $50, $100, or an amount you choose) and a $10 monthly option. Each opens a Stripe checkout page in a new tab. AI tokens are what Reimagine costs to run, so every contribution helps keep it free for the next person.
 
 **Do I have to take an assessment to use it?**
 No, but the recommendations will be more abstract without one. If you do not have one, the free Affintus assessment takes 15 minutes and gives Reimagine the data layer that makes everything more personal. The link is on the welcome screen and on the Assessment input screen.

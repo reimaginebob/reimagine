@@ -6837,6 +6837,7 @@ function DemoUnavailable(){
 // configured on Stripe's side) — no backend route, no success/return handling.
 const SUPPORT_PANEL_COPY={
   navLabel:'Support Reimagine',
+  navSubline:'Free to use, help keep it that way',
   header:'Reimagine is free',
   body:[
     "If you are in job search and really feeling the pinch of not having a paycheck, please use Reimagine as much as you want with no expectation of payment. If you want to contribute after you've landed, that's great too.",
@@ -6868,7 +6869,7 @@ const SUPPORT_PANEL_COPY={
 // gate carries no ship date. "Take a look" opens the Support panel; × dismisses.
 const SUPPORT_ANNOUNCEMENT_COPY={
   header:'There\'s a way to support Reimagine.',
-  body:'Reimagine is free and stays free. If it\'s been useful and you have the capacity, you can help keep it that way for the next person, whenever you\'re ready. Look for Support Reimagine in the sidebar.',
+  body:'Reimagine is free and stays free. If it\'s been useful and you have the capacity, you can help keep it that way for the next person, whenever you\'re ready. It\'s the gold card at the top of the sidebar.',
   cta:'Take a look',
 }
 
@@ -6965,19 +6966,24 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   // render in either mode going forward; My Playbooks (PR3a dashboard)
   // supersedes it. hasPrereq predicate was removed in the same change:
   // the only steps it gated (p4, focus) no longer appear in PHASES.
-  // Always-on Support Reimagine entry. Rendered at the bottom of the rail in
-  // both sidebar shapes (dashboard and the linear PHASES flow), so it is
-  // visible on every phase and never gated by progress or completion. It does
-  // not route through onNav (its id is not a real step); it opens the support
-  // overlay via local state, leaving `step` untouched so the user keeps their
-  // place. In demo mode the whole rail is wrapped in pointerEvents:none by the
-  // caller, so the entry shows but is inert during the guided tour.
-  const supportItemStyle=(active)=>({padding:'12px 14px 12px 22px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:17,fontWeight:active?700:500,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
+  // Always-on Support Reimagine entry. Pinned to the TOP of the rail in both
+  // sidebar shapes (dashboard and the linear PHASES flow) since 2026-09-11:
+  // it sat at the bottom, below Inputs, and a user who wanted to give could not
+  // find it. Styled as a card rather than a rail row so it reads as a different
+  // kind of thing from the navigation under it: solid gold border and a filled
+  // heart, which no other row has. It does not route through onNav (its id is
+  // not a real step); it opens the support overlay via local state, leaving
+  // `step` untouched so the user keeps their place. In demo mode the whole rail
+  // is wrapped in pointerEvents:none by the caller, so the entry shows but is
+  // inert during the guided tour.
+  const supportCardStyle=(active)=>({margin:'0 14px 12px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.22)',border:`1.5px solid ${C.gold}`,transition:'all 0.15s'})
   const supportRail=<>
-    <div style={{height:1,background:'#0F1A30',margin:'14px 0 0'}}/>
-    <div data-support-nav onClick={()=>setSupportOpen(true)} style={supportItemStyle(supportOpen)}>
-      <Heart size={16}/>
-      <span style={{flex:1}}>{SUPPORT_PANEL_COPY.navLabel}</span>
+    <div data-support-nav onClick={()=>setSupportOpen(true)} style={supportCardStyle(supportOpen)}>
+      <Heart size={17} color={C.gold} fill={C.gold}/>
+      <div style={{flex:1}}>
+        <div style={{fontSize:17,fontWeight:700,color:'#FFFFFF'}}>{SUPPORT_PANEL_COPY.navLabel}</div>
+        <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>{SUPPORT_PANEL_COPY.navSubline}</div>
+      </div>
     </div>
     {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
   </>
@@ -7065,6 +7071,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     const subItemStyle=(active)=>({padding:'8px 14px 8px 44px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:active?`${C.gold}45`:'transparent',borderLeft:`5px solid ${active?C.gold:'transparent'}`,fontSize:15,fontWeight:active?700:400,color:active?'#FFFFFF':'#F1F5F9',transition:'all 0.15s'})
     const sectionHeaderStyle={fontSize:15,fontWeight:800,letterSpacing:'1.2px',textTransform:'uppercase',color:'#B0BEDE',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8}
     return <div ref={navRef} {...railProps} style={railBase}>
+      {supportRail}
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
@@ -7099,7 +7106,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
           <span style={{flex:1}}>{label}</span>
         </div>
       })}
-      {supportRail}
     </div>
   }
   // Progressive disclosure: Know Your Value (PHASES id 1) is hidden until
@@ -7113,6 +7119,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   const phasesBase=isIndependent?PHASES_INDEPENDENT:PHASES
   const phasesToRender=(orientationComplete||isDemo)?phasesBase:phasesBase.filter(p=>p.id!==1)
   return <div ref={navRef} {...railProps} style={railBase}>
+  {supportRail}
   {/* My Coach pinned to the top of the orientation rail so it's reachable from
       the very first screen, not only after the Personal Brand is built (that
       later sidebar carries its own My Coach entry). Gated on signedIn to match
@@ -7148,7 +7155,6 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
     <div style={{width:'100%',height:5,background:'#0F1A30',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${prog}%`,background:C.gold,borderRadius:3,transition:'width 0.4s'}}/></div>
   </div>}
   {phasesToRender.map(ph=><div key={ph.id} style={{marginBottom:6}}><div onClick={()=>{if(ph.steps.some(sid=>done.includes(sid)||step===sid))return;const gate=ph.steps.map(sid=>PHASE_UNLOCKED_BY[sid]).find(Boolean);if(gate&&!done.includes(gate))onNav(gate)}} style={{fontSize:20,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#FFFFFF',padding:'14px 14px 8px',display:'flex',alignItems:'center',gap:8,borderBottom:`2px solid ${ph.color}`,cursor:ph.steps.some(sid=>done.includes(sid)||step===sid)?'default':'pointer'}}><div style={{width:8,height:8,borderRadius:'50%',background:ph.color}}/>{ph.label}</div>{ph.steps.map(sid=>{const active=step===sid,isDone=done.includes(sid),/* A written Personal Brand is reachable even before Put It to Work marks it done. Without this, someone who generates their brand and steps away has no way back: the "Your work" sidebar does not appear until p3 is in `done`, and the only remaining route is Skills -> Continue, which REBUILDS the brand. A user hit exactly that on 2026-08-24 and lost wording they wanted. Orientation is untouched \u2014 everyone still earns their first brand the same way. */can=isDone||active||(sid==='p3'&&brandExists),isComplete=sid==='complete'&&isDone;return <div key={sid} data-step={sid} onClick={()=>{if(can){onNav(sid);return}const u=PHASE_UNLOCKED_BY[sid];if(u&&!done.includes(u))onNav(u)}} style={{padding:'9px 14px 9px 25px',display:'flex',alignItems:'center',gap:7,cursor:(can||PHASE_UNLOCKED_BY[sid])?'pointer':'default',background:isComplete?'rgba(74,158,114,0.15)':active?(isDemo?`${C.gold}45`:`${ph.color}45`):'transparent',borderLeft:`5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):'transparent'}`,fontSize:18,fontWeight:active?700:400,color:isComplete?'#6FCF97':active?'#FFFFFF':isDone?'#CBD5E0':'#718096',transition:'all 0.15s'}}><div style={{width:15,height:15,borderRadius:'50%',border:`1.5px solid ${isComplete?C.ok:active?(isDemo?C.gold:ph.color):isDone?'#4A9E72':'#4A5568'}`,background:isDone?'#4A9E72':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{isDone&&<Check size={8} color='#fff' strokeWidth={3}/>}</div><span style={{flex:1}}>{NAV_LABELS[sid]}{sid==='focus'&&chosen?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>{chosen}</span>:null}{!can&&sid==='twoDoors'?<span style={{display:'block',fontSize:15,fontWeight:400,color:'#8A9BB8',marginTop:2}}>After your Personal Brand</span>:null}</span>{active&&<span style={{fontSize:15,fontWeight:800,letterSpacing:'0.5px',color:'#1A2540',background:C.gold,padding:'3px 9px',borderRadius:4,marginLeft:4,whiteSpace:'nowrap'}}>YOU ARE HERE</span>}</div>})}</div>)}
-  {supportRail}
 </div>}
 
 const DEMO_TOUR=[
