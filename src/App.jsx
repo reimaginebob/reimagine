@@ -8533,7 +8533,7 @@ export default function PivotEngine(){
       // time (the value itself already encodes the target) rather than
       // reaching into the evaluator's own locals, which are out of scope
       // here.
-      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,
+      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,savePursuit,
         openOpRecord:(id)=>{const rec=savedPlaybooks.find(r=>r&&r.id===id);if(rec)restoreFromSavedSlot(rec)},
         generateOpSectionFor:(k)=>generateOpSection(k),
         opNextMoveOnTap:(k)=>{
@@ -9350,14 +9350,32 @@ export default function PivotEngine(){
   // Orphan reconcile: on first arrival at My Playbooks, tell the server which
   // Door 2 record ids still exist so it can prune status rows for deleted /
   // removed / import-dropped opportunities. Fire-and-forget; never blocks render.
+  //
+  // hydrationStable gate (F1 twenty-minute session, item 3, Cowork's live
+  // run 2026-09-11 evening -- investigating why HOPE - CHRO read "Not set
+  // yet" despite having an Offer & Negotiation analysis built): savedPlaybooks
+  // starts empty on every mount and is only overwritten once localStorage AND
+  // the server profile fetch have both settled (the same hydrationStable
+  // signal coach-intro's own eligibility gates on, for the identical reason
+  // -- see its comment). Without this gate, a fast navigation to My Pipeline
+  // before that settling finished could fire this reconcile with an
+  // incomplete `ids` list (whatever savedPlaybooks happened to hold at that
+  // instant, not the account's real saved set) and the server-side DELETE ...
+  // WHERE record_id <> ALL(ids) (api/pursuit-status.js) would prune the
+  // pursuit_status row -- including a real stage -- for every door2 record
+  // missing from that incomplete list. pursuitReconciledRef's own once-ever
+  // guard means this could only ever happen on the very first post-mount
+  // visit to My Pipeline in a session, but that is exactly the moment
+  // hydration timing is least certain.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!hasPipeline||step!=='mylib')return
+    if(!hydrationStable)return
     if(pursuitReconciledRef.current)return
     pursuitReconciledRef.current=true
     const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
     try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
-  },[hasPipeline,step,savedPlaybooks,isDemo,isTest])
+  },[hasPipeline,step,savedPlaybooks,isDemo,isTest,hydrationStable])
   // Reimagine never changes a pursuit date on its own. A "Next scheduled meeting"
   // whose day has passed stays exactly as the user (or their connected assistant)
   // set it — the app does not clear or rewrite it. Past-due status is driven by
@@ -10221,6 +10239,18 @@ export default function PivotEngine(){
         :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
+      // F1 twenty-minute session, item 3 (Cowork's live run, 2026-09-11
+      // evening): a freshly added opportunity has no stage yet
+      // (pursuitStatusFor(id) has no row), so opPickByStage above returns
+      // null and stageLine is silent -- and op-next-move can never resolve
+      // a target either, since it also reads stage. Asking here, once, at
+      // the same moment the arrival already names what's built, is what
+      // lets that chain start moving. Only for an UNSET stage
+      // (s.stage is '') -- a known stage with no stage-specific move of its
+      // own (researching/phone_screen/closed) already got its answer and
+      // does not need to be asked again.
+      const stageAsk=s.stage?'':'Where does this stand right now?'
+      const arrivalTail=[stageLine,stageAsk].filter(Boolean).join(' ')
       // The title already names the company for most records (e.g. "Imerys ·
       // Human Resources Vice President") -- appending " at {company}"
       // unconditionally duplicated it (production fix, same read: "your
@@ -10238,7 +10268,7 @@ export default function PivotEngine(){
       // pseudo-key) used to leave the arrival row with copy naming the next
       // move but no way to actually take it (production fix, Bob's read on
       // Imerys/Lindsey, 2026-09-10: "the missing half of the row").
-      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalPick:pick,arrivalCopy:`This is your playbook for ${roleCompanyPhrase}. ${builtSummary} ${stageLine}`.trim()}
+      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalPick:pick,arrivalCopy:`This is your playbook for ${roleCompanyPhrase}. ${builtSummary}${arrivalTail?' '+arrivalTail:''}`.trim()}
     })():null
     // Next move (fires after Delivery on a card): the anchor is the card
     // with the latest delivery-op-* firedAt for this record, mirroring
@@ -10340,7 +10370,14 @@ export default function PivotEngine(){
     // moment The Role's build STARTS, not when it finishes, so the ref
     // alone would let arrival fire mid-build on the last card).
     const opAutoBuildActive=!!opRecord&&(_pendingAutoBuildRef.current===opRecord.id||(opBuildingSlot===opRecord.id&&(opSectionBuilding==='companyRead'||opSectionBuilding==='salaryRead'||opSectionBuilding==='p5')))
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,pursuitStatusLoaded,hydrationStable}
+    // F1 twenty-minute session, item 3: the same one-tap stage picker My
+    // Search's own pursuit-stage capture already uses (pursuitStageQuickReplies,
+    // shared here rather than re-defined) -- offered on the arrival itself
+    // when the record has no stage yet at all, so setting one (and
+    // unblocking op-next-move, which reads stage) does not depend on the
+    // person happening to say something that matches STAGE_MENTION_RE first.
+    const opStageQuickReplies=(opRecord&&!opRecord.stage)?pursuitStageQuickReplies(opRecord.id):[]
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){

@@ -45,7 +45,7 @@ check(effectBlock.includes(".finally(()=>setPursuitStatusLoaded(true))"),
 // Wired into the Moments evaluator: ctx carries it, the dependency array
 // re-runs the evaluator once it flips, and op-playbook-arrival's own
 // eligible() actually waits on it.
-check(app.includes(',viewedSection,opArrivalFired,opAutoBuildActive,pursuitStatusLoaded,hydrationStable}'),
+check(app.includes(',viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   `${APP}: the evaluator's ctx no longer carries pursuitStatusLoaded`)
 check(app.includes(',pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
   `${APP}: the evaluator effect's dependency array no longer includes pursuitStatusLoaded -- it would not re-run once the real fetch settles`)
