@@ -102,8 +102,9 @@ ok('community slugs are in the canonical set',
 // day — Your STAR Stories came off its internal-only pilot gate and joined the
 // catalog, and Job Search Resources was added. The count is a tripwire for an
 // accidental edit to FEATURE_MAP, so it moves deliberately with the map and
-// never on its own; 25 when Groups for This Path shipped alongside it.
-ok('CANONICAL_FEATURE_SLUGS has 25 entries', CANONICAL_FEATURE_SLUGS.length === 25)
+// never on its own; 25 when Groups for This Path shipped alongside it; 26 when
+// Support Reimagine (the always-on sidebar card) joined the catalog.
+ok('CANONICAL_FEATURE_SLUGS has 26 entries', CANONICAL_FEATURE_SLUGS.length === 26)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',
@@ -120,6 +121,8 @@ ok('community features carry an inline label + where (no NAV_LABELS join)',
   FEATURE_MAP.filter(f => f.reach === 'community').every(f => f.label && f.where && !f.labelId))
 ok('opportunity-gated features carry an inline label + where (card inside a surface, no NAV_LABELS join)',
   FEATURE_MAP.filter(f => f.reach === 'opportunity-gated').every(f => f.label && f.where && !f.labelId))
+ok('always-on features carry an inline label + where (a pinned card, no NAV_LABELS join)',
+  FEATURE_MAP.filter(f => f.reach === 'always-on').every(f => f.label && f.where && !f.labelId))
 eq('role-options label is the render-true "Career Paths" (not stale "Role Options")',
   NAV_LABELS[FEATURE_MAP.find(f => f.slug === 'role-options').labelId], 'Career Paths')
 

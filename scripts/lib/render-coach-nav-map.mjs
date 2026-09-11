@@ -30,6 +30,7 @@ export function renderCoachNavMap() {
   const focus       = FEATURE_MAP.filter(f => f.reach === 'focus-gated')
   const opportunity = FEATURE_MAP.filter(f => f.reach === 'opportunity-gated')
   const community   = FEATURE_MAP.filter(f => f.reach === 'community')
+  const alwaysOn    = FEATURE_MAP.filter(f => f.reach === 'always-on')
   return [
     'REIMAGINE FEATURE MAP (what exists and where it lives — generated from the app, so these names match exactly what the person sees on screen):',
     '',
@@ -44,6 +45,9 @@ export function renderCoachNavMap() {
     '',
     `These live inside the ${NAV_LABELS.op}, reached once the person adds a live opportunity (paste or upload the job description). Name the feature and say where it lives; do not pretend it is one click away before they have added an opportunity:`,
     ...opportunity.map(line),
+    '',
+    'This is not a step and is never gated. It is a card pinned to the top of the left sidebar on every screen, and it opens a panel. Point someone straight to it by name and say where it is:',
+    ...alwaysOn.map(line),
     '',
     'These are community, not in-app tools — no screen, no button. Point to them in prose (especially when someone is carrying the search alone):',
     ...community.map(line),
