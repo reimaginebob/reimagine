@@ -6,10 +6,15 @@ import { useState } from 'react'
 // App.jsx gate now also prompts grandfathered (NULL-version) users for privacy so
 // this material content-review disclosure reaches every existing signed-in user
 // before content review is enabled. Records the acknowledgment (user + timestamp +
-// version) via /api/account/reaccept. CHANGE_SUMMARY is the plain-language notice.
+// version) via /api/account/reaccept. PRIVACY_CHANGE_SUMMARY and TERMS_CHANGE_SUMMARY
+// are the plain-language notices; each shows only when its own reaccept flag is set,
+// so the modal always names what actually changed instead of a fixed blurb.
 
-const CHANGE_SUMMARY =
+const PRIVACY_CHANGE_SUMMARY =
   "We've updated our Privacy Agreement. To improve our coaching, our team now reviews conversations with the coach and chat — your questions, the responses, and any feedback you give. This review uses de-identified records: your name and email are removed, so reviewers see the conversation but not who you are. We don't sell this content, use it to train AI models, or use it to contact you."
+
+const TERMS_CHANGE_SUMMARY =
+  "We've updated our Terms of Service. Offer & Negotiation, My Coach, and other AI-powered features now clearly note that their suggestions are informational, not professional advice — so you always know you're the one in charge of any offer, negotiation, or career decision you make."
 
 export default function LegalReacceptanceModal({
   needsPrivacyReaccept,
@@ -26,6 +31,10 @@ export default function LegalReacceptanceModal({
     : needsPrivacyReaccept
       ? 'Our Privacy Agreement has changed'
       : 'Our Terms of Service have changed'
+  const summaries = [
+    needsPrivacyReaccept && PRIVACY_CHANGE_SUMMARY,
+    needsTermsReaccept && TERMS_CHANGE_SUMMARY,
+  ].filter(Boolean)
 
   const accept = async () => {
     setSubmitting(true)
@@ -87,9 +96,19 @@ export default function LegalReacceptanceModal({
         >
           {title}
         </h2>
-        <p style={{ fontSize: 18, color: '#3D4A5C', lineHeight: 1.65, margin: '0 0 18px' }}>
-          {CHANGE_SUMMARY}
-        </p>
+        {summaries.map((summary, i) => (
+          <p
+            key={i}
+            style={{
+              fontSize: 18,
+              color: '#3D4A5C',
+              lineHeight: 1.65,
+              margin: i === summaries.length - 1 ? '0 0 18px' : '0 0 14px',
+            }}
+          >
+            {summary}
+          </p>
+        ))}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
           {needsPrivacyReaccept && (
             <a
