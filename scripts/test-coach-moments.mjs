@@ -127,7 +127,7 @@ check(evalBlock.includes('if(entry.generated){') && evalBlock.includes('fireMome
 // evalBlock to fireStaticEntryMessage's own definition.
 const staticFireIdx = app.indexOf('const fireStaticEntryMessage=(entry,ctx)=>{')
 check(staticFireIdx !== -1, `${APP}: fireStaticEntryMessage is missing`)
-const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 2000) : ''
+const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 2400) : ''
 check(evalBlock.includes('fireStaticEntryMessage(entry,ctx)'),
   `${APP}: the evaluator's static branch no longer calls fireStaticEntryMessage`)
 // Taps decided (batch item 1.1.1, 2026-09-10): the old two dismissal taps
