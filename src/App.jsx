@@ -12248,6 +12248,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   const activeSectionRef=useRef(null)
   const sectionLockRef=useRef(false)
   const scrollSettledRef=useRef(true)
+  const prevSectionScreenRef=useRef(null)
   // activeSectionTick (live-side brief PR 2 production fix, 2026-09-10):
   // activeSectionRef is deliberately a ref, not state (CLAUDE.md sec. 8) --
   // Situation reads it live via a getter at send time, and a ref update
@@ -12271,7 +12272,27 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     // left over from this visit (or set by scrollToOutput for an unrelated
     // screen) survives navigating away and could report a section that has
     // nothing to do with where the person actually is once they come back.
-    if(step!=='focus'&&step!=='op'){setActiveSection(null);sectionLockRef.current=false;scrollSettledRef.current=true;return}
+    if(step!=='focus'&&step!=='op'){setActiveSection(null);sectionLockRef.current=false;scrollSettledRef.current=true;prevSectionScreenRef.current=null;return}
+    // Start locked on a FRESH arrival at this screen (prevSectionScreenRef
+    // was something else, or nothing) -- not on every re-run of this effect,
+    // which also happens whenever `outputs` changes while already here (a
+    // section finishing a build). Without this, the observer's very first
+    // automatic callback -- which fires within a frame or two of mount,
+    // before any real gesture -- reported whichever card the page happens
+    // to load with in view (typically the top one) as "viewed," which stood
+    // up delivery-op-*/delivery-p*'s own viewedSection gate. That gate
+    // exists precisely so Delivery on a pre-existing build waits for the
+    // person to actually look at a card (see the comment above); it cannot
+    // do that job if the observer is free to report a view nobody chose.
+    // The fix mirrors every other user of this lock: start held, released
+    // only by a genuine scroll gesture (wheel/touchmove/keydown/settled
+    // scroll), same as an app-driven jump. This was a genuine race, not
+    // just a flaky assertion -- confirmed by 4 stash-and-rerun passes on
+    // clean origin/main (op-side's Delivery-race check failed ~1/3 of the
+    // time, timing-dependent on how fast the observer's first callback beat
+    // the fixed test wait).
+    if(prevSectionScreenRef.current!==step){sectionLockRef.current=true;scrollSettledRef.current=true}
+    prevSectionScreenRef.current=step
     const els=document.querySelectorAll('[id^="section-"]')
     if(!els.length)return
     const ratios=new Map()
