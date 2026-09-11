@@ -5,6 +5,6 @@
 // material version on re-acceptance.
 
 export const PRIVACY_VERSION = '2026-06-24'
-export const TOS_VERSION = '2026-05-15'
+export const TOS_VERSION = '2026-09-11'
 export const PRIVACY_VERSION_MATERIAL = '2026-06-24'
-export const TOS_VERSION_MATERIAL = '2026-05-15'
+export const TOS_VERSION_MATERIAL = '2026-09-11'
