@@ -5628,20 +5628,27 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
 // (categories, expanded category, per-category role lists, refine text) lives
 // in the App component's `ecosystem` state and is passed in as props, the
 // same division of labor ReshapeBox and RefineBox already use.
-function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,busy,err,onGenerate,expanded,rolesByCategory,roleBusy,roleErr,onToggleCategory,onPickRole,refineText,onRefine,otherLanes,onExploreAnother,disabled}){
+// Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
+// one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
+// clear both the center hub and each other at the node width below.
+const ECOSYSTEM_NODE_POS=[
+  {x:50,y:16},{x:76.6,y:28.8},{x:83.15,y:57.57},{x:64.75,y:80.63},
+  {x:35.25,y:80.63},{x:16.85,y:57.57},{x:23.4,y:28.8},
+]
+function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
   return <div>
     {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
     {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
     <h1 id="section-p4" style={S.title}>Industry Insider</h1>
     <p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>Map the ecosystem first, then pick a role from inside it.</p>
-    <CoachingCallout><strong style={{color:'#1A2540'}}>How this works</strong><p style={{margin:'8px 0 0'}}>Seven categories make up any industry's ecosystem: the clients, vendors, consultants, and adjacent players around it. Explore a category to see the specific roles inside it, each with a couple of real companies to ground it. Pick a role to open its full playbook, with a real, sourced company list built for that role specifically.</p></CoachingCallout>
+    <CoachingCallout><strong style={{color:'#1A2540'}}>How this works</strong><p style={{margin:'8px 0 0'}}>Seven categories make up any industry's ecosystem: the clients, vendors, consultants, and adjacent players around it. Click a category to see the specific roles inside it, each with a couple of real companies to ground it. Pick a role to open its full playbook, with a real, sourced company list built for that role specifically.</p></CoachingCallout>
     {!categories&&!busy&&<div style={S.row}><Btn onClick={onGenerate}><Sparkles size={14}/>Map My Industry</Btn></div>}
     {busy&&<Loading msg="Mapping your industry's ecosystem…" step="p4"/>}
     {err&&<ErrBox msg={err}/>}
     {categories&&!busy&&<>
       <ReshapeBox
         title="Want the map to lean a certain way?"
-        body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the categories around it. The note carries into whichever category you open next, too."
+        body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
         label="What should the map focus on?"
         placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
         submitLabel="Rebuild the map"
@@ -5649,40 +5656,66 @@ function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,busy,err,onGene
         busy={busy}
         onSubmit={onRefine}
       />
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))',gap:16,marginTop:20}}>
-        {ECOSYSTEM_CATEGORIES.map(cat=>{
+      <div style={{position:'relative',width:'100%',maxWidth:860,aspectRatio:'1/1',margin:'28px auto 0'}}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+          {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
+        </svg>
+        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'17%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:8,boxSizing:'border-box'}}>
+          <Compass size={20} color="#FFFFFF"/>
+          <div style={{fontSize:15,color:C.gold,marginTop:4,textAlign:'center',lineHeight:1.2}}>your industry</div>
+        </div>
+        {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
           const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
-          const isOpen=expanded===cat.key
-          const roles=rolesByCategory[cat.key]||null
-          return <div key={cat.key} style={{background:'#FFFFFF',border:`1.5px solid ${isOpen?C.gold:C.border}`,borderRadius:14,padding:'20px 22px'}}>
-            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
-              <div style={{fontSize:18,fontWeight:700,color:'#1A2540'}}>{cat.label}</div>
-              {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap'}}>~{c.count} orgs</div>}
+          const isEmpty=!c.count
+          const p=ECOSYSTEM_NODE_POS[i]
+          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'25%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'12px 14px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
+              <div style={{fontSize:16,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
+              {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
             </div>
-            <div style={{fontSize:16,color:'#4A5568',lineHeight:1.6,marginTop:8}}><MD text={c.description}/></div>
-            {c.examples&&c.examples.length>0&&<div style={{marginTop:10,fontSize:15,color:C.gray,fontStyle:'italic'}}>e.g. {c.examples.join(', ')}</div>}
-            <button onClick={()=>onToggleCategory(cat.key)} disabled={disabled} style={{marginTop:14,background:'transparent',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,color:C.gold,fontWeight:600,fontSize:15}}>
-              {isOpen?'Hide roles':'Explore'} <ChevronRight size={14} style={isOpen?{transform:'rotate(90deg)'}:undefined}/>
-            </button>
-            {isOpen&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-              {roleBusy===cat.key&&<Loading msg={`Finding roles in ${cat.label}…`} step="p4"/>}
-              {roleErr[cat.key]&&<ErrBox msg={roleErr[cat.key]}/>}
-              {roleBusy!==cat.key&&roles&&roles.length===0&&!roleErr[cat.key]&&<CoachingCallout>Nothing grounded surfaced here for this category. It may not be a meaningful entry point in this industry.</CoachingCallout>}
-              <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {(roles||[]).map((r,i)=><button key={i} onClick={()=>onPickRole(r.title)} disabled={disabled} style={{textAlign:'left',background:'#F8F9FB',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',cursor:'pointer',fontFamily:'inherit'}}>
-                  <div style={{fontSize:16,fontWeight:700,color:'#1A2540',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}><span>{r.title}</span><span style={{color:C.gold,fontSize:15,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>Open this role <ChevronRight size={12}/></span></div>
-                  <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginTop:6}}><MD text={r.description}/></div>
-                  {r.examples&&r.examples.length>0&&<div style={{marginTop:6,fontSize:15,color:C.gray,fontStyle:'italic'}}>e.g. {r.examples.join(', ')}</div>}
-                </button>)}
-              </div>
-            </div>}
-          </div>
+            <div style={{fontSize:15,color:C.gray,lineHeight:1.4,marginTop:4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
+            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:6,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
+          </button>
         })}
       </div>
     </>}
     <div style={S.row}>
       <Btn secondary onClick={onExploreAnother}>Explore another direction</Btn>
       {otherLanes.map(L=><Btn key={L.key} secondary onClick={L.onClick}>Back to {L.label}</Btn>)}
+    </div>
+  </div>
+}
+// Level 2 of the ecosystem view: what "Explore" REPLACES the hub with (per
+// Bob's review of the first version -- an inline accordion made the clicked
+// card's column stretch unevenly against its neighbors). Full-screen, own
+// back link, no return to the hub grid underneath.
+function IndustryEcosystemCategoryDetail({isDemo,onBack,category,data,roles,roleBusy,roleErr,onPickRole,disabled}){
+  const label=category?category.label:'This category'
+  return <div>
+    {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to ecosystem map</button></div>}
+    {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
+    <h1 style={S.title}>{label}</h1>
+    <div style={{fontSize:17,color:C.gray,lineHeight:1.6,maxWidth:760,marginBottom:10}}><MD text={data.description}/></div>
+    <div style={{display:'flex',gap:16,alignItems:'center',flexWrap:'wrap',marginBottom:28}}>
+      {data.count>0&&<div style={{fontSize:15,color:C.gray}}>~{data.count} organizations</div>}
+      {data.examples&&data.examples.length>0&&<>
+        {data.count>0&&<div style={{width:1,height:14,background:C.border}}/>}
+        <div style={{fontSize:15,color:C.gray,fontStyle:'italic'}}>e.g. {data.examples.join(', ')}</div>
+      </>}
+    </div>
+    <div style={{fontSize:15,fontWeight:700,color:'#1A2540',letterSpacing:'0.5px',textTransform:'uppercase',marginBottom:16}}>Roles in this category</div>
+    {roleBusy&&<Loading msg={`Finding roles in ${label}…`} step="p4"/>}
+    {roleErr&&<ErrBox msg={roleErr}/>}
+    {!roleBusy&&roles&&roles.length===0&&!roleErr&&<CoachingCallout>Nothing grounded surfaced here for this category. It may not be a meaningful entry point in this industry.</CoachingCallout>}
+    <div style={{display:'flex',flexDirection:'column',gap:16,maxWidth:900}}>
+      {(roles||[]).map((r,i)=><button key={i} onClick={()=>onPickRole(r.title)} disabled={disabled} style={{textAlign:'left',background:'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:14,padding:'22px 26px',cursor:'pointer',fontFamily:'inherit'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+          <div style={{fontSize:19,fontWeight:700,color:'#1A2540'}}>{r.title}</div>
+          <div style={{fontSize:15,color:C.gold,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,display:'flex',alignItems:'center',gap:4}}>Open this role <ChevronRight size={13}/></div>
+        </div>
+        <div style={{fontSize:15,color:'#4A5568',lineHeight:1.55,marginTop:8}}><MD text={r.description}/></div>
+        {r.examples&&r.examples.length>0&&<div style={{marginTop:8,fontSize:15,color:C.gray,fontStyle:'italic'}}>e.g. {r.examples.join(', ')}</div>}
+      </button>)}
     </div>
   </div>
 }
@@ -16421,26 +16454,37 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // Industry Insider ecosystem view: replaces the standard role-list render
       // below entirely for a flagged account on this lane. FG/WTM, and II for
       // every non-flagged account, fall through to the unchanged code beneath.
-      if(selectedLane==='insider'&&hasIndustryEcosystemView)return <IndustryEcosystemHub
-        isDemo={isDemo}
-        onBack={()=>nav(hubStep)}
-        hubLabel={hubLabel}
-        categories={ecosystem.categories}
-        busy={ecosystemBusy}
-        err={ecosystemErr}
-        onGenerate={()=>generateEcosystemCategories()}
-        expanded={ecosystem.expanded}
-        rolesByCategory={ecosystem.rolesByCategory}
-        roleBusy={ecosystemRoleBusy}
-        roleErr={ecosystemRoleErr}
-        onToggleCategory={toggleEcosystemCategory}
-        onPickRole={(title)=>switchToRole(title,'insider')}
-        refineText={ecosystem.refineText}
-        onRefine={(v)=>generateEcosystemCategories(v)}
-        otherLanes={Object.keys(laneData).filter(k=>k!=='insider'&&laneData[k]).map(k=>({key:k,label:laneLabelFor(k),onClick:()=>switchLaneTab(k)}))}
-        onExploreAnother={()=>nav('laneSelect')}
-        disabled={loading||!!generatingSection}
-      />
+      // Drill-in REPLACES the hub (Bob's review of the first version, per
+      // Output/handoff/2026-09-10_industry-ecosystem-view.md's follow-up): an
+      // inline accordion stretched the clicked card's column unevenly against
+      // its neighbors, so a category's roles get their own full screen instead.
+      if(selectedLane==='insider'&&hasIndustryEcosystemView){
+        if(ecosystem.expanded)return <IndustryEcosystemCategoryDetail
+          isDemo={isDemo}
+          onBack={()=>setEcosystem(e=>({...e,expanded:''}))}
+          category={ECOSYSTEM_CATEGORIES.find(c=>c.key===ecosystem.expanded)}
+          data={(ecosystem.categories&&ecosystem.categories[ecosystem.expanded])||{description:'Not a factor in this industry.',count:0,examples:[]}}
+          roles={ecosystem.rolesByCategory[ecosystem.expanded]||null}
+          roleBusy={ecosystemRoleBusy===ecosystem.expanded}
+          roleErr={ecosystemRoleErr[ecosystem.expanded]||null}
+          onPickRole={(title)=>switchToRole(title,'insider')}
+          disabled={loading||!!generatingSection}
+        />
+        return <IndustryEcosystemHub
+          isDemo={isDemo}
+          onBack={()=>nav(hubStep)}
+          hubLabel={hubLabel}
+          categories={ecosystem.categories}
+          busy={ecosystemBusy}
+          err={ecosystemErr}
+          onGenerate={()=>generateEcosystemCategories()}
+          onExplore={toggleEcosystemCategory}
+          onRefine={(v)=>generateEcosystemCategories(v)}
+          otherLanes={Object.keys(laneData).filter(k=>k!=='insider'&&laneData[k]).map(k=>({key:k,label:laneLabelFor(k),onClick:()=>switchLaneTab(k)}))}
+          onExploreAnother={()=>nav('laneSelect')}
+          disabled={loading||!!generatingSection}
+        />
+      }
       const laneText=laneData[selectedLane]||''
       const L=LANE_CARDS.find(x=>x.id===selectedLane)||{label:laneLabelFor(selectedLane),tagline:''}
       const lo=extractLaneOptions(laneText)
