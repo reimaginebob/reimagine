@@ -265,7 +265,36 @@ export function parseMood(text) {
 // crash), and the response header this feeds lets the client attach the
 // row's real, canonical quickReplies to the just-streamed reply -- see
 // Chat.jsx's mergeOfferOntoReply and the X-Coach-Widen-Search header.
+//
+// Production gap (2026-09-12, second live QA round on bob+lindsey@
+// career.club, after this trailer shipped): three separate hints, on three
+// screens, all got a real on-topic answer -- one even named the exact row
+// ("Income Now") in prose -- but none carried the header, meaning either
+// no WIDENSEARCH line was written at all, or one was written in a shape
+// this parser did not recognize. Captured browser headers on all three
+// showed X-Coach-Mood present, meaning the DISCOURAGEMENT response fired
+// for each -- that template is long, exemplar-heavy, and has its own
+// explicit closing-line spec ("Log your verdict", in the big cached
+// SYSTEM_PROMPT_STABLE block) that only enumerates SELFCHECK/MOOD, while
+// WIDEN_SEARCH_HINT_NOTE lived far later, in the per-turn uncached block,
+// buried under several other capture notes -- a plausible reason the
+// trailer loses out to a much more prominent, well-rehearsed instruction
+// on the exact turns most likely to need it (several of the hint phrases
+// ARE discouragement). Addressed on the prompt side by moving
+// widenSearchHintNote to the end of the per-turn block and explicitly
+// cross-referencing the SELFCHECK/MOOD mechanism the model already follows
+// reliably (see WIDEN_SEARCH_HINT_NOTE's own comment). Addressed here on
+// the parsing side, mirroring parseSelfcheck's own normalizeSlug (earned
+// from real production drift on SELFCHECK over months, per that
+// function's comment): strip markdown/quote wrapping and trailing
+// punctuation, and fold spaces/underscores to hyphens, so a good-faith
+// attempt in a slightly different shape ("**widen-income-now**",
+// "widen income now", "Widen-Income-Now") still resolves to the real slug
+// instead of silently becoming null.
 const WIDENSEARCH_TOKEN_RE = /\bWIDENSEARCH:\s*([^\n|<]*?)\s*(?:[|<].*)?$/i
+const normalizeWidenSearchSlug = raw => String(raw).trim().toLowerCase()
+  .replace(/^[\s*_`'".,;:!?]+|[\s*_`'".,;:!?]+$/g, '')
+  .replace(/[\s_]+/g, '-')
 export function parseWidenSearchHint(text) {
   if (typeof text !== 'string' || !text) return { widenSearchHint: null, text: text || '' }
   let widenSearchHint = null
@@ -273,7 +302,7 @@ export function parseWidenSearchHint(text) {
   for (const line of text.split('\n')) {
     const m = line.match(WIDENSEARCH_TOKEN_RE)
     if (m) {
-      const slug = m[1].trim().toLowerCase()
+      const slug = normalizeWidenSearchSlug(m[1])
       if (slug) widenSearchHint = slug
       continue
     }

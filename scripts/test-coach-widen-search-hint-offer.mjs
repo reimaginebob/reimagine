@@ -33,6 +33,25 @@ check(parseWidenSearchHint('Reply text.\nWIDENSEARCH: widen-recruiters | some tr
 check(parseWidenSearchHint('').widenSearchHint === null && parseWidenSearchHint(null).widenSearchHint === null,
   'parseWidenSearchHint does not handle empty/null input safely')
 
+// --- Production gap (2026-09-12, second live QA round): a real hint on
+// bob+lindsey@career.club got a correct, on-topic reply -- one even named
+// the exact row in prose -- but no WIDENSEARCH header ever showed up.
+// Every affected turn also carried MOOD: low (the DISCOURAGEMENT template
+// fired), and this parser cannot tell whether the model wrote no trailer
+// at all or one in a shape it did not recognize -- so it is hardened here
+// to tolerate the same kind of format drift SELFCHECK's own normalizeSlug
+// was built for, on the chance a good-faith attempt was silently dropped. ---
+check(parseWidenSearchHint('Reply.\n**WIDENSEARCH: widen-income-now**').widenSearchHint === 'widen-income-now',
+  'parseWidenSearchHint does not tolerate a markdown-bold-wrapped trailer line')
+check(parseWidenSearchHint('Reply.\nWIDENSEARCH: Widen-Income-Now').widenSearchHint === 'widen-income-now',
+  'parseWidenSearchHint does not lowercase a mixed-case row key')
+check(parseWidenSearchHint('Reply.\nWIDENSEARCH: widen income now').widenSearchHint === 'widen-income-now',
+  'parseWidenSearchHint does not fold space-separated words into the hyphenated slug shape')
+check(parseWidenSearchHint('Reply.\nWIDENSEARCH: widen_income_now').widenSearchHint === 'widen-income-now',
+  'parseWidenSearchHint does not fold underscore-separated words into the hyphenated slug shape')
+check(parseWidenSearchHint('Reply.\nWIDENSEARCH: "widen-income-now"').widenSearchHint === 'widen-income-now',
+  'parseWidenSearchHint does not strip surrounding quotes from the captured value')
+
 // --- api/coach.js wiring ---
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
@@ -44,8 +63,28 @@ check(coach.includes("import { WIDEN_SEARCH_ROW_KEYS } from '../src/coach-moment
 
 check(coach.includes('const { widenSearchHint: widenSearchHintRaw, text: widenSearchStripped } = parseWidenSearchHint(moodStripped)'),
   `${COACH}: the WIDENSEARCH trailer is not parsed right after MOOD, in the same silent-trailer chain`)
-check(coach.includes('const widenSearchHint = WIDEN_SEARCH_ROW_KEYS.includes(widenSearchHintRaw) ? widenSearchHintRaw : null'),
+check(coach.includes('const widenSearchHint = WIDEN_SEARCH_ROW_KEYS.includes(widenSearchHintRaw)'),
   `${COACH}: the captured trailer value is not validated against the real five-row enum before being trusted -- a hallucinated or drifted key would ship as-is`)
+// Production gap fix (2026-09-12): tolerates the model dropping the
+// "widen-" prefix (e.g. "income-now" instead of "widen-income-now") on
+// top of parseWidenSearchHint's own normalization.
+check(coach.includes('WIDEN_SEARCH_ROW_KEYS.includes(`widen-${widenSearchHintRaw}`) ? `widen-${widenSearchHintRaw}` : null'),
+  `${COACH}: the validation does not fall back to trying a "widen-" prefix on the captured value`)
+// Sampled diagnostic (2026-09-12): every real repro of the production gap
+// carried MOOD: low, so a discouragement turn on a flagged account that
+// still produced no valid widen-search key gets its raw tail logged --
+// real evidence next time instead of requiring browser-console patching.
+check(coach.includes("console.log('coach widen-search hint miss on a discouragement turn'"),
+  `${COACH}: no diagnostic log for a discouragement turn that produced no valid widen-search key -- a future occurrence would have no evidence to diagnose from`)
+check(/if \(mood === 'low' && !widenSearchHint && hasOnboardingConcierge\(/.test(coach),
+  `${COACH}: the diagnostic log is not scoped to discouragement turns on flagged accounts with no valid widen-search key`)
+
+// Reposition (2026-09-12): widenSearchHintNote moved to be the LAST note
+// in the per-turn profile block, closest to generation, instead of sitting
+// under seven other capture notes -- see test-coach-widen-search-hint.mjs
+// for the full assertion on the template string itself.
+check(coach.includes('${searchIntakeNoteThisTurn}${widenSearchHintNote}`'),
+  `${COACH}: widenSearchHintNote is not the last note in the profile-slice template`)
 
 // TRAILER_NAME_SWEEP is what keeps a stray WIDENSEARCH line out of the
 // visible reply on the voice-gate retry path (same reasoning as the
