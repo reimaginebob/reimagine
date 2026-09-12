@@ -7966,9 +7966,19 @@ export default function PivotEngine(){
   // PR); this is the persisted shape they'll land on.
   const[widenSearchState,setWidenSearchState]=useState({})
   // Session-only pacing: at most one unprompted widen-the-search offer per
-  // session (§2.6). Deliberately not persisted -- pacing resets each time
-  // the app is opened, same as the rest of the set's "unprompted" framing.
-  const widenSearchOfferedThisSessionRef=useRef(false)
+  // session (§2.6). "Session" means this browser tab, not this component
+  // mount -- seeded from sessionStorage (cleared when the tab closes, kept
+  // across a reload within it) rather than a plain useRef(false), which
+  // reset to false on every page load and let a reload restart pacing from
+  // zero (production fix, 2026-09-12 live QA: three unprompted offers in
+  // one sitting across two reloads with no taps in between). Deliberately
+  // sessionStorage, not localStorage/the profile blob: this is exactly the
+  // "until the tab closes" lifetime a session boundary needs, with no new
+  // session-detection logic to build.
+  const widenSearchOfferedThisSessionRef=useRef((()=>{
+    if(isDemo||isTest)return false
+    try{return sessionStorage.getItem('pe_widen_search_offered_session')==='true'}catch{return false}
+  })())
   // Live-side brief PR 1, item 1 (2026-09-10): each generated moment is its
   // own independent async fetch (fireMoment below), so firing Delivery
   // before Next move in the evaluator only controls CALL order, not ARRIVAL
@@ -10180,6 +10190,28 @@ export default function PivotEngine(){
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser)return
+    // Hydration gate (production fix, 2026-09-12 live QA on bob+lindsey@
+    // career.club): this effect has no dependency-array entry it can trust
+    // to arrive strictly after coachMoments is the REAL, hydrated value --
+    // coachMoments starts at its useState({}) default, and on first mount
+    // this effect and the two coachMoments-restoring effects (local pe_v4,
+    // then the server /api/profile/load chain) all fire from that SAME
+    // initial render's closure, so a pass here can run against an empty
+    // coachMoments before either hydration effect's setCoachMoments call
+    // has been applied. That pass's own dedupe write (setCoachMoments(m=>
+    // ...)) is a MERGE onto empty state, but the hydration effects that
+    // follow REPLACE coachMoments wholesale with the persisted copy
+    // (`if(d.coachMoments)setCoachMoments(d.coachMoments)`), silently
+    // discarding the pre-hydration pass's own dedupe write. The next
+    // reload repeats the same race from the same empty starting point --
+    // observed live as a widen-the-search offer (and, separately, an
+    // op-opportunity-read one) firing again, sometimes as a verbatim
+    // duplicate, on a reload with no taps in between. hydrationStable
+    // (localHydrationDone && serverLoadDone) is already a dependency of
+    // this effect; using it as a hard gate rather than something only one
+    // entry (coach-intro) opts into stops every candidate from ever being
+    // evaluated against not-yet-real state, not just that one.
+    if(!hydrationStable)return
     // Rule 1 (distress hold, hard): checked first -- this must win over
     // everything, including a significant moment that would otherwise
     // reopen a minimized panel. Coach stays exactly where the person left
@@ -10616,8 +10648,13 @@ export default function PivotEngine(){
     // state, so the very next evaluator pass in this session already sees
     // it -- ctx.widenSearchTarget's own offeredThisSession check reads
     // this ref, and a state-based flag would still be stale for the pass
-    // that runs before the next render.
-    if(WIDEN_SEARCH_ROW_KEYS.includes(entry.key))widenSearchOfferedThisSessionRef.current=true
+    // that runs before the next render. Also written to sessionStorage so
+    // a reload of this tab starts already knowing an offer was made this
+    // session (see the ref's own initializer, above).
+    if(WIDEN_SEARCH_ROW_KEYS.includes(entry.key)){
+      widenSearchOfferedThisSessionRef.current=true
+      try{sessionStorage.setItem('pe_widen_search_offered_session','true')}catch{}
+    }
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{
@@ -12382,6 +12419,12 @@ export default function PivotEngine(){
   const clearAccountLocalState=()=>{
     const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error']
     keys.forEach(k=>{try{localStorage.removeItem(k)}catch{}})
+    // sessionStorage, not localStorage -- see widenSearchOfferedThisSessionRef's
+    // own comment. Both Start Fresh and Sign Out navigate this same tab to a
+    // different account's session, so the flag needs clearing here too, or a
+    // widen-the-search offer already made under the old account would
+    // silently suppress the first one the new account should get.
+    try{sessionStorage.removeItem('pe_widen_search_offered_session')}catch{}
   }
   const signOut=async()=>{
     // Verify the server actually cleared the session BEFORE we wipe local state
