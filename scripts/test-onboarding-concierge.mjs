@@ -30,8 +30,12 @@ check(/export const ONBOARDING_CONCIERGE_FLAG = 'onboarding_concierge'/.test(fla
   `${FLAGS}: ONBOARDING_CONCIERGE_FLAG is missing or its value changed`)
 check(/export function hasOnboardingConcierge\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
   `${FLAGS}: hasOnboardingConcierge does not auto-grant internal accounts`)
-check(!/ONBOARDING_CONCIERGE_FLAG\]:/.test(flags.slice(flags.indexOf('GRANTABLE_FLAGS'))),
-  `${FLAGS}: onboarding_concierge was added to GRANTABLE_FLAGS -- the brief says @career.club only while this is built and reviewed, not yet open to named outside testers from the dashboard`)
+// Reversed 2026-09-12: Coach as Concierge is now grantable to a named
+// outside tester from the admin dashboard, same as every other pilot --
+// internal @career.club accounts still get it automatically via
+// isInternalAccount's auto-grant (checked above), unaffected by this.
+check(/\[ONBOARDING_CONCIERGE_FLAG\]: \{ label: 'Coach as Concierge' \}/.test(flags),
+  `${FLAGS}: onboarding_concierge is not in GRANTABLE_FLAGS -- Bob can no longer grant this pilot to a named outside tester from the dashboard`)
 
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')

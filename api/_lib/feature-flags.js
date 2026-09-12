@@ -272,4 +272,5 @@ export const GRANTABLE_FLAGS = {
   [COACH_SITUATION_FLAG]: { label: 'Coach situational grounding' },
   [COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },
   [INDUSTRY_ECOSYSTEM_VIEW_FLAG]: { label: 'Industry Insider ecosystem view' },
+  [ONBOARDING_CONCIERGE_FLAG]: { label: 'Coach as Concierge' },
 }
