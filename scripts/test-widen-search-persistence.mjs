@@ -15,8 +15,13 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(app.includes("const[widenSearchState,setWidenSearchState]=useState({})"),
   `${APP}: the widenSearchState state declaration is missing or has drifted`)
-check(app.includes('const widenSearchOfferedThisSessionRef=useRef(false)'),
+check(app.includes('const widenSearchOfferedThisSessionRef=useRef((()=>{'),
   `${APP}: the session-only pacing ref is missing -- §2.6\'s "at most one unprompted offer per session" has nothing to key off`)
+// sessionStorage-backed (production fix, 2026-09-12 live QA), not a bare
+// useRef(false) -- a plain ref reset to false on every page load, so a
+// reload restarted pacing from zero instead of surviving within the tab.
+check(app.includes("sessionStorage.getItem('pe_widen_search_offered_session')==='true'"),
+  `${APP}: the pacing ref no longer seeds itself from sessionStorage -- a reload would restart widen-the-search pacing from zero`)
 
 // --- Local (pe_v4) hydration ---
 const localHydrateIdx = app.indexOf("localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')")

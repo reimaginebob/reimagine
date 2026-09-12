@@ -80,7 +80,7 @@ check(app.includes('offeredThisSession:widenSearchOfferedThisSessionRef.current'
   `${APP}: widenSearchTarget's pacing input does not read the session-only ref from PR1`)
 check(app.includes('opOpportunityReadTarget,widenSearchTarget,viewedSection'),
   `${APP}: the evaluator's ctx no longer carries widenSearchTarget -- the five rows' eligible() could not read it`)
-check(app.includes('if(WIDEN_SEARCH_ROW_KEYS.includes(entry.key))widenSearchOfferedThisSessionRef.current=true'),
+check(app.includes('if(WIDEN_SEARCH_ROW_KEYS.includes(entry.key)){\n      widenSearchOfferedThisSessionRef.current=true'),
   `${APP}: firing a widen-the-search row does not flip the session pacing ref -- more than one could fire in the same session`)
 check(app.includes("import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from \"./coach-moments.js\""),
   `${APP}: WIDEN_SEARCH_ROW_KEYS is not imported from coach-moments.js`)
@@ -121,6 +121,19 @@ check(doItBlock.includes("window.open(CAREER_CLUB_CORNER.url,'_blank','noopener,
   `${APP}: widenSearchDoIt's Career Club Corner action does not open the real corner.career.club link`)
 check(doItBlock.includes("openCoachWith('I want to load my LinkedIn contacts so Who You Know Here and Known Contacts can start finding matches.',false)"),
   `${APP}: widenSearchDoIt's LinkedIn contacts fallback does not guide the person via Coach when no opportunity is open`)
+
+// --- Session pacing survives a reload (production fix, 2026-09-12 live QA):
+// sessionStorage, not a bare useRef(false), and cleared on Start Fresh/Sign
+// Out (clearAccountLocalState) so a new account in the same tab isn't
+// silently suppressed by the old account's pacing. ---
+check(app.includes("try{return sessionStorage.getItem('pe_widen_search_offered_session')==='true'}catch{return false}"),
+  `${APP}: widenSearchOfferedThisSessionRef no longer seeds from sessionStorage -- a reload would restart widen-the-search pacing from zero`)
+check(app.includes("try{sessionStorage.setItem('pe_widen_search_offered_session','true')}catch{}"),
+  `${APP}: firing a widen-the-search row no longer writes the sessionStorage flag -- a reload would not see this session's offer`)
+const clearIdx = app.indexOf('const clearAccountLocalState=()=>{')
+const clearBlock = clearIdx !== -1 ? app.slice(clearIdx, clearIdx + 900) : ''
+check(clearBlock.includes("sessionStorage.removeItem('pe_widen_search_offered_session')"),
+  `${APP}: clearAccountLocalState (Start Fresh / Sign Out) does not clear the widen-the-search session flag -- a new account in the same tab would inherit the old one's pacing`)
 
 // --- Prompt codes (derived from MOMENT_CATALOG) ---
 const { PROMPT_CODES } = await import('../src/coach-prompt-codes.js')
