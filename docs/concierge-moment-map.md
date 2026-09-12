@@ -99,11 +99,13 @@ inside its own `onTap` will get `undefined` — this split is why.
 
 ## 2. MOMENT_CATALOG entries
 
-31 entries, in file order. `screen` is the step id the evaluator must be on
+32 entries, in file order. `screen` is the step id the evaluator must be on
 (or, for `op-interview-close`, one of an array of steps). `dedupeKey`
 `'(none)'` means the default subkey `'_'` applies (fire once per account,
 ever). All `eligible` expressions below are the literal source from
-`src/coach-moments.js` as of this audit.
+`src/coach-moments.js` as of this audit, except row 14 (`practice-p11-
+weakest`), added after this audit was taken by Phase 4 Part 2's Column 2
+batch (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md §2.2).
 
 | # | key | screen | family / significance | priority | generated? | dedupeKey |
 |---|-----|--------|------------------------|----------|------------|-----------|
@@ -120,27 +122,28 @@ ever). All `eligible` expressions below are the literal source from
 | 11 | `delivery-p9` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
 | 12 | `delivery-salaryRead` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
 | 13 | `delivery-p11` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 14 | `delivery-p_res` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 15 | `delivery-p8` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 16 | `delivery-p7` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 17 | `delivery-income` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 18 | `next-move` | focus | next_move / ordinary | 2 | **yes** | `` `${selectedLane}::${chosen}` `` |
-| 19 | `stall` | focus | stall / ordinary | 1 | no | `` `${selectedLane}::${chosen}` `` |
-| 20 | `op-pipeline-arrival` | pipeline | arrival / ordinary | 1 | no | (none) |
-| 21 | `op-playbook-arrival` | op | arrival / ordinary | 1 | no | `ctx.opRecord.id` |
-| 22 | `delivery-op-companyRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 23 | `delivery-op-salaryRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 24 | `delivery-op-p5` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 25 | `delivery-op-p_res` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 26 | `delivery-op-p_cover` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 27 | `delivery-op-p11` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 28 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 29 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
-| 30 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
-| 31 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
+| 14 | `practice-p11-weakest` | focus | check / ordinary | 2 | no | `` `${selectedLane}::${chosen}` `` |
+| 15 | `delivery-p_res` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
+| 16 | `delivery-p8` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
+| 17 | `delivery-p7` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
+| 18 | `delivery-income` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
+| 19 | `next-move` | focus | next_move / ordinary | 2 | **yes** | `` `${selectedLane}::${chosen}` `` |
+| 20 | `stall` | focus | stall / ordinary | 1 | no | `` `${selectedLane}::${chosen}` `` |
+| 21 | `op-pipeline-arrival` | pipeline | arrival / ordinary | 1 | no | (none) |
+| 22 | `op-playbook-arrival` | op | arrival / ordinary | 1 | no | `ctx.opRecord.id` |
+| 23 | `delivery-op-companyRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 24 | `delivery-op-salaryRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 25 | `delivery-op-p5` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 26 | `delivery-op-p_res` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 27 | `delivery-op-p_cover` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 28 | `delivery-op-p11` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 29 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 30 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
+| 31 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
+| 32 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
 
-(Numbered 1-31 for reference in this doc, matching `MOMENT_CATALOG`'s own
-31 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
+(Numbered 1-32 for reference in this doc, matching `MOMENT_CATALOG`'s own
+32 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
 the machine-readable key list below against the live array, not this
 table's row numbering — a future entry added or removed here should keep
 that list in sync; the numbering above is free-standing prose, not
@@ -148,7 +151,7 @@ re-checked by the script.)
 
 <!-- moment-catalog-keys:START -->
 ```json
-["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","op-pipeline-arrival","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
+["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","op-pipeline-arrival","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
 ```
 <!-- moment-catalog-keys:END -->
 
@@ -197,6 +200,18 @@ model-visible text through `ctx.bridgeStoryToProse` rather than the raw
 `outputs.p6`, because that field can be a pre-2026-05-31 wrapped object
 (comment at 317-323) — the one Focus-side Delivery entry with an extra
 normalization step.
+
+**`practice-p11-weakest`** — Interview Prep is built AND delivery-p11 has
+already fired for this identity. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.practiceP11Target`
+`practiceP11Target` (App.jsx, computed next to `nextMoveTarget`) uses the
+same anchor-on-delivery shape: `null` until `coachMoments['delivery-p11']`
+carries a record for the current identity, so this row can never compete
+with p11's own Delivery reaction in the same evaluator pass — it wins the
+very next one. Its tap (`ctx.openCoachWith`, added to the onTap dispatch
+ctx for this row) reuses the exact op-side "practice the weakest answer"
+copy and mechanism (App.jsx `opNextMoveOnTap`/`opInterviewCloseOnTap`'s own
+`'practice'` branch) rather than singling out a specific question — Coach's
+own judgment picks where to start once the conversation opens.
 
 **`next-move`** — There is a resolved next section to suggest.
 `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.nextMoveTarget`
@@ -277,6 +292,7 @@ line of the `ctx={...}` literal itself.
 | `genSec` | 14209 | starts a Focus-side section generation |
 | `nextMoveTarget` | computed 10115-10128 | Focus-side "what's next" (reads `coachMoments`, `focusOrderFor`, `done`) |
 | `stallEligible` / `stallTarget` | computed 10147-10153 | "nothing built past the free first section" + which section Stall offers |
+| `practiceP11Target` | computed next to `nextMoveTarget` (App.jsx) | non-null once `outputs.p11` exists AND `delivery-p11` has already fired for the current identity |
 | `opHasRecords` | inline in the ctx literal (`!!opActiveRecords.length`) | whether any door2 record is active |
 | `opNearestRecord` / `opPipelineArrivalCopy` | computed 10164-10172 | My Pipeline arrival's nearest-record pick + its copy |
 | `opRecord` | computed 10220-10272 | the currently-open Opportunity Playbook record, or `null`; carries `cardBuilt`/`cardText`/`cardLabel`/`arrivalTarget`/`arrivalPick`/`arrivalCopy`/`stage` |
@@ -291,7 +307,8 @@ line of the `ctx={...}` literal itself.
 
 Tap-only fields (available inside `onTap`, not inside `eligible`/
 `message`/`quickReplies` — see Section 1's note on the two separate ctx
-objects): `savePursuit` (8215), `openOpRecord`/`generateOpSectionFor`/
+objects): `savePursuit` (8215), `chosen`/`openCoachWith` (added for
+`practice-p11-weakest`), `openOpRecord`/`generateOpSectionFor`/
 `opNextMoveOnTap`/`opInterviewCloseOnTap`/`opResumeJumpOnTap` (8537-8564,
 each re-deriving state fresh at tap time).
 
