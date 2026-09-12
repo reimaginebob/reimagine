@@ -244,8 +244,15 @@ check(app.includes('const orientationCheckCaughtUpRef=useRef(false)'),
   `${APP}: orientationCheckCaughtUpRef is missing -- the catch-up sweep would re-run on every qualifying render instead of once`)
 const catchUpIdx = app.indexOf('if(orientationCheckCaughtUpRef.current)return')
 check(catchUpIdx !== -1, `${APP}: the catch-up sweep no longer guards on orientationCheckCaughtUpRef`)
-check(app.slice(Math.max(0, catchUpIdx - 400), catchUpIdx).includes('hydrationStable'),
-  `${APP}: the catch-up sweep no longer gates on hydrationStable -- it could sweep against pre-load empty profile/done state`)
+// Concierge moment engine audit, PR 2 (2026-09-12): the sweep's own
+// hand-typed `if(!hydrationStable)return` was folded into the shared
+// useHydrationGatedEffect wrapper it now calls -- same gate, checked here
+// by confirming the sweep is reached via that wrapper rather than a bare
+// useEffect, instead of finding the word "hydrationStable" typed nearby.
+const catchUpEffectIdx = app.lastIndexOf('useHydrationGatedEffect(', catchUpIdx)
+const bareEffectIdx = app.lastIndexOf('useEffect(', catchUpIdx)
+check(catchUpEffectIdx !== -1 && catchUpEffectIdx > bareEffectIdx,
+  `${APP}: the catch-up sweep no longer gates on hydration via useHydrationGatedEffect -- it could sweep against pre-load empty profile/done state`)
 
 if (failures) {
   console.error(`test-orientation-quality-check: ${failures} check(s) failed`)

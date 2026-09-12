@@ -1,5 +1,17 @@
 # Concierge Moment Engine — Map
 
+**Status (PR 2, 2026-09-12): done.** Section 4's finding — 7 hand-typed
+`if(!hydrationStable)return` guards, all reading the one shared value — has
+been acted on: those 7 sites now call a single `useHydrationGatedEffect`
+wrapper (declared immediately after `hydrationStable` itself, `src/App.jsx`)
+instead of hand-writing the guard and remembering to add `hydrationStable`
+to their own dependency array. Section 4 below is left as the audit found
+it (the historical "why" and the site-by-site reasoning still apply); it is
+not rewritten line-number-by-line-number for the new shape. The three
+non-effect sites it named as untouched — the evaluator's ctx pass-through,
+`showMoveAnnounce`, and the one inline JSX condition — are still untouched,
+as planned.
+
 Architecture audit, F2 (2026-09-12). This is documentation only — it changes
 no behavior. It exists because two nights running produced two different
 explanations for the same live symptom (Delivery/Next move silent on a fresh

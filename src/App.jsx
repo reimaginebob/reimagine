@@ -7651,6 +7651,29 @@ export default function PivotEngine(){
   // source order throws in JS regardless of render order, so this has to
   // sit right after its own two dependencies, not near its most recent use.
   const hydrationStable=localHydrationDone&&serverLoadDone
+  // Concierge moment engine audit, PR 2 (2026-09-12, docs/concierge-moment-
+  // map.md Section 4): one shared mechanism for "run this effect only once
+  // hydration has settled," replacing 7 hand-typed `if(!hydrationStable)
+  // return` guards (each paired with its own easy-to-forget `,hydrationStable`
+  // dependency-array entry) with one wrapper every site calls instead. Not a
+  // fix -- the audit found all 7 already read this same single `hydrationStable`
+  // binding, so there was no divergent value to unify, only the repeated guard
+  // shape itself. Declared here, immediately after hydrationStable's own two
+  // dependencies, for the identical temporal-dead-zone reason hydrationStable
+  // itself is declared this early: every call site below references
+  // useHydrationGatedEffect by name only, never hydrationStable directly, so
+  // there is now exactly one place in the file that has to get the ordering
+  // right. Three sites the map lists are deliberately NOT wrapped here because
+  // they are not effects: the Moments evaluator's own ctx pass-through (a
+  // plain object property, read by coach-moments.js's own eligible()),
+  // showMoveAnnounce (a plain const combined with tableHydrateDone), and one
+  // inline JSX condition -- none of those have a guard clause to replace.
+  const useHydrationGatedEffect=(effect,deps)=>{
+    useEffect(()=>{
+      if(!hydrationStable)return
+      return effect()
+    },[...deps,hydrationStable])
+  }
   // Ref mirror of serverLoadDone, written in the same .finally that sets the
   // state. Feeds the one-shot landing decision below, which needs to know the
   // load has SETTLED (success or failure) so a dead /api/me can never wedge
@@ -9367,15 +9390,14 @@ export default function PivotEngine(){
   // guard means this could only ever happen on the very first post-mount
   // visit to My Pipeline in a session, but that is exactly the moment
   // hydration timing is least certain.
-  useEffect(()=>{
+  useHydrationGatedEffect(()=>{
     if(isDemo||isTest)return
     if(!hasPipeline||step!=='mylib')return
-    if(!hydrationStable)return
     if(pursuitReconciledRef.current)return
     pursuitReconciledRef.current=true
     const ids=savedPlaybooks.filter(r=>r&&r.source==='door2').map(r=>r.id)
     try{fetch('/api/pursuit-status',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({recordIds:ids})}).catch(()=>{})}catch{}
-  },[hasPipeline,step,savedPlaybooks,isDemo,isTest,hydrationStable])
+  },[hasPipeline,step,savedPlaybooks,isDemo,isTest])
   // Reimagine never changes a pursuit date on its own. A "Next scheduled meeting"
   // whose day has passed stays exactly as the user (or their connected assistant)
   // set it — the app does not clear or rewrite it. Past-due status is driven by
@@ -10592,20 +10614,19 @@ export default function PivotEngine(){
   // owes both answers gets one question per visit, not two at once. Self-limiting
   // — once either field holds text the guard is false forever, and a dismisser is
   // never re-asked because the flag rides the profile blob.
-  useEffect(()=>{
+  useHydrationGatedEffect(()=>{
     if(isDemo||isTest)return
     // Same reasoning as the employment prompt above: the two search questions
     // are hidden on the practice track, so their guard never clears and the
     // Coach would ask someone who is not job hunting how her search is going.
     if(isIndependent)return
-    // hydrationStable (2026-09-11 fix, F1 twenty-minute session item 1):
-    // searchGoingWell/searchFocus/seenSearchIntakePrompt all start at their
-    // empty/false defaults on every mount, same as coach-intro's outputs/
-    // done -- without this gate, a returning account whose real answers
-    // just haven't loaded yet reads as "never asked" and this fires,
-    // landing right alongside a Row A that was firing under the identical
-    // race (both now closed the same way).
-    if(!hydrationStable)return
+    // hydrationStable (via useHydrationGatedEffect -- 2026-09-11 fix, F1
+    // twenty-minute session item 1): searchGoingWell/searchFocus/
+    // seenSearchIntakePrompt all start at their empty/false defaults on
+    // every mount, same as coach-intro's outputs/done -- without this gate,
+    // a returning account whose real answers just haven't loaded yet reads
+    // as "never asked" and this fires, landing right alongside a Row A that
+    // was firing under the identical race (both now closed the same way).
     const onPromptSurface=step==='twoDoors'||step==='mylib'||step==='myCoach'
     if((!onPromptSurface&&!coachOpenTick)||!signedInUser)return
     if(searchGoingWell||searchFocus||seenSearchIntakePrompt||searchIntakePromptFiredRef.current)return
@@ -10623,7 +10644,7 @@ export default function PivotEngine(){
     // the first question; the answer to it chains to the second.
     setChatMessages(m=>[...m,searchIntakeOpener()])
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest,hydrationStable])
+  },[step,signedInUser,searchGoingWell,searchFocus,seenSearchIntakePrompt,employmentStatus,seenEmploymentPrompt,seenPbCheckin,outputs,coachOpenTick,isDemo,isTest])
   // Life Events thinness prompt, hub_arrival variant (2026-09-07). Mirrors
   // the employment/search-intake prompts' own dashboard-arrival effect
   // exactly, including their yield order (employment, then search-intake,
@@ -10952,15 +10973,15 @@ export default function PivotEngine(){
   // because that render-driven sensitivity to every field's live value was
   // exactly what let a Coach-driven capture re-trigger a check mid-session
   // (My Coach review, finding #3.4).
-  useEffect(()=>{
+  useHydrationGatedEffect(()=>{
     if(isDemo||isTest)return
-    if(!signedInUser||!hasOnboardingConcierge||!hydrationStable)return
+    if(!signedInUser||!hasOnboardingConcierge)return
     if(orientationCheckCaughtUpRef.current)return
     orientationCheckCaughtUpRef.current=true
     for(const f of orientationCheckFields){
       if(f.step!=='brand-richness')fireOrientationCheck(f)
     }
-  },[signedInUser,hasOnboardingConcierge,hydrationStable,isDemo,isTest])
+  },[signedInUser,hasOnboardingConcierge,isDemo,isTest])
   // Who the My Pipeline move actually displaced: someone holding an Opportunity
   // Playbook they built BEFORE it, who had that work listed on one screen and
   // came back to find it on another. Gated on tableHydrateDone as well as
@@ -10975,11 +10996,11 @@ export default function PivotEngine(){
   // hydrationStable so a pre-hydration profile is never recorded as the
   // baseline -- that would report every answer as newly filled in on the next
   // rebuild. Self-disarming: the p3_inputs guard makes every later run a no-op.
-  useEffect(()=>{
-    if(!hydrationStable||isDemo)return
+  useHydrationGatedEffect(()=>{
+    if(isDemo)return
     if(!outputs.p3||!String(outputs.p3).trim()||outputs.p3_inputs)return
     setOutputs(o=>(o.p3_inputs||!o.p3?o:{...o,p3_inputs:snapshotP3Inputs(profile)}))
-  },[hydrationStable,isDemo,outputs.p3,outputs.p3_inputs,profile])
+  },[isDemo,outputs.p3,outputs.p3_inputs,profile])
   // Landing logic for returning users. Waits for hydrationStable so the
   // decision is made against settled state (pe_v4 hydration AND /api/profile
   // /load resolution, the latter via .finally so it fires for both signed-in
@@ -10987,10 +11008,9 @@ export default function PivotEngine(){
   // both branches) so we never re-route the user once they navigate
   // post-landing. Telemetry fires once per session in each branch so we can
   // measure whether the refined condition is hitting the right users.
-  useEffect(()=>{
+  useHydrationGatedEffect(()=>{
     if(isDemo||isTest)return
     if(landingDecidedRef.current)return
-    if(!hydrationStable)return
     if(!done.includes('p3'))return
     landingDecidedRef.current=true
     if(isReturningExplorer){
@@ -11005,7 +11025,7 @@ export default function PivotEngine(){
     }else{
       track('landing_skipped',{reason:'no_explorer_signal'})
     }
-  },[hydrationStable,done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
+  },[done,savedPlaybooks,exploredRoleTitles,signedInUser,isDemo,isTest])
   // Re-link currentSavedSlotIdRef to a matching saved record after hydration.
   // useRef is in-memory and resets to null on every page load, so a user who
   // hard-refreshes mid-build on a saved role would otherwise lose the link.
@@ -11020,8 +11040,7 @@ export default function PivotEngine(){
   // and break ties by most recent updatedAt. The orphans stay visible on My
   // Playbooks for the user to Remove manually; auto-merge would risk silent
   // clobber of partial outputs that differ between sessions.
-  useEffect(()=>{
-    if(!hydrationStable)return
+  useHydrationGatedEffect(()=>{
     if(currentSavedSlotIdRef.current!==null)return
     if(!chosen)return
     const isDoor2=selectedLane==='specific'
@@ -11042,17 +11061,16 @@ export default function PivotEngine(){
     },null)
     currentSavedSlotIdRef.current=match.id
     setCurrentRoleInSavedSet(true)
-  },[hydrationStable,chosen,selectedLane,savedPlaybooks])
+  },[chosen,selectedLane,savedPlaybooks])
   // Auto-purge archived playbooks past their 90-day grace window. Runs once
   // after hydration settles (guarded so it never fires against pre-load empty
   // state). The write persists through the normal autosave, so a purged record
   // is gone for good — the 90 days is the user's window to restore it.
-  useEffect(()=>{
-    if(!hydrationStable)return
+  useHydrationGatedEffect(()=>{
     const cutoff=Date.now()-90*24*60*60*1000
     const isStale=r=>r&&r.archivedAt&&new Date(r.archivedAt).getTime()<cutoff
     setSavedPlaybooks(prev=>prev.some(isStale)?prev.filter(r=>!isStale(r)):prev)
-  },[hydrationStable])
+  },[])
   useEffect(()=>{
     const sectionName=NAV_LABELS[step]||'Output'
     const su=signedInUser||{}
