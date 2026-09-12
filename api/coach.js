@@ -25,7 +25,8 @@ import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
 import { applyOutputStrippers, ensureDistressSupport, matchesDistressTrigger, detectResidualVoice } from '../src/text-strippers.js'
 import { detectVoiceViolations } from '../src/voice-patterns.js'
-import { parseSelfcheck, parseMood } from '../src/coach-routing.js'
+import { parseSelfcheck, parseMood, parseWidenSearchHint } from '../src/coach-routing.js'
+import { WIDEN_SEARCH_ROW_KEYS } from '../src/coach-moments.js'
 import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../src/step-position.js'
 import { describeSections, focusSectionPosition, opSectionPosition } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
@@ -420,7 +421,7 @@ function clip(text, limit = 4000) {
 // the ONLY place that text is ever cleaned, since it replaces `strippedText`
 // outright rather than being re-run through parseMood. Missing MOOD here
 // let that line ship to the client as the last line of the visible reply.
-const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
 // Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
 // original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
@@ -1142,7 +1143,7 @@ const ORIENTATION_LISTENING_NOTE = '\n\nORIENTATION LISTENING MODE: when this pe
 // that block is the single cached prefix every account shares (see the
 // preBrandNote comment above), and forking it per flag would undo the
 // caching this file was reorganized around (cost lever 6.3.1).
-const WIDEN_SEARCH_HINT_NOTE = '\n\nWIDEN THE SEARCH: Reimagine has built things for the hard parts of a search -- finding the recruiters who place this kind of role, seeing who they already know at a company, finding groups of people on the same path, the Career Club Corner calls, and bringing money in while the search runs. When what they say, how they sound, or their pipeline points at one of those, name it plainly and offer to start it, with the tap. Hints to listen for: "I\'ve run out of people to talk to," "there\'s nothing out there," "I don\'t know anyone," feeling alone in it, a comment that money is getting tight, discouragement about opportunities; and a pipeline with few live opportunities, nothing added in a while, or nothing moving. Answer a hint like this the moment it comes up, even if Reimagine has recently offered one of these and been asked to wait on it -- responding to what someone just said is a reply, not a repeat of an unprompted offer. Offer the path; do not diagnose them. For Income Now specifically, respond to what they said and never probe the finances behind it.'
+const WIDEN_SEARCH_HINT_NOTE = '\n\nWIDEN THE SEARCH: Reimagine has built things for the hard parts of a search -- finding the recruiters who place this kind of role, seeing who they already know at a company, finding groups of people on the same path, the Career Club Corner calls, and bringing money in while the search runs. When what they say, how they sound, or their pipeline points at one of those, name it plainly and offer to start it, with the tap. Hints to listen for: "I\'ve run out of people to talk to," "there\'s nothing out there," "I don\'t know anyone," feeling alone in it, a comment that money is getting tight, discouragement about opportunities; and a pipeline with few live opportunities, nothing added in a while, or nothing moving. Answer a hint like this the moment it comes up, even if Reimagine has recently offered one of these and been asked to wait on it -- responding to what someone just said is a reply, not a repeat of an unprompted offer. Offer the path; do not diagnose them. For Income Now specifically, respond to what they said and never probe the finances behind it. When you make this offer, end your reply with a bare line naming exactly which one you offered: WIDENSEARCH: <key>, using one of these five keys and no other text on that line -- widen-recruiters, widen-linkedin-contacts, widen-networking-groups, widen-career-club-corner, widen-income-now. That line is never shown to the person; it is what attaches the real Do it now / Remind me later / Not for me buttons to your answer, so write the offer itself in your own words and let this line do the button -- do not describe the buttons in your prose. Write it only on a reply that actually made one of these five offers; omit it entirely otherwise.'
 
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false, tzOffsetMinutes = 0) {
   // Orientation field capture (2026-09-06), gated -- unlike VALUES_CAPTURE_NOTE
@@ -2491,7 +2492,15 @@ export default async function handler(req, res) {
   // this DOES need a response header: the Moments engine that must respect
   // it runs client-side, with no visibility into this reply's text.
   const { mood, text: moodStripped } = parseMood(selfcheckStripped)
-  const strippedText0 = moodStripped.trim()
+  // t01-19 follow-up (2026-09-12 live QA on bob+lindsey@career.club): same
+  // bare-trailer shape as MOOD just above, stripped the same turn -- see
+  // parseWidenSearchHint's own comment (src/coach-routing.js) for why this
+  // exists. Validated against the real five-row enum here, not trusted as
+  // written: a hallucinated or drifted key becomes null rather than a
+  // header the client could never resolve to a real catalog row.
+  const { widenSearchHint: widenSearchHintRaw, text: widenSearchStripped } = parseWidenSearchHint(moodStripped)
+  const widenSearchHint = WIDEN_SEARCH_ROW_KEYS.includes(widenSearchHintRaw) ? widenSearchHintRaw : null
+  const strippedText0 = widenSearchStripped.trim()
   let strippedText = strippedText0
   // Milestone-mention durable flag (2026-09-06, post-eval -- see the comment
   // above MILESTONE_PROMPT_NOTE). Same silent-log shape as SELFCHECK just
@@ -3045,6 +3054,13 @@ export default async function handler(req, res) {
   if (mood === 'low') res.setHeader('X-Coach-Mood', 'low')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
   if (searchIntakeB64) res.setHeader('X-Coach-Search-Intake', searchIntakeB64)
+  // t01-19 follow-up (2026-09-12 live QA): not folded into arbitrateOffers
+  // above -- this is a soft nudge in response to a hint, not a durable data
+  // write competing with a real capture, so it stays outside that priority
+  // order the same way distress/mood do. Chat.jsx's own handling runs this
+  // branch last among the capture-offer checks, so a genuine data capture
+  // on the same turn still wins the one quick-reply slot a reply can carry.
+  if (widenSearchHint) res.setHeader('X-Coach-Widen-Search', widenSearchHint)
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200)

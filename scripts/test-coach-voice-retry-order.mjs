@@ -55,8 +55,12 @@ check(!retryBlock.includes('if (useRetry) cleaned = cleaned2'),
 // client unstripped. The exact literal below is mirrored (and behaviorally
 // exercised against the real symptom) in test-coach-mood-retry-sweep.mjs;
 // this check is what keeps that mirror from silently drifting.
-check(coach.includes('const TRAILER_NAME_SWEEP = /^\\s*(?:SELFCHECK|MOOD|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim'),
-  `${COACH}: TRAILER_NAME_SWEEP is missing or missing MOOD -- a voice-retry rewrite that reproduces a MOOD: low line would leak it to the visible reply`)
+// t01-19 follow-up (2026-09-12): WIDENSEARCH added to the name list, same
+// reasoning as MOOD's own 2026-09-09 fix -- a voice-retry rewrite that
+// reproduces a WIDENSEARCH: <key> line would otherwise leak it to the
+// visible reply.
+check(coach.includes('const TRAILER_NAME_SWEEP = /^\\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim'),
+  `${COACH}: TRAILER_NAME_SWEEP is missing or missing MOOD/WIDENSEARCH -- a voice-retry rewrite that reproduces one of those lines would leak it to the visible reply`)
 check(retryBlock.includes("applyOutputStrippers(raw2).replace(TRAILER_NAME_SWEEP, '').trim()"),
   `${COACH}: the retry's regenerated text is not swept for stray trailer syntax before being adopted as the new strippedText`)
 check(coach.indexOf('const TRAILER_NAME_SWEEP') < extractionIdx,

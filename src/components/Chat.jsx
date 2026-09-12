@@ -7,6 +7,8 @@ import { detectVoiceViolations } from '../voice-patterns.js'
 import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
 import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
 import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
+import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from '../coach-moments.js'
+import { isWidenSearchRowEligible } from '../widen-search.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without
@@ -56,7 +58,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -808,6 +810,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
         const distressHeader = res.headers.get('X-Coach-Distress') || null
         const moodHeader = res.headers.get('X-Coach-Mood') || null
+        const whHeader = res.headers.get('X-Coach-Widen-Search') || null
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let fullText = ''
@@ -902,6 +905,41 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           logPromptEngagement('life_events_thin', 'topic_close_language', 'shown')
           setMessages(m => [...m, lifeEventsThinOfferMessage])
           if (onLifeEventsThinTopicClose) onLifeEventsThinTopicClose()
+        }
+        // Widen-the-search hint offer (t01-19 follow-up, 2026-09-12 live QA
+        // on bob+lindsey@career.club): WIDEN_SEARCH_HINT_NOTE (api/coach.js)
+        // told the model to answer a hint phrase and "offer to start it,
+        // with the tap," but the taps only ever exist client-side, keyed
+        // off a MOMENT_CATALOG row (coach-moments.js) -- a live
+        // conversational reply had no path to that catalog at all, so every
+        // hint got real, on-topic prose that named the right option but
+        // rendered no buttons. The server validates the model's own
+        // WIDENSEARCH: <row-key> trailer against the real five-row enum and
+        // carries it on X-Coach-Widen-Search; this resolves that key back
+        // to its own canonical message/quickReplies and attaches them the
+        // same way every other capture offer does. checkinKey is
+        // 'moment:<row-key>' -- the exact shape App.jsx's generic Moments
+        // tap dispatcher already reads for a scripted, unprompted fire of
+        // this same row, so the three taps (Do it now/Remind me later/Not
+        // for me) route through that same onTap with no new dispatch code.
+        // Checked FIRST among the mergeOfferOntoReply branches below, not
+        // last like search-intake: if the model also captured a durable
+        // fact on this same turn, that later branch overwrites this one --
+        // a real data capture should win the reply's one offer slot, and a
+        // reply to a hint is softer than any of them. isWidenSearchRowEligible's
+        // own isDirectHint still refuses a row the person retired with "Not
+        // for me" (brief §2.6: a hint overrides snooze and pacing, never a
+        // retirement) -- this path never touches the client's own
+        // unprompted rotation/pacing at all, so there is nothing else to
+        // bypass.
+        if (widenSearchHintCaptureActive && whHeader && WIDEN_SEARCH_ROW_KEYS.includes(whHeader) && isWidenSearchRowEligible(widenSearchState, whHeader, new Date(), { isDirectHint: true })) {
+          const entry = MOMENT_CATALOG.find(e => e && e.key === whHeader)
+          if (entry) {
+            const ctx = { chosen }
+            const offerMessage = typeof entry.message === 'function' ? entry.message(ctx) : entry.message
+            const offerQuickReplies = typeof entry.quickReplies === 'function' ? entry.quickReplies(ctx) : entry.quickReplies
+            mergeOfferOntoReply(offerMessage, `moment:${whHeader}`, offerQuickReplies)
+          }
         }
         // Opportunity update capture: the server extracted any combination of a
         // stage move, a next move (+ date), a scheduled meeting, and new
