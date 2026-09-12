@@ -118,7 +118,7 @@ check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,
 // a re-pick the instant an in-flight generated moment settles. savedPlaybooks/
 // activePlaybooks/pursuitStatus/connNetwork/connManual/connSearch appended by
 // live-side brief PR 2, same day, for the op-side ctx fields above.
-check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
+check(app.includes(',done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array no longer includes done -- a build completing without an accompanying outputs/coachMoments change would leave nextMoveTarget stale`)
 
 // --- Server: shape validation, dispatch ---

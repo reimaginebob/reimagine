@@ -10641,6 +10641,21 @@ export default function PivotEngine(){
     // are not the same thing for two independent async fetches. This pass
     // is retried the instant the in-flight one settles (momentReevalTick).
     if(momentInFlightRef.current)return
+    // Turn pacing (Bob live-test finding, 2026-09-12): the guard above only
+    // blocks a new candidate while the CURRENTLY FIRING one's own fetch is
+    // in flight -- once that resolves, nothing stopped this same pass from
+    // immediately picking a second, unrelated entry with no message from
+    // the person in between (reproduced live: career-paths-intro and the
+    // Industry Insider ecosystem hint landed back to back off one "yes").
+    // Hold any new unprompted moment until the most recently fired one has
+    // been followed by a genuine user turn -- a real, non-synthetic message
+    // (setMessages's own synthetic:true marks a quick-reply tap as NOT a
+    // real turn, Chat.jsx line ~567) sent after it. Scoped to catalog fires
+    // only (checkinKey starts 'moment:'); a freeform Coach reply carries no
+    // such checkinKey and is already one-per-user-turn by construction, so
+    // it never trips this guard.
+    const lastMomentIdx=chatMessages.reduce((acc,mm,i)=>(mm&&typeof mm.checkinKey==='string'&&mm.checkinKey.startsWith('moment:'))?i:acc,-1)
+    if(lastMomentIdx!==-1&&!chatMessages.slice(lastMomentIdx+1).some(mm=>mm&&mm.role==='user'&&!mm.synthetic))return
     const{entry,subKey,dedupeValue}=picked
     momentFiredRef.current.add(`${entry.key}:${subKey}`)
     setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
@@ -10668,7 +10683,7 @@ export default function PivotEngine(){
       fireStaticEntryMessage(entry,ctx)
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and
