@@ -76,6 +76,46 @@
 // APPROVED closing sentence the pre-Phase-4 message already shipped with
 // (same batch, item 7b, verbatim in `message` below) -- same tap, same
 // destination, no unapproved words.
+// Widen-the-search set (Phase 4 Part 2, brief §2.6) shared machinery.
+// Identical three taps, identical value prefixes, identical dispatch to
+// the App.jsx-side snooze/retire/do-it handlers a rowKey is passed into,
+// across all five rows below -- only the message and the "Do it now"
+// action differ per row, so those stay on each entry; this is purely the
+// part that would otherwise be typed five times.
+const widenSearchQuickReplies = (rowKey) => [
+  { label: 'Do it now', value: `widen-do-it:${rowKey}` },
+  { label: 'Remind me later', value: `widen-remind-later:${rowKey}` },
+  { label: 'Not for me', value: `widen-not-for-me:${rowKey}` },
+]
+const widenSearchOnTap = (value, ctx) => {
+  if (value.startsWith('widen-do-it:')) { ctx.widenSearchDoIt(value.slice('widen-do-it:'.length)); return true }
+  if (value.startsWith('widen-remind-later:')) { ctx.widenSearchRemindLater(value.slice('widen-remind-later:'.length)); return true }
+  if (value.startsWith('widen-not-for-me:')) { ctx.widenSearchNotForMe(value.slice('widen-not-for-me:'.length)); return true }
+  return false
+}
+// Every other row's dedupeValue defaults to the constant 'fired' -- correct
+// for a "fire once, ever" moment, wrong here: these rows must be able to
+// fire again after a snooze/retirement window passes or rotation comes
+// back around, and a constant dedupeValue would permanently block that the
+// moment it fired once (App.jsx's evaluator skips whenever
+// stored.value===dedupeValue). A fresh timestamp on every fire keeps that
+// check from ever matching, so the REAL gate -- ctx.widenSearchTarget,
+// which already encodes the snooze/pacing/rotation engine -- is the only
+// thing deciding whether a widen-the-search row is eligible again.
+const widenSearchDedupeValue = () => new Date().toISOString()
+
+// Canonical rotation order (brief §2.6's own listed order). App.jsx's
+// pickNextWidenSearchRow call and lastOfferedKey derivation both walk
+// this same array, so a person who snoozed Recruiters hears about
+// LinkedIn contacts next, per the brief's own example.
+export const WIDEN_SEARCH_ROW_KEYS = [
+  'widen-recruiters',
+  'widen-linkedin-contacts',
+  'widen-networking-groups',
+  'widen-career-club-corner',
+  'widen-income-now',
+]
+
 export const MOMENT_CATALOG = [
   {
     key: 'coach-intro',
@@ -997,5 +1037,115 @@ export const MOMENT_CATALOG = [
       if (value === 'op-resume-jump-build') ctx.opResumeJumpOnTap()
       return true
     },
+  },
+  // Widen-the-search set (Phase 4 Part 2, brief §2.6). Five offers --
+  // Recruiters for This Path, Load your LinkedIn contacts, Networking
+  // Groups, Career Club Corner, Income Now -- that widen a person's
+  // surface area of opportunity, and that Bob's own usage data (14 days to
+  // 2026-09-10) shows nobody finds on their own. Unlike every row above,
+  // eligibility is NOT a condition on profile state: per the brief, "the
+  // evaluator's job for this set is the pacing and the snooze dates only."
+  // ctx.widenSearchTarget is computed ONCE in the evaluator (src/App.jsx)
+  // via pickNextWidenSearchRow (src/widen-search.js), which already
+  // encodes the snooze/retirement/pacing/rotation machinery (PR1) -- each
+  // row below just checks whether it is the one picked, so at most one of
+  // the five is ever eligible in a given pass.
+  //
+  // dismissible:false opts out of the shared Remind-me-later/Minimize
+  // pair (same mechanism Row A/B use, fireStaticEntryMessage): the brief's
+  // own taps for this set are a hard rule -- [Do it now] [Remind me
+  // later] [Not for me], never Minimize -- so each row supplies its
+  // complete tap set instead of layering onto the shared one, via the
+  // widenSearchQuickReplies/widenSearchOnTap helpers defined above
+  // MOMENT_CATALOG.
+  //
+  // shownOutcome / the tap values below feed the widen-the-search-specific
+  // dashboard vocabulary (decision d08: "offer made" / "do it now" /
+  // "remind later" / "not for me"), not the older shown/accepted/declined
+  // triple every row above still uses.
+  {
+    key: 'widen-recruiters',
+    family: 'check',
+    // The main "in search" surfaces -- not tied to one Focus section the
+    // way most Check rows are, since this offer is about a direction as a
+    // whole, not a card someone just built.
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_recruiters',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-recruiters',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // DRAFT (Bob to read live and sign off; brief §2.6 gives the
+    // condition and the taps as approved, not this sentence).
+    message: (ctx) => `Recruiters for This Path builds a list of the recruiters who place people into roles like ${ctx.chosen || 'this one'}. Want it built?`,
+    quickReplies: () => widenSearchQuickReplies('widen-recruiters'),
+    onTap: widenSearchOnTap,
+  },
+  {
+    key: 'widen-linkedin-contacts',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_linkedin_contacts',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.widenSearchTarget === 'widen-linkedin-contacts',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // DRAFT (Bob to read live and sign off).
+    message: () => 'Loading your LinkedIn contacts lets Who You Know Here and Known Contacts find the people you already know at a company. Want to load them?',
+    quickReplies: () => widenSearchQuickReplies('widen-linkedin-contacts'),
+    onTap: widenSearchOnTap,
+  },
+  {
+    key: 'widen-networking-groups',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_networking_groups',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-networking-groups',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // DRAFT (Bob to read live and sign off).
+    message: () => 'Networking Groups builds a list of groups near you for people on this path. Want it built?',
+    quickReplies: () => widenSearchQuickReplies('widen-networking-groups'),
+    onTap: widenSearchOnTap,
+  },
+  {
+    key: 'widen-career-club-corner',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_career_club_corner',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.widenSearchTarget === 'widen-career-club-corner',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // APPROVED verbatim, Bob's own words (brief §2.6, 2026-09-10). Do not
+    // edit this sentence without a fresh sign-off.
+    message: () => "There's a free community that meets every Monday called Career Club Corner. It's run by Bob, and he walks the group through his book, Making Your Own Weather, a twelve-week syllabus on the job search. It's also an open opportunity for you to ask him anything about your own search. The people on the call are just like you, going through the same process, and plenty of them become networking contacts and accountability partners. Nobody is selling you anything. Want the link?",
+    quickReplies: () => widenSearchQuickReplies('widen-career-club-corner'),
+    onTap: widenSearchOnTap,
+  },
+  {
+    key: 'widen-income-now',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_income_now',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-income-now',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // DRAFT (Bob to read live and sign off).
+    message: () => 'Income Now lays out ways to bring some money in while your search runs. Want it built?',
+    quickReplies: () => widenSearchQuickReplies('widen-income-now'),
+    onTap: widenSearchOnTap,
   },
 ]

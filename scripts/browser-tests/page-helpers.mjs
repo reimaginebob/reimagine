@@ -59,11 +59,11 @@ export async function openEmbeddedCoach(page) {
   await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
 }
 
-async function newPage(browser, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride }) {
+async function newPage(browser, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState }) {
   const context = await browser.newContext({ viewport: VIEWPORT })
   const page = await context.newPage()
   await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride })
+  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
   await page.goto(DEV_URL)
   await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
   return { context, page, coachRequests }
@@ -82,8 +82,8 @@ export async function newFocusPage(browser, { step = 'focus', coachReplyBody, em
 // savedPlaybooksOverride/chosenOverride (all optional) drive an
 // opportunity's stage/dates/built-cards for those without touching the
 // shared DOOR1_RECORD/DOOR2_RECORD fixtures.
-export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride })
+export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
   await openEmbeddedCoach(page)
   return { context, page, coachRequests }
 }

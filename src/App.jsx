@@ -16,7 +16,8 @@ import { findPersonalBrandTailBoundary, parsePersonalBrandTail, validatePersonal
 import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence, stripSincerityQualifiers, stripRoomsPlaceholder, stripMetaNarration, stripSelfTalkPreamble, stripCoverLetterBoilerplate, stripUnfoundedBiographicalOrigin } from "./text-strippers.mjs"
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
-import { MOMENT_CATALOG } from "./coach-moments.js"
+import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from "./coach-moments.js"
+import { pickNextWidenSearchRow, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
 import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
@@ -8619,6 +8620,42 @@ export default function PivotEngine(){
           restoreFromSavedSlot(focusRec)
           setTimeout(()=>genSec('p_res'),250)
         },
+        // Widen-the-search set (Phase 4 Part 2, brief §2.6). Snooze/retire
+        // are identical across all five rows -- just a write to
+        // widenSearchState and a log call, keyed by the row's own
+        // promptCode (looked up from MOMENT_CATALOG rather than
+        // duplicating the mapping here). Do-it's action is the one thing
+        // that actually differs per row.
+        widenSearchRemindLater:(rowKey)=>{
+          setWidenSearchState(s=>snoozeWidenSearchRow(s,rowKey,new Date()))
+          const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
+          if(code)logPromptEngagement(code,'topic_close_tap','remind later')
+        },
+        widenSearchNotForMe:(rowKey)=>{
+          setWidenSearchState(s=>retireWidenSearchRow(s,rowKey,new Date()))
+          const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
+          if(code)logPromptEngagement(code,'topic_close_tap','not for me')
+        },
+        widenSearchDoIt:(rowKey)=>{
+          const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
+          if(code)logPromptEngagement(code,'topic_close_tap','do it now')
+          if(rowKey==='widen-recruiters')return genSec('recruiters')
+          if(rowKey==='widen-networking-groups')return genSec('groups')
+          if(rowKey==='widen-income-now')return genSec('income')
+          if(rowKey==='widen-career-club-corner'){try{window.open(CAREER_CLUB_CORNER.url,'_blank','noopener,noreferrer')}catch{};return}
+          if(rowKey==='widen-linkedin-contacts'){
+            // No standalone screen for this -- the upload lives inside an
+            // Opportunity Playbook's own Who You Know Here card (App.jsx,
+            // ~17667). Scroll straight there only when that card is
+            // already the one on screen; otherwise Coach guides the
+            // person to it rather than forcing a navigation this offer
+            // did not originate from.
+            const recId=currentSavedSlotIdRef.current
+            if(step==='op'&&recId&&savedPlaybooks.some(r=>r&&r.id===recId)){scrollToOutput('knownContacts');return}
+            openCoachWith('I want to load my LinkedIn contacts so Who You Know Here and Known Contacts can start finding matches.',false)
+            return
+          }
+        },
       })
       return true
     }
@@ -9591,7 +9628,10 @@ export default function PivotEngine(){
       setChatMessages(m=>[...m,newEntryMsg])
     }
     if(entry.significance==='open')setCoachPresence('open')
-    if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')
+    // shownOutcome (widen-the-search set, decision d08): logs 'offer made'
+    // instead of 'shown' for these five rows' own dashboard vocabulary.
+    // Defaults to 'shown' so every other static entry is unchanged.
+    if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',entry.shownOutcome?entry.shownOutcome(ctx):'shown')
   }
   // Full fire, dedupe write included -- for a caller outside the main
   // evaluator loop (which already writes this same record itself, shared
@@ -10266,6 +10306,37 @@ export default function PivotEngine(){
     // at; re-fires (own dedupeKey) if the nearest record later changes.
     const opPipelineReadEligible=!!(opActiveRecords.length>=2&&coachMoments['op-pipeline-arrival']&&coachMoments['op-pipeline-arrival']['_'])
     const opOpportunityReadTarget=(coachMoments['op-pipeline-arrival']&&coachMoments['op-pipeline-arrival']['_']&&opNearestRecord)?opNearestRecord:null
+    // Widen-the-search set (Phase 4 Part 2, brief §2.6): picked ONCE here
+    // via the pure engine (src/widen-search.js, PR1) so at most one of the
+    // five rows (src/coach-moments.js) is ever eligible in a given pass --
+    // each row's own eligible() just checks whether it is the one this
+    // picked. lastOfferedKey is derived from whichever row's own
+    // coachMoments record fired most recently: their dedupeValue is a
+    // fresh ISO timestamp on every fire specifically so this reads as
+    // "last offered", not "already seen, never again" -- see the entries'
+    // own comment in coach-moments.js for why the default once-ever
+    // dedupe semantics don't fit a repeating, snoozable offer.
+    const widenSearchLastOfferedKey=WIDEN_SEARCH_ROW_KEYS.reduce((latest,k)=>{
+      const fired=coachMoments[k]&&coachMoments[k]['_']&&coachMoments[k]['_'].firedAt
+      if(!fired)return latest
+      if(!latest)return k
+      const latestFired=coachMoments[latest]['_'].firedAt
+      return new Date(fired)>new Date(latestFired)?k:latest
+    },null)
+    // Career Club Corner and Load LinkedIn contacts don't need a direction;
+    // Recruiters/Networking Groups/Income Now build a Focus section via
+    // genSec and do (their own eligible() checks ctx.chosen too). Excluding
+    // the latter three from the candidate list itself, not just leaving it
+    // to their own eligible() to reject, matters for rotation: without a
+    // direction chosen yet, rotation with no lastOfferedKey always starts
+    // at index 0 (widen-recruiters) -- if that row's own eligible() were
+    // the only thing rejecting it, nothing would ever fire, and nothing
+    // would ever advance lastOfferedKey past null, so it would stay stuck
+    // offering (and rejecting) widen-recruiters forever, even for a Door-2-
+    // only account that never picks a direction and could still use the
+    // two rows that don't need one.
+    const widenSearchCandidateKeys=chosen?WIDEN_SEARCH_ROW_KEYS:WIDEN_SEARCH_ROW_KEYS.filter(k=>k==='widen-linkedin-contacts'||k==='widen-career-club-corner')
+    const widenSearchTarget=hasOnboardingConcierge?pickNextWidenSearchRow(widenSearchCandidateKeys,widenSearchState,{lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
     // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
     // move row), shared by Opportunity Playbook arrival (offers the first
     // one that fits) and Next move (offers the one after whatever Delivery
@@ -10491,7 +10562,7 @@ export default function PivotEngine(){
     // unblocking op-next-move, which reads stage) does not depend on the
     // person happening to say something that matches STAGE_MENTION_RE first.
     const opStageQuickReplies=(opRecord&&!opRecord.stage)?pursuitStageQuickReplies(opRecord.id):[]
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,hasWeaknessEvidenceNow,routedQuestionTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,hasWeaknessEvidenceNow,routedQuestionTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,widenSearchTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
@@ -10541,6 +10612,12 @@ export default function PivotEngine(){
     const{entry,subKey,dedupeValue}=picked
     momentFiredRef.current.add(`${entry.key}:${subKey}`)
     setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
+    // Widen-the-search pacing (brief §2.6): flip synchronously, not via
+    // state, so the very next evaluator pass in this session already sees
+    // it -- ctx.widenSearchTarget's own offeredThisSession check reads
+    // this ref, and a state-based flag would still be stale for the pass
+    // that runs before the next render.
+    if(WIDEN_SEARCH_ROW_KEYS.includes(entry.key))widenSearchOfferedThisSessionRef.current=true
     if(entry.generated){
       fireMoment(entry,ctx)
     }else{

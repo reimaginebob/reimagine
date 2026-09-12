@@ -18,6 +18,8 @@ It can also save a few things for you. When a conversation lands on something th
 
 On your Focus Playbook, once you build one section, it often follows with a quick word on what naturally comes next and a one-tap offer to build that section too — the same build the screen's own button would start, just offered where you are.
 
+From time to time it will also point out something that could widen your options — recruiters who place people into a role like yours, people you already know at a company, a networking group nearby, the Career Club Corner community, or a way to bring some money in while your search runs. Each one comes with a real choice: do it now, be reminded later, or say it's not for you right now.
+
 Early on it may ask what's going well in your search and what you'd like to improve. Answer as fully or as briefly as you like: it's a conversation, so it will talk through what you say before it moves on, and it only offers to keep an answer that had something in it. Whatever you keep shows up on the Your Current Situation screen in Orientation, and your coach treats it as background on where things stood when you said it, not as a fixed read on you.
 
 ## What it won't do, and why that helps
