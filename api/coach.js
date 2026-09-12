@@ -1130,6 +1130,20 @@ function searchIntakeNote(si) {
 // is a different job than this one governs.
 const ORIENTATION_LISTENING_NOTE = '\n\nORIENTATION LISTENING MODE: when this person shares something real — a struggle, a frustration, how something is going for them — reflect it back and stay with it before you redirect, caveat, or pivot to anything else, including one of the capture notes elsewhere in this prompt. Resist the pull to solve it, defer it to "once your brand is built," or steer toward whatever is still missing from their profile. One open question that builds on what they actually said is worth more here than a capture offer or a redirect. If nothing calls for a follow-up, a brief, genuine acknowledgment is enough — you do not owe them a next question every turn. This does not cancel any capture note elsewhere in this prompt — still offer to save something that clearly fits — it governs what comes FIRST in your reply: their words get heard on their own terms before anything else happens in the same breath.'
 
+// WIDEN THE SEARCH (Phase 4 Part 2, brief §2.6). DRAFT -- Bob has not signed
+// off on this exact wording yet; it ships gated on hasOnboardingConcierge,
+// same as the rest of the widen-the-search set, for his own live read before
+// anyone else sees it. This is the principle half of the set: the client
+// (src/widen-search.js) owns the unprompted side -- snooze dates, pacing,
+// rotation -- and this note owns the reactive side, answering a real hint
+// the moment it comes up in conversation, which the client-side engine has
+// no way to see or act on. Lives in the per-user UNCACHED block
+// (buildCoachProfileSlice), not SYSTEM_PROMPT_HEAD/buildSystemPromptStable --
+// that block is the single cached prefix every account shares (see the
+// preBrandNote comment above), and forking it per flag would undo the
+// caching this file was reorganized around (cost lever 6.3.1).
+const WIDEN_SEARCH_HINT_NOTE = '\n\nWIDEN THE SEARCH: Reimagine has built things for the hard parts of a search -- finding the recruiters who place this kind of role, seeing who they already know at a company, finding groups of people on the same path, the Career Club Corner calls, and bringing money in while the search runs. When what they say, how they sound, or their pipeline points at one of those, name it plainly and offer to start it, with the tap. Hints to listen for: "I\'ve run out of people to talk to," "there\'s nothing out there," "I don\'t know anyone," feeling alone in it, a comment that money is getting tight, discouragement about opportunities; and a pipeline with few live opportunities, nothing added in a while, or nothing moving. Answer a hint like this the moment it comes up, even if Reimagine has recently offered one of these and been asked to wait on it -- responding to what someone just said is a reply, not a repeat of an unprompted offer. Offer the path; do not diagnose them. For Income Now specifically, respond to what they said and never probe the finances behind it.'
+
 function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, independent = false, activityFacts = [], priorSessionAt = null, sessionOpenRequested = false, tzOffsetMinutes = 0) {
   // Orientation field capture (2026-09-06), gated -- unlike VALUES_CAPTURE_NOTE
   // and ASSESSMENT_CAPTURE_NOTE just below, which shipped before CLAUDE.md's
@@ -1404,6 +1418,10 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
     ? '\n\nASSISTANT CONNECTOR (this person has it; it is a limited beta most users do not have — never imply it is generally available): they can connect their own assistant to Gmail and Calendar so their pipeline keeps itself current without them typing anything. Reimagine never reads their inbox. Mention it only if it fits what they are asking; do not pitch it.'
     : ''
   const coachNoteAgencyNote = hasCoachNoteAgency({ feature_flags: featureFlags, email: userEmail }) ? COACH_NOTE_CAPTURE_NOTE : ''
+  // Same gate as every other widen-the-search mechanism (src/coach-moments.js's
+  // five rows all check ctx.hasOnboardingConcierge) -- see WIDEN_SEARCH_HINT_NOTE's
+  // own comment for why this lives here and not in the cached stable block.
+  const widenSearchHintNote = hasOnboardingConcierge({ feature_flags: featureFlags, email: userEmail }) ? WIDEN_SEARCH_HINT_NOTE : ''
   // The session-open turn already asks its own open question (what do you want
   // to focus on today, or should Coach suggest something) -- stacking search
   // intake's separate ask in the same reply would hand the person two open
@@ -1423,7 +1441,7 @@ function buildCoachProfileSlice(state, employmentStatus, featureFlags, pursuitRo
   // what is going well "in it right now") does not even make sense before a
   // search exists to have a read on.
   const searchIntakeNoteThisTurn = (sessionOpenRequested || !brandStepDone) ? '' : searchIntakeNote(si)
-  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${orientationListeningNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
+  return `THIS USER'S REIMAGINE PROFILE (you can reference and reason about it; you never change it yourself — the only writes are the one-tap offers described at the end of this block, which the person accepts or declines):\n\n${anchor1}\n\n${anchor2}\n\n${indexBlock}${offerBlock}${sparseNote}${preBrandNote}${orientationListeningNote}${myStatusData}${focusData}${activityData}${sessionOpenNote}${nextStepNote}${connectorNote}${opportunityUpdateNote}${opportunityContextNote}${opportunityArchiveNote}${closeReasonNote}${opCardReworkNote}${milestonePromptNote}${activityNote}${coachNoteAgencyNote}${widenSearchHintNote}${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${searchIntakeNoteThisTurn}`
 }
 
 // === In-focus saved-playbook expansion (PR-B) ===
