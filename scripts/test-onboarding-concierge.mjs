@@ -73,25 +73,32 @@ check(introBlock.includes('!!ctx.hydrationStable'),
 check(/const ctx=\{[^}]*hydrationStable\}/.test(app),
   `${APP}: the evaluator's ctx object no longer carries hydrationStable through to catalog entries`)
 // hydrationStable is declared once, well above both its Moments-evaluator
-// and search-intake-effect use sites -- referencing a const before its
-// declaration throws in JS regardless of render order. Guards against the
-// fix regressing back into the temporal-dead-zone bug it was written to
-// avoid (hydrationStable used to be declared much further down, after both
-// of these use sites).
+// use site and useHydrationGatedEffect (the shared wrapper every hydration-
+// gated effect, including search-intake, calls instead of hand-writing its
+// own guard -- concierge moment engine audit, PR 2, 2026-09-12) --
+// referencing a const before its declaration throws in JS regardless of
+// render order. Guards against the fix regressing back into the temporal-
+// dead-zone bug it was written to avoid (hydrationStable used to be
+// declared much further down, after both of these use sites).
 const hydrationStableDeclIdx = app.indexOf('const hydrationStable=localHydrationDone&&serverLoadDone')
 check(hydrationStableDeclIdx !== -1, `${APP}: hydrationStable's declaration is missing`)
 const ctxIdx = app.indexOf('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,')
 check(hydrationStableDeclIdx !== -1 && ctxIdx !== -1 && hydrationStableDeclIdx < ctxIdx,
   `${APP}: hydrationStable is declared AFTER the Moments evaluator's ctx object reads it -- this throws (temporal dead zone), not just returns undefined`)
-const searchIntakeEffectIdx = app.indexOf('if(!hydrationStable)return\n    const onPromptSurface=')
-check(hydrationStableDeclIdx !== -1 && searchIntakeEffectIdx !== -1 && hydrationStableDeclIdx < searchIntakeEffectIdx,
-  `${APP}: hydrationStable is declared AFTER the search-intake prompt effect reads it -- this throws (temporal dead zone), not just returns undefined`)
+const useHydrationGatedEffectIdx = app.indexOf('const useHydrationGatedEffect=(effect,deps)=>{')
+check(hydrationStableDeclIdx !== -1 && useHydrationGatedEffectIdx !== -1 && hydrationStableDeclIdx < useHydrationGatedEffectIdx,
+  `${APP}: hydrationStable is declared AFTER useHydrationGatedEffect reads it -- this throws (temporal dead zone), not just returns undefined`)
 // The search-intake prompt shares the identical pre-hydration race (its own
 // searchGoingWell/searchFocus/seenSearchIntakePrompt also read as empty
 // pre-load), which is how it could land stacked right alongside a
 // wrongly-firing Row A in the same account's chat -- same fix, same gate.
-check(searchIntakeEffectIdx !== -1,
-  `${APP}: the search-intake hub_arrival prompt effect no longer gates on hydrationStable -- it can still stack with (or fire independently during) the same pre-hydration window Row A's fix closes`)
+// PR 2 (2026-09-12) replaced this effect's own hand-typed
+// `if(!hydrationStable)return` with a call to the shared
+// useHydrationGatedEffect wrapper -- same gate, one mechanism instead of a
+// hand-typed copy of it.
+const searchIntakeEffectIdx = app.indexOf('useHydrationGatedEffect(()=>{\n    if(isDemo||isTest)return\n    // Same reasoning as the employment prompt above:')
+check(useHydrationGatedEffectIdx !== -1 && searchIntakeEffectIdx !== -1 && useHydrationGatedEffectIdx < searchIntakeEffectIdx,
+  `${APP}: the search-intake hub_arrival prompt effect no longer gates on hydration via useHydrationGatedEffect -- it can still stack with (or fire independently during) the same pre-hydration window Row A's fix closes`)
 // Only APPROVED copy ships -- the brief's DRAFT closing line ("Ready?
 // We'll start with where you are right now.") must not appear as the
 // entry's actual message text; the already-shipped, already-approved
