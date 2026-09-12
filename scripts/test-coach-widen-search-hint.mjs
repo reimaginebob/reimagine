@@ -61,10 +61,26 @@ check(coach.includes("const widenSearchHintNote = hasOnboardingConcierge({ featu
 check(!coach.slice(coach.indexOf('const SYSTEM_PROMPT_HEAD ='), coach.indexOf('const SYSTEM_PROMPT_TAIL =')).includes('WIDEN_SEARCH_HINT_NOTE'),
   `${COACH}: WIDEN_SEARCH_HINT_NOTE leaked into SYSTEM_PROMPT_HEAD -- that block is cached and identical for every account, so this would reach every one of the 145 accounts unflagged, not just Bob's`)
 
-// Threaded into the main profile-slice template, right after
-// coachNoteAgencyNote and before the always-on capture notes.
-check(coach.includes('${coachNoteAgencyNote}${widenSearchHintNote}${VALUES_CAPTURE_NOTE}'),
-  `${COACH}: widenSearchHintNote is not appended in the main profile-slice template`)
+// Threaded into the main profile-slice template as the LAST note appended
+// (production fix, 2026-09-12 second live QA round on bob+lindsey@
+// career.club): originally sat right after coachNoteAgencyNote, buried
+// under seven more capture notes before the model ever reached the actual
+// conversation -- moved to the end, closest to generation, since a real
+// hint-answering turn that also fired DISCOURAGEMENT (MOOD: low) reliably
+// produced the mood trailer (governed by a much earlier, far more
+// prominent instruction) but never the widen-search one.
+check(coach.includes('${searchIntakeNoteThisTurn}${widenSearchHintNote}`'),
+  `${COACH}: widenSearchHintNote is not the last note appended in the main profile-slice template -- see the 2026-09-12 production-gap fix for why position matters here`)
+
+// Cross-references the SAME closing-line mechanism (SELFCHECK/MOOD) the
+// model already follows reliably, and states plainly that a widen-search
+// offer and DISCOURAGEMENT are not mutually exclusive -- both addressing
+// the production gap's own root-cause hypothesis (the offer was losing to
+// DISCOURAGEMENT's own explicit, much earlier closing-format spec).
+check(noteLine.includes('LOG THIS THE SAME WAY YOU ALREADY LOG YOUR VERDICT'),
+  `${COACH}: WIDEN_SEARCH_HINT_NOTE does not cross-reference the SELFCHECK/MOOD "Log your verdict" mechanism the model already follows reliably`)
+check(noteLine.includes('not a separate mode from DISCOURAGEMENT'),
+  `${COACH}: WIDEN_SEARCH_HINT_NOTE does not state that a widen-search offer and DISCOURAGEMENT are compatible in the same reply`)
 
 // Deliberately NOT threaded into the empty-profile branch (no state object
 // at all) -- that branch is definitionally pre-Personal-Brand, before any
