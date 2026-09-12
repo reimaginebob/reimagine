@@ -103,7 +103,7 @@ check(app.includes('const stallTarget=stallEligible&&stallOrder[1]?{id:stallOrde
   `${APP}: stallTarget is missing or has drifted from the Moments evaluator`)
 // Extended by live-side brief PR 2 (2026-09-10) with the op-side fields;
 // stall's own fields are still present, not replaced.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   `${APP}: the evaluator's ctx no longer carries stallEligible and stallTarget`)
 // coachDistressHold/coachMoodHold appended by the engine guardrails brief
 // (2026-09-09) -- stall's own two fields are still present ahead of them.
