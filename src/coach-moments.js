@@ -776,6 +776,43 @@ export const MOMENT_CATALOG = [
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.interviewPrepToProse(ctx.opRecord.cardText('p11')) }),
     selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p11')}, and I have a read on it`,
   },
+  // Rows 14/15 (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+  // §2.2, Column 2): the two per-seat Interview Team doors (renderInterviewPrep's
+  // 'Practice with My Coach'/'Prep with My Coach' buttons, App.jsx) share one
+  // underlying mechanism -- onPrepWithCoach -- so this is one proactive row,
+  // not two. Delivery-adjacent, same shape as practice-p11-weakest above:
+  // eligible only once delivery-op-p11 has already reacted for this record
+  // (ctx.opPracticeTeamEligible, App.jsx), gated additionally on the built
+  // p11 actually carrying a team (ip.people or ip.panel), not the flat
+  // question-list shape. No specific person is singled out to feature --
+  // same reasoning as practice-p11-weakest not singling out a specific
+  // question: Coach's own judgment walks the team once the conversation
+  // opens, rather than a client-side pick of which seat to lead with. Its
+  // tap reuses the existing openCoachWith practice mechanism, not a new
+  // one. Per CLAUDE.md's page-button rule, the page's own two per-seat
+  // doors stay in place until this row has fired on Bob's account and
+  // passed his read.
+  {
+    key: 'op-practice-interview-team',
+    family: 'check',
+    screen: 'op',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_practice_interview_team',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opPracticeTeamEligible,
+    dedupeKey: (ctx) => ctx.opRecord.id,
+    message: (ctx) => `Your interview team for ${ctx.opRecord.company} is mapped out. Want to prep with My Coach?`,
+    // "Let's prep for it", not "Prep with My Coach" -- the page's own
+    // per-seat door (renderInterviewPrep, App.jsx) already uses that exact
+    // label; a second, identically-labeled button one panel over would be
+    // ambiguous to tap the right one on.
+    quickReplies: (ctx) => [{ label: 'Let\'s prep for it', value: `op-practice-team-go:${ctx.opRecord.id}` }],
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-practice-team-go:')) ctx.opPracticeTeamOnTap(value.slice('op-practice-team-go:'.length))
+      return true
+    },
+  },
   {
     key: 'delivery-op-offerNegotiation',
     family: 'delivery',

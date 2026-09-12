@@ -8578,6 +8578,12 @@ export default function PivotEngine(){
           const act=()=>{if(prepBuilt)openCoachWith(`I want to practice my interview answers for ${rec.company||rec.title||'this opportunity'}.`);else generateOpSection('p11')}
           if(alreadyOpen)act();else{restoreFromSavedSlot(rec);setTimeout(act,250)}
         },
+        opPracticeTeamOnTap:(recId)=>{
+          const rec=savedPlaybooks.find(r=>r&&r.id===recId);if(!rec)return
+          const alreadyOpen=currentSavedSlotIdRef.current===recId
+          const act=()=>openCoachWith(`I want to practice my interview answers for ${rec.company||rec.title||'this opportunity'}. Walk me through my interview team one person at a time -- what they're likely weighing, and a story of mine that fits -- then let me answer their questions out loud and give me feedback.`)
+          if(alreadyOpen)act();else{restoreFromSavedSlot(rec);setTimeout(act,250)}
+        },
         opResumeJumpOnTap:()=>{
           const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current)
           const lane=rec&&rec.lane
@@ -10300,8 +10306,26 @@ export default function PivotEngine(){
       // pseudo-key) used to leave the arrival row with copy naming the next
       // move but no way to actually take it (production fix, Bob's read on
       // Imerys/Lindsey, 2026-09-10: "the missing half of the row").
-      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalPick:pick,arrivalCopy:`This is your playbook for ${roleCompanyPhrase}. ${builtSummary}${arrivalTail?' '+arrivalTail:''}`.trim()}
+      // hasInterviewTeam (Phase 4 Part 2, Column 2 rows 14/15, brief 2.2):
+      // whether the built Interview Prep carries a per-person team (either
+      // JSON shape renderInterviewPrep already handles -- ip.people or
+      // ip.panel) rather than the flat question-list shape. Parsed once
+      // here, the same source renderInterviewPrep itself parses when it
+      // renders the card, so this can never disagree with what the page
+      // actually shows.
+      const p11Ip=cardBuilt('p11')?parseInterviewPrepJSON(cardText('p11')):null
+      const hasInterviewTeam=!!(p11Ip&&((Array.isArray(p11Ip.people)&&p11Ip.people.length)||(Array.isArray(p11Ip.panel)&&p11Ip.panel.length)))
+      return{id:opCurrentRecordRaw.id,lane:opCurrentRecordRaw.lane||null,company,stage:s.stage||'',cardBuilt,cardText,cardLabel,arrivalTarget,arrivalPick:pick,hasInterviewTeam,arrivalCopy:`This is your playbook for ${roleCompanyPhrase}. ${builtSummary}${arrivalTail?' '+arrivalTail:''}`.trim()}
     })():null
+    // Practice with the Interview Team (Phase 4 Part 2, Column 2 rows
+    // 14/15, coach-moments.js 'op-practice-interview-team'): eligible only
+    // once delivery-op-p11 has already fired for this record (same anchor-
+    // on-delivery shape practiceP11Target uses on the Focus side), so this
+    // never competes with p11's own Delivery reaction in the same
+    // evaluator pass. No specific person is singled out to feature -- same
+    // reasoning as practiceP11Target not singling out a specific question:
+    // Coach's own judgment walks the team once the conversation opens.
+    const opPracticeTeamEligible=!!(opRecord&&opRecord.hasInterviewTeam&&coachMoments['delivery-op-p11']&&coachMoments['delivery-op-p11'][opRecord.id])
     // Next move (fires after Delivery on a card): the anchor is the card
     // with the latest delivery-op-* firedAt for this record, mirroring
     // Focus's own nextMoveTarget just above -- the model needs something it
@@ -10409,7 +10433,7 @@ export default function PivotEngine(){
     // unblocking op-next-move, which reads stage) does not depend on the
     // person happening to say something that matches STAGE_MENTION_RE first.
     const opStageQuickReplies=(opRecord&&!opRecord.stage)?pursuitStageQuickReplies(opRecord.id):[]
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
