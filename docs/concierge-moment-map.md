@@ -99,13 +99,14 @@ inside its own `onTap` will get `undefined` — this split is why.
 
 ## 2. MOMENT_CATALOG entries
 
-32 entries, in file order. `screen` is the step id the evaluator must be on
+33 entries, in file order. `screen` is the step id the evaluator must be on
 (or, for `op-interview-close`, one of an array of steps). `dedupeKey`
 `'(none)'` means the default subkey `'_'` applies (fire once per account,
 ever). All `eligible` expressions below are the literal source from
-`src/coach-moments.js` as of this audit, except row 14 (`practice-p11-
-weakest`), added after this audit was taken by Phase 4 Part 2's Column 2
-batch (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md §2.2).
+`src/coach-moments.js` as of this audit, except rows 14 (`practice-p11-
+weakest`) and 29 (`op-practice-interview-team`), both added after this
+audit was taken by Phase 4 Part 2's Column 2 batch (Output/handoff/2026-09-
+09_concierge-batch-and-phase4-brief.md §2.2).
 
 | # | key | screen | family / significance | priority | generated? | dedupeKey |
 |---|-----|--------|------------------------|----------|------------|-----------|
@@ -137,13 +138,14 @@ batch (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md §2.2).
 | 26 | `delivery-op-p_res` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
 | 27 | `delivery-op-p_cover` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
 | 28 | `delivery-op-p11` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 29 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 30 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
-| 31 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
-| 32 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
+| 29 | `op-practice-interview-team` | op | check / ordinary | 2 | no | `ctx.opRecord.id` |
+| 30 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 31 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
+| 32 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
+| 33 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
 
-(Numbered 1-32 for reference in this doc, matching `MOMENT_CATALOG`'s own
-32 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
+(Numbered 1-33 for reference in this doc, matching `MOMENT_CATALOG`'s own
+33 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
 the machine-readable key list below against the live array, not this
 table's row numbering — a future entry added or removed here should keep
 that list in sync; the numbering above is free-standing prose, not
@@ -151,7 +153,7 @@ re-checked by the script.)
 
 <!-- moment-catalog-keys:START -->
 ```json
-["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","op-pipeline-arrival","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
+["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","op-pipeline-arrival","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","op-practice-interview-team","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
 ```
 <!-- moment-catalog-keys:END -->
 
@@ -245,6 +247,19 @@ Playbook card, requiring the card built, in view, AND
 record before any op-side Delivery can. Example (`delivery-op-p_cover`):
 `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p_cover') && ctx.viewedSection === 'p_cover' && ctx.opArrivalFired`
 
+**`op-practice-interview-team`** — Interview Prep is built with a real
+per-person team (not the flat question-list shape) AND `delivery-op-p11`
+has already fired for this record. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opPracticeTeamEligible`
+`opPracticeTeamEligible` (App.jsx, computed next to `opNextMoveTarget`)
+reads `opRecord.hasInterviewTeam` (parsed once via `parseInterviewPrepJSON`
+inside the `opRecord` IIFE, checking for `ip.people`/`ip.panel`) AND
+`coachMoments['delivery-op-p11']` for the record — the same anchor-on-
+delivery shape `practiceP11Target` uses on the Focus side. Its tap
+(`ctx.opPracticeTeamOnTap`, added to the op-side tap dispatch ctx) reuses
+the existing openCoachWith practice mechanism rather than singling out a
+specific team member — Coach's own judgment walks the team once the
+conversation opens.
+
 **`op-next-move`** — A stage-fitting next card exists that differs from
 whatever Delivery just reacted to. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opNextMoveTarget`
 `opNextMoveTarget` (App.jsx 10279-10300) is `null` whenever
@@ -295,8 +310,9 @@ line of the `ctx={...}` literal itself.
 | `practiceP11Target` | computed next to `nextMoveTarget` (App.jsx) | non-null once `outputs.p11` exists AND `delivery-p11` has already fired for the current identity |
 | `opHasRecords` | inline in the ctx literal (`!!opActiveRecords.length`) | whether any door2 record is active |
 | `opNearestRecord` / `opPipelineArrivalCopy` | computed 10164-10172 | My Pipeline arrival's nearest-record pick + its copy |
-| `opRecord` | computed 10220-10272 | the currently-open Opportunity Playbook record, or `null`; carries `cardBuilt`/`cardText`/`cardLabel`/`arrivalTarget`/`arrivalPick`/`arrivalCopy`/`stage` |
+| `opRecord` | computed 10220-10272 | the currently-open Opportunity Playbook record, or `null`; carries `cardBuilt`/`cardText`/`cardLabel`/`arrivalTarget`/`arrivalPick`/`arrivalCopy`/`stage`/`hasInterviewTeam` (parsed once via `parseInterviewPrepJSON`, checking `ip.people`/`ip.panel`) |
 | `opNextMoveTarget` | computed 10279-10300 | stage-fitting next pick for the open record (uses `opPickByStage`, 10191-10205) |
+| `opPracticeTeamEligible` | computed next to `opNextMoveTarget` (App.jsx) | `opRecord.hasInterviewTeam` AND `delivery-op-p11` already fired for the record |
 | `opInterviewCloseTarget` | computed 10307-10328 | soonest qualifying interview within 3 days across all active records |
 | `opResumeJumpTarget` | computed 10335-10341 | matching door1 record with no Resume Refresh built |
 | `viewedSection` | 10351 | `activeSectionRef.current` — the section actually in view, read live per the "Situation is a projection of app state" principle (CLAUDE.md §8) |
@@ -309,8 +325,8 @@ Tap-only fields (available inside `onTap`, not inside `eligible`/
 `message`/`quickReplies` — see Section 1's note on the two separate ctx
 objects): `savePursuit` (8215), `chosen`/`openCoachWith` (added for
 `practice-p11-weakest`), `openOpRecord`/`generateOpSectionFor`/
-`opNextMoveOnTap`/`opInterviewCloseOnTap`/`opResumeJumpOnTap` (8537-8564,
-each re-deriving state fresh at tap time).
+`opNextMoveOnTap`/`opInterviewCloseOnTap`/`opPracticeTeamOnTap`/
+`opResumeJumpOnTap` (8537-8564, each re-deriving state fresh at tap time).
 
 ---
 

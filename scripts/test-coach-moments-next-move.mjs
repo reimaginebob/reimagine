@@ -110,7 +110,7 @@ check(targetBlock.includes('const nextSec=order.slice(anchorIdx+1).find(s=>!done
 // PR 2, same day, with the op-side fields; next-move's own fields are
 // still present alongside both, not replaced. practiceP11Target added by
 // Phase 4 Part 2's Column 2 batch (row 13, practice-p11-weakest).
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   // done added by Phase 4 §2.3's coach-intro entry (Output/handoff/2026-09-
   // 09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx no longer carries nextMoveTarget and genSec -- next-move's own eligible/dedupeKey/dedupeValue/momentContext/actionReply/onTap all need them`)
