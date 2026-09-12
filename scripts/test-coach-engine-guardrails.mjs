@@ -111,8 +111,9 @@ check(app.includes("if(coachMoodHold&&entry.family!=='delivery'&&entry.family!==
   `${APP}: the evaluator does not hold every family except delivery/choice while coachMoodHold is set`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
 // savedPlaybooks/activePlaybooks/pursuitStatus/connNetwork/connManual/
-// connSearch appended by live-side brief PR 2, same day.
-check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
+// connSearch appended by live-side brief PR 2, same day. chatMessages
+// appended 2026-09-12 (turn-pacing gate).
+check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array does not include both new holds`)
 
 // --- Client: all 3 Chat mount sites wired ---

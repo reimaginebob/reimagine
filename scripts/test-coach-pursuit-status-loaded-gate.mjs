@@ -47,7 +47,7 @@ check(effectBlock.includes(".finally(()=>setPursuitStatusLoaded(true))"),
 // eligible() actually waits on it.
 check(app.includes(',viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   `${APP}: the evaluator's ctx no longer carries pursuitStatusLoaded`)
-check(app.includes(',pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
+check(app.includes(',pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array no longer includes pursuitStatusLoaded -- it would not re-run once the real fetch settles`)
 
 const MOMENTS = 'src/coach-moments.js'
