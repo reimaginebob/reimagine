@@ -72,7 +72,14 @@ check(moments.includes('dedupeKey: (ctx) => ctx.selectedLane') , `${MOMENTS}: ch
 check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1 + 1,
   `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, next-move, and stall`)
 for (const s of DELIVERY_SECTIONS) {
-  const expected = s === 'p6' ? 'dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6)' : `dedupeValue: (ctx) => ctx.outputs.${s}`
+  // p11 (2026-09-12 production fix): same reasoning as p6's own
+  // bridgeStoryToProse -- p11 is one of the whole-response-JSON steps
+  // (JSON_ONLY_STEPS, api/claude.js), un-clip()-safe raw, so its
+  // dedupeValue/text both go through interviewPrepToProse instead. See
+  // test-coach-moments-p11-prose.mjs for the full investigation.
+  const expected = s === 'p6' ? 'dedupeValue: (ctx) => ctx.bridgeStoryToProse(ctx.outputs.p6)'
+    : s === 'p11' ? 'dedupeValue: (ctx) => ctx.interviewPrepToProse(ctx.outputs.p11)'
+    : `dedupeValue: (ctx) => ctx.outputs.${s}`
   check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s content-comparison dedupeValue is missing or has drifted`)
 }
 check(!moments.includes("key: 'choice-lane',") || !/key: 'choice-lane',[\s\S]{0,400}dedupeValue:/.test(moments),
@@ -86,7 +93,9 @@ check(moments.includes('momentContext: (ctx) => ({ lane: ctx.selectedLane, laneL
 check(moments.includes('momentContext: (ctx) => ({ roleTitle: ctx.chosen, laneLabel: ctx.laneLabelFor(ctx.selectedLane) })'),
   `${MOMENTS}: choice-role's momentContext has drifted`)
 for (const s of DELIVERY_SECTIONS) {
-  const text = s === 'p6' ? 'ctx.bridgeStoryToProse(ctx.outputs.p6)' : `ctx.outputs.${s}`
+  const text = s === 'p6' ? 'ctx.bridgeStoryToProse(ctx.outputs.p6)'
+    : s === 'p11' ? 'ctx.interviewPrepToProse(ctx.outputs.p11)'
+    : `ctx.outputs.${s}`
   const expected = `momentContext: (ctx) => ({ section: '${s}', sectionLabel: ctx.focusLabelFor('${s}', ctx.isIndependent), text: ${text} })`
   check(moments.includes(expected), `${MOMENTS}: delivery-${s}'s momentContext has drifted`)
 }
@@ -116,7 +125,7 @@ check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: deliver
 // Paths' own six fields are still present alongside both, not replaced.
 // opAutoBuildActive added by F1 twenty-minute session item 2 (2026-09-11
 // evening): op-playbook-arrival's own race-with-auto-build gate.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   // done added by Phase 4 §2.3's coach-intro entry, whose eligibility needs
   // it (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/done/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)

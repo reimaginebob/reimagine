@@ -370,8 +370,15 @@ export const MOMENT_CATALOG = [
     generated: true,
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!(ctx.outputs && ctx.outputs.p11) && !!ctx.chosen && ctx.viewedSection === 'p11',
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
-    dedupeValue: (ctx) => ctx.outputs.p11,
-    momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.focusLabelFor('p11', ctx.isIndependent), text: ctx.outputs.p11 }),
+    // interviewPrepToProse, not raw ctx.outputs.p11 (2026-09-12 production
+    // fix): p11 is one of three whole-response-JSON steps (JSON_ONLY_STEPS,
+    // api/claude.js), same as p6's own wrapped-object shape -- this is p6's
+    // bridgeStoryToProse fix, applied to the sibling that needed it and never
+    // got it. Sending the raw JSON as "here is what was built" prose context
+    // put a large, sometimes-clip()-truncated-mid-brace structured blob in
+    // front of the model instead of readable text.
+    dedupeValue: (ctx) => ctx.interviewPrepToProse(ctx.outputs.p11),
+    momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.focusLabelFor('p11', ctx.isIndependent), text: ctx.interviewPrepToProse(ctx.outputs.p11) }),
     selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p11', ctx.isIndependent)}, and I have a read on it`,
   },
   {
@@ -725,8 +732,12 @@ export const MOMENT_CATALOG = [
     generated: true,
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opRecord && ctx.opRecord.cardBuilt('p11') && ctx.viewedSection === 'p11' && ctx.opArrivalFired,
     dedupeKey: (ctx) => ctx.opRecord.id,
-    dedupeValue: (ctx) => ctx.opRecord.cardText('p11'),
-    momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.opRecord.cardText('p11') }),
+    // interviewPrepToProse, not raw ctx.opRecord.cardText('p11') -- same
+    // production fix as delivery-p11 above (2026-09-12): p11's raw JSON,
+    // not this un-JSON'd prose, was going straight into Coach's "here is
+    // what was built" Delivery prompt.
+    dedupeValue: (ctx) => ctx.interviewPrepToProse(ctx.opRecord.cardText('p11')),
+    momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.opRecord.cardLabel('p11'), text: ctx.interviewPrepToProse(ctx.opRecord.cardText('p11')) }),
     selfOpenReason: (ctx) => `you finished ${ctx.opRecord.cardLabel('p11')}, and I have a read on it`,
   },
   {
