@@ -25,7 +25,7 @@ import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // holding localStorage state overwrites newer server state. Tested by
 // scripts/test-autosave-gate.mjs.
 import { canPushProfile } from "./autosave-gate.js"
-import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
+import { PLAYLIST_TYPES, PLAYLIST_TARGET, STORY_SLOTS, SLOT_LABELS, ROUTED_QUESTIONS, WEAKNESS_QUESTION, INVENTORY, newStoryId, addStory, coverage, emptySlots, firstPerKind, weaknessRecord, hasWeaknessEvidence, missingNumbers, questionGroup, parseStorySeed, THOUGHT_PROCESS_FRAMEWORKS, readFramework } from "./star-stories.mjs"
 import { parseConnectionsCsv, matchConnections, looseMatchConnections, manualPerson, withManual, withoutManual, linkedInSecondDegreeUrl, linkedInAlumniUrl, tranches, schoolsFromText, packNetwork, unpackNetwork, daysSince, outreachKey, mailtoUrl, firstNameOf, emailGuesses, normalizeCompany, searchQuery, resolveSearch, linkedInFirstDegreeUrl, HUNTER_URL, NETWORK_STORAGE_KEY, OUTREACH_STORAGE_KEY, DOMAIN_STORAGE_KEY, SEARCH_STORAGE_KEY, MANUAL_STORAGE_KEY, MAX_CONNECTIONS, STALE_AFTER_DAYS, LINKEDIN_DOWNLOAD_URL, LINKEDIN_HELP_URL } from "./connections-match.mjs"
 import { extractCorrectionTerms, countTermInText, detectCorrectionConflict } from "./corrections.js"
 // Job Search Resources (docs/networking-groups-brief.md). The date rule and the
@@ -8584,6 +8584,22 @@ export default function PivotEngine(){
           const act=()=>openCoachWith(`I want to practice my interview answers for ${rec.company||rec.title||'this opportunity'}. Walk me through my interview team one person at a time -- what they're likely weighing, and a story of mine that fits -- then let me answer their questions out loud and give me feedback.`)
           if(alreadyOpen)act();else{restoreFromSavedSlot(rec);setTimeout(act,250)}
         },
+        weaknessQuestionOnTap:()=>openCoachWith(WEAKNESS_QUESTION.coach,true,'stories'),
+        routedQuestionOnTap:(qid)=>{
+          const q=ROUTED_QUESTIONS.find(x=>x&&x.id===qid)
+          if(q&&q.coach)openCoachWith(q.coach,true,'stories')
+        },
+        opPipelineReadOnTap:()=>openCoachWith(`Step back and look at my whole pipeline. How is my search going overall — where am I building momentum and where am I stalling — and where should I focus my energy right now?`,true),
+        // Same fallback chain as the pipeline board's own per-record title
+        // (rec.title||rec.company||'Opportunity', App.jsx ~15327) -- this
+        // reuses the ORIGINAL page button's exact seed text (line ~15361),
+        // not a new one, and (like that button) does not restore/pin
+        // currentSavedSlotIdRef -- the read does not require navigating in.
+        opOpportunityReadOnTap:(recId)=>{
+          const rec=savedPlaybooks.find(r=>r&&r.id===recId);if(!rec)return
+          const title=rec.title||rec.company||'Opportunity'
+          openCoachWith(`Give me your read on where my ${title} opportunity stands right now — what's going well, what's stalled, and the single most important thing I should do next to move it forward.`,true)
+        },
         opResumeJumpOnTap:()=>{
           const rec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current)
           const lane=rec&&rec.lane
@@ -10164,6 +10180,27 @@ export default function PivotEngine(){
       const idKey=`${selectedLane}::${chosen}`
       return(coachMoments['delivery-p11']&&coachMoments['delivery-p11'][idKey])?{idKey}:null
     })()
+    // Weakness question / routed question rows (Phase 4 Part 2, Column 2
+    // rows 16/17, brief 2.2): both live on the STAR Stories screen
+    // (coach-moments.js keys 'weakness-question-coach'/'routed-question-
+    // coach'). hasWeaknessEvidence mirrors the same real/not-real signal
+    // the screen's own coverage tracker (cov, 'focus' render case) already
+    // uses -- the offer is only worth making while the answer is still
+    // thin. routedQuestionTarget picks the first coach-enabled
+    // ROUTED_QUESTIONS entry not yet offered for this account (dedupeKey is
+    // the question's own id, not a role/lane identity -- these are generic
+    // interview questions, not tied to a chosen direction), so each of the
+    // five gets its own one-time offer over time rather than the row going
+    // silent forever after the first.
+    const hasWeaknessEvidenceNow=hasWeaknessEvidence(starStories)
+    const routedQuestionTarget=(()=>{
+      for(const q of ROUTED_QUESTIONS){
+        if(!q||!q.coach)continue
+        if(coachMoments['routed-question-coach']&&coachMoments['routed-question-coach'][q.id])continue
+        return q
+      }
+      return null
+    })()
     // stallEligible (Phase 3b, corrected by batch item 1.1.5's D3 finding,
     // 2026-09-10): "nothing built at all yet" is deliberately narrower than
     // "some unbuilt section remains" -- Next move already owns the moment
@@ -10208,6 +10245,17 @@ export default function PivotEngine(){
     const opPipelineArrivalCopy=opNearestRecord
       ?`This is where every opportunity you're working lives, with its stage and what's next on each one. ${opNearestRecord.company} is the nearest thing on the calendar. Want to start there?`
       :`This is where every opportunity you're working lives, with its stage and what's next on each one. Nothing here yet. When you have an application out, a referral, or an interview coming, add it and I'll build the playbook for it.`
+    // Pipeline read / opportunity read (Phase 4 Part 2, Column 2 rows
+    // 23/24, brief 2.2): both Delivery-adjacent on op-pipeline-arrival
+    // having already fired, same anchor-on-prior-moment shape used
+    // throughout this batch. opPipelineReadEligible additionally requires
+    // 2+ active opportunities -- stepping back to survey "the whole
+    // pipeline" reads oddly with only one thing in it. opOpportunityReadTarget
+    // reuses opNearestRecord rather than resolving its own pick, so it
+    // never disagrees with what op-pipeline-arrival itself already pointed
+    // at; re-fires (own dedupeKey) if the nearest record later changes.
+    const opPipelineReadEligible=!!(opActiveRecords.length>=2&&coachMoments['op-pipeline-arrival']&&coachMoments['op-pipeline-arrival']['_'])
+    const opOpportunityReadTarget=(coachMoments['op-pipeline-arrival']&&coachMoments['op-pipeline-arrival']['_']&&opNearestRecord)?opNearestRecord:null
     // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
     // move row), shared by Opportunity Playbook arrival (offers the first
     // one that fits) and Next move (offers the one after whatever Delivery
@@ -10433,7 +10481,7 @@ export default function PivotEngine(){
     // unblocking op-next-move, which reads stage) does not depend on the
     // person happening to say something that matches STAGE_MENTION_RE first.
     const opStageQuickReplies=(opRecord&&!opRecord.stage)?pursuitStageQuickReplies(opRecord.id):[]
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,hasWeaknessEvidenceNow,routedQuestionTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){
