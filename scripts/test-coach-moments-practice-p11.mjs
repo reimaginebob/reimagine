@@ -54,7 +54,7 @@ check(targetBlock.includes("coachMoments['delivery-p11']&&coachMoments['delivery
 
 // --- ctx wiring: the evaluator's ctx carries practiceP11Target; the tap
 // dispatch ctx carries chosen + openCoachWith so onTap can call it ---
-check(app.includes('nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,'),
+check(app.includes('nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,hasWeaknessEvidenceNow,routedQuestionTarget,savedPlaybooks,'),
   `${APP}: the evaluator's ctx no longer carries practiceP11Target -- the entry's eligible/dedupeKey could not read it`)
 check(app.includes('if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,savePursuit,chosen,openCoachWith,'),
   `${APP}: the moment tap handler no longer passes chosen and openCoachWith into onTap's ctx -- practice-p11-weakest's onTap could not run`)

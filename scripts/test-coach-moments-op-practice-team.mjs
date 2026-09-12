@@ -65,7 +65,7 @@ check(eligBlock.includes("opRecord.hasInterviewTeam&&coachMoments['delivery-op-p
 
 // --- ctx wiring: the evaluator's ctx carries opPracticeTeamEligible; the
 // tap dispatch ctx carries opPracticeTeamOnTap so onTap can call it ---
-check(app.includes('opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,viewedSection,'),
+check(app.includes('opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,viewedSection,'),
   `${APP}: the evaluator's ctx no longer carries opPracticeTeamEligible -- the entry's eligible could not read it`)
 check(app.includes('opPracticeTeamOnTap:(recId)=>{'),
   `${APP}: the moment tap handler no longer defines opPracticeTeamOnTap -- op-practice-interview-team's onTap could not run`)

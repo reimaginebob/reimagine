@@ -99,14 +99,15 @@ inside its own `onTap` will get `undefined` — this split is why.
 
 ## 2. MOMENT_CATALOG entries
 
-33 entries, in file order. `screen` is the step id the evaluator must be on
+37 entries, in file order. `screen` is the step id the evaluator must be on
 (or, for `op-interview-close`, one of an array of steps). `dedupeKey`
 `'(none)'` means the default subkey `'_'` applies (fire once per account,
 ever). All `eligible` expressions below are the literal source from
 `src/coach-moments.js` as of this audit, except rows 14 (`practice-p11-
-weakest`) and 29 (`op-practice-interview-team`), both added after this
-audit was taken by Phase 4 Part 2's Column 2 batch (Output/handoff/2026-09-
-09_concierge-batch-and-phase4-brief.md §2.2).
+weakest`), 21/22 (`weakness-question-coach`/`routed-question-coach`), 24/25
+(`op-pipeline-read`/`op-opportunity-read`), and 33 (`op-practice-interview-
+team`), all added after this audit was taken by Phase 4 Part 2's Column 2
+batch (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md §2.2).
 
 | # | key | screen | family / significance | priority | generated? | dedupeKey |
 |---|-----|--------|------------------------|----------|------------|-----------|
@@ -130,22 +131,26 @@ audit was taken by Phase 4 Part 2's Column 2 batch (Output/handoff/2026-09-
 | 18 | `delivery-income` | focus | delivery / open | 3 | **yes** | `` `${selectedLane}::${chosen}` `` |
 | 19 | `next-move` | focus | next_move / ordinary | 2 | **yes** | `` `${selectedLane}::${chosen}` `` |
 | 20 | `stall` | focus | stall / ordinary | 1 | no | `` `${selectedLane}::${chosen}` `` |
-| 21 | `op-pipeline-arrival` | pipeline | arrival / ordinary | 1 | no | (none) |
-| 22 | `op-playbook-arrival` | op | arrival / ordinary | 1 | no | `ctx.opRecord.id` |
-| 23 | `delivery-op-companyRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 24 | `delivery-op-salaryRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 25 | `delivery-op-p5` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 26 | `delivery-op-p_res` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 27 | `delivery-op-p_cover` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 28 | `delivery-op-p11` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 29 | `op-practice-interview-team` | op | check / ordinary | 2 | no | `ctx.opRecord.id` |
-| 30 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
-| 31 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
-| 32 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
-| 33 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
+| 21 | `weakness-question-coach` | stories | check / ordinary | 2 | no | (none) |
+| 22 | `routed-question-coach` | stories | check / ordinary | 2 | no | `ctx.routedQuestionTarget.id` |
+| 23 | `op-pipeline-arrival` | pipeline | arrival / ordinary | 1 | no | (none) |
+| 24 | `op-pipeline-read` | pipeline | check / ordinary | 2 | no | (none) |
+| 25 | `op-opportunity-read` | pipeline | check / ordinary | 2 | no | `ctx.opOpportunityReadTarget.id` |
+| 26 | `op-playbook-arrival` | op | arrival / ordinary | 1 | no | `ctx.opRecord.id` |
+| 27 | `delivery-op-companyRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 28 | `delivery-op-salaryRead` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 29 | `delivery-op-p5` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 30 | `delivery-op-p_res` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 31 | `delivery-op-p_cover` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 32 | `delivery-op-p11` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 33 | `op-practice-interview-team` | op | check / ordinary | 2 | no | `ctx.opRecord.id` |
+| 34 | `delivery-op-offerNegotiation` | op | delivery / open | 3 | **yes** | `ctx.opRecord.id` |
+| 35 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
+| 36 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
+| 37 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
 
-(Numbered 1-33 for reference in this doc, matching `MOMENT_CATALOG`'s own
-33 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
+(Numbered 1-37 for reference in this doc, matching `MOMENT_CATALOG`'s own
+37 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
 the machine-readable key list below against the live array, not this
 table's row numbering — a future entry added or removed here should keep
 that list in sync; the numbering above is free-standing prose, not
@@ -153,7 +158,7 @@ re-checked by the script.)
 
 <!-- moment-catalog-keys:START -->
 ```json
-["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","op-pipeline-arrival","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","op-practice-interview-team","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
+["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","weakness-question-coach","routed-question-coach","op-pipeline-arrival","op-pipeline-read","op-opportunity-read","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","op-practice-interview-team","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump"]
 ```
 <!-- moment-catalog-keys:END -->
 
@@ -227,8 +232,47 @@ construction).
 **`stall`** — Nothing built past the free first section, for 3+ visits or
 90s idle. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.stallEligible`
 
+**`weakness-question-coach`** — The greatest weakness question is still
+genuinely unanswered. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !ctx.hasWeaknessEvidenceNow`
+`hasWeaknessEvidenceNow` (App.jsx, computed next to `practiceP11Target`)
+calls the same `hasWeaknessEvidence` (star-stories.mjs) the screen's own
+coverage tracker already uses. Fires once per account, ever; its tap
+(`ctx.weaknessQuestionOnTap`) reuses the exact page-door seed
+(`WEAKNESS_QUESTION.coach`, autoSend true) unchanged.
+
+**`routed-question-coach`** — At least one of the five coach-enabled
+`ROUTED_QUESTIONS` (star-stories.mjs) has not yet been offered for this
+account. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.routedQuestionTarget`
+`routedQuestionTarget` (App.jsx) walks `ROUTED_QUESTIONS` in array order and
+returns the first coach-enabled one whose own dedupe record
+(`coachMoments['routed-question-coach'][questionId]`) hasn't fired yet --
+dedupeKey is the question's own id, not a role/lane identity, so each of
+the five gets its own one-time offer over time rather than the row going
+silent after the first. Tap (`ctx.routedQuestionOnTap`) reuses that
+question's own `.coach` seed unchanged.
+
 **`op-pipeline-arrival`** — Any arrival at My Pipeline.
 `eligible: (ctx) => !!ctx.hasOnboardingConcierge`
+
+**`op-pipeline-read`** — 2+ active opportunities AND `op-pipeline-arrival`
+has already fired. `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opPipelineReadEligible`
+`opPipelineReadEligible` (App.jsx, computed next to `opPipelineArrivalCopy`)
+requires both -- "step back and look at your whole pipeline" reads oddly
+with only one thing in it. Tap (`ctx.opPipelineReadOnTap`) reuses the
+pipeline board's own always-visible "Get My Coach's read on your pipeline"
+button's seed unchanged.
+
+**`op-opportunity-read`** — Same `op-pipeline-arrival`-fired gate, naming
+the same record `op-pipeline-arrival` itself already pointed at.
+`eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opOpportunityReadTarget`
+`opOpportunityReadTarget` (App.jsx) is `opNearestRecord` once
+`op-pipeline-arrival` has fired, so this can never disagree with what that
+row already offered to open; it re-fires (own dedupeKey) if the nearest
+record changes later. Tap (`ctx.opOpportunityReadOnTap`) reuses the
+pipeline board's own per-record "My Coach's read on this opportunity"
+button's seed unchanged -- like that page door, it does NOT restore/pin
+`currentSavedSlotIdRef` first, since the read doesn't require navigating
+into the record's own Opportunity Playbook.
 
 **`op-playbook-arrival`** — Arriving at (or returning to) a specific
 Opportunity Playbook record, once two independent async things have
@@ -308,8 +352,11 @@ line of the `ctx={...}` literal itself.
 | `nextMoveTarget` | computed 10115-10128 | Focus-side "what's next" (reads `coachMoments`, `focusOrderFor`, `done`) |
 | `stallEligible` / `stallTarget` | computed 10147-10153 | "nothing built past the free first section" + which section Stall offers |
 | `practiceP11Target` | computed next to `nextMoveTarget` (App.jsx) | non-null once `outputs.p11` exists AND `delivery-p11` has already fired for the current identity |
+| `hasWeaknessEvidenceNow` | computed next to `practiceP11Target` (App.jsx), calls `hasWeaknessEvidence` (star-stories.mjs) | whether the weakness record already carries real evidence |
+| `routedQuestionTarget` | computed next to `hasWeaknessEvidenceNow` (App.jsx) | the first coach-enabled `ROUTED_QUESTIONS` entry not yet offered for this account, or `null` |
 | `opHasRecords` | inline in the ctx literal (`!!opActiveRecords.length`) | whether any door2 record is active |
 | `opNearestRecord` / `opPipelineArrivalCopy` | computed 10164-10172 | My Pipeline arrival's nearest-record pick + its copy |
+| `opPipelineReadEligible` / `opOpportunityReadTarget` | computed next to `opPipelineArrivalCopy` (App.jsx) | 2+ active opportunities + `op-pipeline-arrival` already fired; the record `op-opportunity-read` names (reuses `opNearestRecord`) |
 | `opRecord` | computed 10220-10272 | the currently-open Opportunity Playbook record, or `null`; carries `cardBuilt`/`cardText`/`cardLabel`/`arrivalTarget`/`arrivalPick`/`arrivalCopy`/`stage`/`hasInterviewTeam` (parsed once via `parseInterviewPrepJSON`, checking `ip.people`/`ip.panel`) |
 | `opNextMoveTarget` | computed 10279-10300 | stage-fitting next pick for the open record (uses `opPickByStage`, 10191-10205) |
 | `opPracticeTeamEligible` | computed next to `opNextMoveTarget` (App.jsx) | `opRecord.hasInterviewTeam` AND `delivery-op-p11` already fired for the record |
@@ -324,9 +371,16 @@ line of the `ctx={...}` literal itself.
 Tap-only fields (available inside `onTap`, not inside `eligible`/
 `message`/`quickReplies` — see Section 1's note on the two separate ctx
 objects): `savePursuit` (8215), `chosen`/`openCoachWith` (added for
-`practice-p11-weakest`), `openOpRecord`/`generateOpSectionFor`/
-`opNextMoveOnTap`/`opInterviewCloseOnTap`/`opPracticeTeamOnTap`/
-`opResumeJumpOnTap` (8537-8564, each re-deriving state fresh at tap time).
+`practice-p11-weakest`), `weaknessQuestionOnTap`/`routedQuestionOnTap`
+(added for rows 16/17 -- both call `openCoachWith` directly with a static
+or looked-up seed, re-deriving nothing from `savedPlaybooks`),
+`opPipelineReadOnTap`/`opOpportunityReadOnTap` (added for rows 23/24 --
+`opOpportunityReadOnTap` re-derives the record's title fresh from
+`savedPlaybooks` at tap time, same `rec.title||rec.company||'Opportunity'`
+fallback the pipeline board's own per-record title uses), `openOpRecord`/
+`generateOpSectionFor`/`opNextMoveOnTap`/`opInterviewCloseOnTap`/
+`opPracticeTeamOnTap`/`opResumeJumpOnTap` (8537-8564, each re-deriving
+state fresh at tap time).
 
 ---
 

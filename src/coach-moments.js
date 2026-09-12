@@ -553,6 +553,59 @@ export const MOMENT_CATALOG = [
       return true
     },
   },
+  // Row 16 (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+  // §2.2, Column 2): the weakness question. Page door is WeaknessPanel's
+  // onCoach (App.jsx), which calls openCoachWith(WEAKNESS_QUESTION.coach,
+  // true, 'stories') -- autoSend true, matching that door: this is a
+  // "draft it for me from scratch" request, not something needing the
+  // person's own composed input first (unlike PracticeAnswerBox's practice
+  // door). Fires once per account, ever, gated on hasWeaknessEvidence
+  // (star-stories.mjs) still being false -- the same real/not-real signal
+  // the screen's own coverage tracker already uses, so the offer only
+  // lands while the answer is genuinely thin.
+  {
+    key: 'weakness-question-coach',
+    family: 'check',
+    screen: 'stories',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'weakness_question_coach',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !ctx.hasWeaknessEvidenceNow,
+    message: 'The greatest weakness question is one of the harder ones to answer well. Want My Coach to build a first draft with you?',
+    quickReplies: [{ label: 'Build it with My Coach', value: 'weakness-question-go' }],
+    onTap: (value, ctx) => {
+      if (value === 'weakness-question-go') ctx.weaknessQuestionOnTap()
+      return true
+    },
+  },
+  // Row 17 (brief §2.2, Column 2): the routed interview-question row -- one
+  // catalog row with a parameter, not five. Page door is the "other
+  // questions" list's per-question button (App.jsx, ROUTED_QUESTIONS.map),
+  // which calls openCoachWith(q.coach, true, 'stories') for whichever of
+  // the five coach-enabled questions was clicked. ctx.routedQuestionTarget
+  // (App.jsx, computed next to hasWeaknessEvidenceNow) picks the first one
+  // not yet offered for this account -- dedupeKey is the question's own id,
+  // not a role/lane identity, since these are generic interview questions
+  // unrelated to a chosen direction. Each of the five gets its own one-time
+  // offer over time; the row does not go silent forever after the first.
+  {
+    key: 'routed-question-coach',
+    family: 'check',
+    screen: 'stories',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'routed_question_coach',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.routedQuestionTarget,
+    dedupeKey: (ctx) => ctx.routedQuestionTarget.id,
+    message: (ctx) => `${ctx.routedQuestionTarget.asks} is one you're likely to be asked. Want My Coach to draft an answer with you?`,
+    quickReplies: (ctx) => [{ label: 'Draft it with My Coach', value: `routed-question-go:${ctx.routedQuestionTarget.id}` }],
+    onTap: (value, ctx) => {
+      if (value.startsWith('routed-question-go:')) ctx.routedQuestionOnTap(value.slice('routed-question-go:'.length))
+      return true
+    },
+  },
   // Live-side brief PR 2 (Output/handoff/2026-09-10_concierge-live-side-brief.md):
   // the same catalog shape, mirrored onto the Opportunity Playbook / My
   // Pipeline. Taps: the shared "Remind me later" / "Minimize Coach for now"
@@ -586,6 +639,56 @@ export const MOMENT_CATALOG = [
     quickReplies: (ctx) => ctx.opNearestRecord ? [{ label: `Open ${ctx.opNearestRecord.company}`, value: `op-open:${ctx.opNearestRecord.id}` }] : [],
     onTap: (value, ctx) => {
       if (value.startsWith('op-open:')) ctx.openOpRecord(value.slice('op-open:'.length))
+      return true
+    },
+  },
+  // Row 23 (brief §2.2, Column 2): the pipeline read. Page door is the
+  // pipeline board's own always-visible "Get My Coach's read on your
+  // pipeline" button (App.jsx ~15287), autoSend true -- a full reflective
+  // ask, not something needing the person's own composed input. Delivery-
+  // adjacent to op-pipeline-arrival (fires only once that has already
+  // reacted, same anchor-on-prior-moment shape used throughout this
+  // batch), and requires 2+ active opportunities -- "step back and look at
+  // your whole pipeline" reads oddly with only one thing in it.
+  {
+    key: 'op-pipeline-read',
+    family: 'check',
+    screen: 'pipeline',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_pipeline_read',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opPipelineReadEligible,
+    message: 'Want to step back and look at your whole pipeline -- where you\'re building momentum and where you\'re stalling?',
+    quickReplies: [{ label: 'Give me the read', value: 'op-pipeline-read-go' }],
+    onTap: (value, ctx) => {
+      if (value === 'op-pipeline-read-go') ctx.opPipelineReadOnTap()
+      return true
+    },
+  },
+  // Row 24 (brief §2.2, Column 2): the opportunity read. Page door is a
+  // per-record button on the pipeline board itself (App.jsx ~15361, "My
+  // Coach's read on this opportunity"), autoSend true -- notably, like
+  // that page door, this does NOT restore/pin currentSavedSlotIdRef first
+  // (unlike op-practice-interview-team above): the read does not require
+  // navigating into the record's own Opportunity Playbook. Reuses
+  // opNearestRecord rather than resolving its own pick, so it never
+  // disagrees with what op-pipeline-arrival already pointed at; re-fires
+  // (own dedupeKey) if the nearest record later changes.
+  {
+    key: 'op-opportunity-read',
+    family: 'check',
+    screen: 'pipeline',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'op_opportunity_read',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opOpportunityReadTarget,
+    dedupeKey: (ctx) => ctx.opOpportunityReadTarget.id,
+    message: (ctx) => `My Coach can give you a read on ${ctx.opOpportunityReadTarget.company} without opening its playbook. Want it?`,
+    quickReplies: (ctx) => [{ label: 'Give me the read', value: `op-opportunity-read-go:${ctx.opOpportunityReadTarget.id}` }],
+    onTap: (value, ctx) => {
+      if (value.startsWith('op-opportunity-read-go:')) ctx.opOpportunityReadOnTap(value.slice('op-opportunity-read-go:'.length))
       return true
     },
   },
