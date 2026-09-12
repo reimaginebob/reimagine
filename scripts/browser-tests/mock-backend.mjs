@@ -12,7 +12,7 @@ import { buildProfileLoadResponse, buildMeResponse, DOOR1_RECORD, DOOR2_RECORD }
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
-export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.', employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
+export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.', coachReplyHeaders = null, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
   const coachRequests = []
 
   // Catch-all first (lowest precedence): anything not explicitly mocked
@@ -52,7 +52,13 @@ export async function mockBackend(page, { step = 'focus', flagged = false, coach
     // coachReplyBody is overridable (default a short stub) so a caller can
     // mock a long reply -- e.g. to exercise the composer-visibility fix
     // (#846) against a real, tall transcript rather than a one-line reply.
-    await route.fulfill({ status: 200, contentType: 'text/plain', body: coachReplyBody })
+    // coachReplyHeaders (t01-19 follow-up, 2026-09-12): the real server
+    // carries capture-offer signals (opportunity update, mood, the widen-
+    // the-search hint trailer) as response headers, not in the body -- a
+    // caller passes these to simulate the server having already detected
+    // and validated one, exactly what api/coach.js hands back on a real
+    // hint-answering turn.
+    await route.fulfill({ status: 200, contentType: 'text/plain', headers: coachReplyHeaders || {}, body: coachReplyBody })
   })
 
   return { coachRequests }

@@ -248,3 +248,37 @@ export function parseMood(text) {
   const out = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '')
   return { mood, text: out }
 }
+
+// t01-19 follow-up (2026-09-12 live QA on bob+lindsey@career.club): the
+// widen-the-search hint note (api/coach.js's WIDEN_SEARCH_HINT_NOTE) told
+// the model to "offer to start it, with the tap" whenever a hint phrase
+// came up, but gave it no way to actually attach one -- the taps only ever
+// exist client-side, keyed off a MOMENT_CATALOG row (src/coach-moments.js),
+// and a live conversational reply has no path to that catalog at all. Every
+// hint got a real, on-topic prose answer that named the right row but never
+// rendered its Do it now / Remind me later / Not for me buttons. Same bare-
+// trailer shape as MOOD: low above -- the model ends such a reply with
+// WIDENSEARCH: <row-key>, using the row's own key from coach-moments.js
+// (e.g. widen-linkedin-contacts), only when it actually made the offer.
+// api/coach.js validates the captured slug against the real five-row enum
+// before trusting it (a hallucinated or stale key becomes null, not a
+// crash), and the response header this feeds lets the client attach the
+// row's real, canonical quickReplies to the just-streamed reply -- see
+// Chat.jsx's mergeOfferOntoReply and the X-Coach-Widen-Search header.
+const WIDENSEARCH_TOKEN_RE = /\bWIDENSEARCH:\s*([^\n|<]*?)\s*(?:[|<].*)?$/i
+export function parseWidenSearchHint(text) {
+  if (typeof text !== 'string' || !text) return { widenSearchHint: null, text: text || '' }
+  let widenSearchHint = null
+  const kept = []
+  for (const line of text.split('\n')) {
+    const m = line.match(WIDENSEARCH_TOKEN_RE)
+    if (m) {
+      const slug = m[1].trim().toLowerCase()
+      if (slug) widenSearchHint = slug
+      continue
+    }
+    kept.push(line)
+  }
+  const out = kept.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '')
+  return { widenSearchHint, text: out }
+}

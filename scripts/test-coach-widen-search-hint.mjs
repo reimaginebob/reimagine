@@ -31,6 +31,22 @@ check(noteLine.includes('For Income Now specifically, respond to what they said 
 check(noteLine.includes('even if Reimagine has recently offered one of these and been asked to wait on it'),
   `${COACH}: WIDEN_SEARCH_HINT_NOTE does not say a hint is answered regardless of any recent snooze -- a reply, not a repeat unprompted offer`)
 
+// t01-19 follow-up (2026-09-12 live QA): the note told the model to "offer
+// to start it, with the tap" but gave it no way to actually attach one --
+// every hint got real, on-topic prose that never rendered the row's real
+// buttons. The note must now instruct the model to end such a reply with a
+// bare WIDENSEARCH: <key> trailer naming one of the five real row keys, and
+// say plainly that the line is never shown to the person.
+check(noteLine.includes('WIDENSEARCH: <key>'),
+  `${COACH}: WIDEN_SEARCH_HINT_NOTE does not instruct the model to emit a WIDENSEARCH: <key> trailer -- the offer has no way to attach its real buttons`)
+for (const rowKey of ['widen-recruiters', 'widen-linkedin-contacts', 'widen-networking-groups', 'widen-career-club-corner', 'widen-income-now']) {
+  check(noteLine.includes(rowKey), `${COACH}: WIDEN_SEARCH_HINT_NOTE does not list the real row key "${rowKey}" for the model to use in its trailer`)
+}
+check(noteLine.includes('never shown to the person'),
+  `${COACH}: WIDEN_SEARCH_HINT_NOTE does not tell the model the trailer line is silent`)
+check(noteLine.includes('do not describe the buttons in your prose'),
+  `${COACH}: WIDEN_SEARCH_HINT_NOTE does not warn the model against describing the buttons instead of letting the trailer attach them`)
+
 // Gated on hasOnboardingConcierge, the SAME flag every widen-the-search
 // catalog row checks (src/coach-moments.js) -- not brandStepDone, since
 // this note is about an active search (pipeline, opportunities), not an

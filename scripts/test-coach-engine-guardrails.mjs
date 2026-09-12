@@ -53,7 +53,7 @@ check(parseMood('').mood === null && parseMood(null).text === '',
 // --- Server wiring ---
 check(coach.includes("import { applyOutputStrippers, ensureDistressSupport, matchesDistressTrigger, detectResidualVoice } from '../src/text-strippers.js'"),
   `${COACH}: matchesDistressTrigger is not imported`)
-check(coach.includes("import { parseSelfcheck, parseMood } from '../src/coach-routing.js'"),
+check(coach.includes("import { parseSelfcheck, parseMood, parseWidenSearchHint } from '../src/coach-routing.js'"),
   `${COACH}: parseMood is not imported`)
 check(coach.includes('const distressDetected = matchesDistressTrigger(message)'),
   `${COACH}: distressDetected is not computed from the user's own message`)
