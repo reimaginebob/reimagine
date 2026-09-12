@@ -118,7 +118,7 @@ check(!oorFnBlock.includes('restoreFromSavedSlot'),
 // dispatch ctx carries all four new onTap functions ---
 check(app.includes('nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,hasWeaknessEvidenceNow,routedQuestionTarget,savedPlaybooks,'),
   `${APP}: the evaluator's ctx no longer carries hasWeaknessEvidenceNow/routedQuestionTarget`)
-check(app.includes('opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,viewedSection,'),
+check(app.includes('opPracticeTeamEligible,opPipelineReadEligible,opOpportunityReadTarget,widenSearchTarget,viewedSection,'),
   `${APP}: the evaluator's ctx no longer carries opPipelineReadEligible/opOpportunityReadTarget`)
 
 // --- Prompt codes (derived from MOMENT_CATALOG) ---

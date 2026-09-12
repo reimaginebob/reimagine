@@ -54,8 +54,8 @@ for (const entry of MOMENT_CATALOG) {
 for (const trig of ['hub_arrival', 'model_detected', 'topic_close_tap', 'topic_close_language']) {
   check(codes.includes(`'${trig}'`), `${CODES}: TRIGGER_TYPES is missing '${trig}'`)
 }
-check(/export const PROMPT_OUTCOMES = \['shown', 'accepted', 'declined'\]/.test(codes),
-  `${CODES}: PROMPT_OUTCOMES has drifted from ['shown', 'accepted', 'declined']`)
+check(/export const PROMPT_OUTCOMES = \['shown', 'accepted', 'declined', 'offer made', 'do it now', 'remind later', 'not for me', 'answered'\]/.test(codes),
+  `${CODES}: PROMPT_OUTCOMES has drifted from the shown/accepted/declined triple plus the widen-the-search set's own vocabulary (decision d08)`)
 check(!codes.includes("'no_response'"),
   `${CODES}: no_response should never be a written outcome -- it is derived (shown minus accepted+declined) at query time, not stored`)
 

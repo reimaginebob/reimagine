@@ -12,7 +12,7 @@ import { buildProfileLoadResponse, buildMeResponse, DOOR1_RECORD, DOOR2_RECORD }
 
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
-export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.', employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride } = {}) {
+export async function mockBackend(page, { step = 'focus', flagged = false, coachReplyBody = 'Got it.', employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
   const coachRequests = []
 
   // Catch-all first (lowest precedence): anything not explicitly mocked
@@ -32,7 +32,7 @@ export async function mockBackend(page, { step = 'focus', flagged = false, coach
   })
 
   await page.route('**/api/me', route => route.fulfill(json(buildMeResponse({ flagged, employmentStatus, onboardingConcierge, nextStep }))))
-  await page.route('**/api/profile/load', route => route.fulfill(json(buildProfileLoadResponse({ step, coachMoments, savedPlaybooksOverride, chosenOverride }))))
+  await page.route('**/api/profile/load', route => route.fulfill(json(buildProfileLoadResponse({ step, coachMoments, savedPlaybooksOverride, chosenOverride, widenSearchState }))))
   await page.route('**/api/saved-playbooks', route => route.fulfill(json({ playbooks: savedPlaybooksOverride || [DOOR1_RECORD, DOOR2_RECORD] })))
   // Nothing needs to persist for these tests -- accept any write silently.
   await page.route('**/api/profile/save', route => route.fulfill(json({ ok: true, updatedAt: new Date().toISOString() })))

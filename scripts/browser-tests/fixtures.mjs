@@ -145,7 +145,7 @@ export const DOOR2_RECORD = {
 // records ride in savedPlaybooks either way -- the app just uses whichever
 // one chosen/selectedLane/step point it at, matching the real app's own
 // "many saved directions, one open at a time" shape.
-export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPlaybooksOverride, chosenOverride } = {}) {
+export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
   const forOp = step === 'op' || step === 'pipeline'
   return {
     updatedAt: '2026-09-01T12:00:00.000Z',
@@ -176,6 +176,10 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPl
       // already fired) so the NEXT one it can drive is next-move or a
       // second delivery, without needing to simulate a live generation.
       ...(coachMoments ? { coachMoments } : {}),
+      // Optional: pre-seed the widen-the-search engine's own persisted
+      // state (per-row snooze/retire dates, src/widen-search.js) the same
+      // way coachMoments above pre-seeds the general Moments dedupe store.
+      ...(widenSearchState ? { widenSearchState } : {}),
     },
   }
 }

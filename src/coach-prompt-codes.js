@@ -61,4 +61,13 @@ export const TRIGGER_TYPES = [
 // said no. There is no separate "no_response" value on purpose -- see the
 // migration's comment: it is shown-count minus (accepted+declined)-count for
 // the same prompt_code/trigger_type, derived at query time, never written.
-export const PROMPT_OUTCOMES = ['shown', 'accepted', 'declined']
+//
+// The four "offer made"/"do it now"/"remind later"/"not for me" values plus
+// "answered" (decision d08, brief §2.6) are the widen-the-search set's own
+// vocabulary -- a three-tap shape the shown/accepted/declined triple above
+// does not distinguish (accepted alone cannot tell "did it now" apart from
+// "asked to be reminded"). They are additive, not a replacement: every row
+// that shipped before Phase 4 Part 2's widen-the-search rows still logs
+// shown/accepted/declined, and migrating those is tracked separately, not
+// bundled into this brief.
+export const PROMPT_OUTCOMES = ['shown', 'accepted', 'declined', 'offer made', 'do it now', 'remind later', 'not for me', 'answered']

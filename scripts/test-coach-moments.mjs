@@ -131,8 +131,11 @@ const staticFireIdx = app.indexOf('const fireStaticEntryMessage=(entry,ctx)=>{')
 check(staticFireIdx !== -1, `${APP}: fireStaticEntryMessage is missing`)
 // Widened again for F1 twenty-minute session item 2 (2026-09-11 evening):
 // the remindLater comment + includeRemindLater line pushed everything after
-// the quickReplies assignment past the old 2400-char edge.
-const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 3100) : ''
+// the quickReplies assignment past the old 2400-char edge. Widened again
+// for the widen-the-search shownOutcome override (Phase 4 Part 2, decision
+// d08): its explanatory comment pushed the logPromptEngagement line past
+// the old 3100-char edge.
+const staticFireBlock = staticFireIdx !== -1 ? app.slice(staticFireIdx, staticFireIdx + 3300) : ''
 check(evalBlock.includes('fireStaticEntryMessage(entry,ctx)'),
   `${APP}: the evaluator's static branch no longer calls fireStaticEntryMessage`)
 // Taps decided (batch item 1.1.1, 2026-09-10): the old two dismissal taps
@@ -163,8 +166,8 @@ check(staticFireBlock.includes('checkinKey:`moment:${entry.key}`'),
   `${APP}: the fired message's checkinKey is not the generic moment:<key> shape the tap handler expects`)
 check(staticFireBlock.includes("if(entry.significance==='open')setCoachPresence('open')"),
   `${APP}: a significant static entry does not open the panel from minimized (Phase 1b's coachPresence)`)
-check(staticFireBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival','shown')"),
-  `${APP}: fireStaticEntryMessage does not log a 'shown' engagement event when a static moment fires, unlike every other one-shot arrival prompt`)
+check(staticFireBlock.includes("if(entry.promptCode)logPromptEngagement(entry.promptCode,'hub_arrival',entry.shownOutcome?entry.shownOutcome(ctx):'shown')"),
+  `${APP}: fireStaticEntryMessage does not log a 'shown' (or entry.shownOutcome override, widen-the-search set) engagement event when a static moment fires`)
 
 // --- fireMoment (Phase 2b): the model-generated-reaction sibling of
 // fireOrientationCheck, same POST-and-push shape. ---
