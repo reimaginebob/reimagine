@@ -8556,7 +8556,7 @@ export default function PivotEngine(){
       // time (the value itself already encodes the target) rather than
       // reaching into the evaluator's own locals, which are out of scope
       // here.
-      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,savePursuit,
+      if(entry&&entry.onTap)return entry.onTap(value,{markDone,addNewOpportunity,advance,genSec,isIndependent,savePursuit,chosen,openCoachWith,
         openOpRecord:(id)=>{const rec=savedPlaybooks.find(r=>r&&r.id===id);if(rec)restoreFromSavedSlot(rec)},
         generateOpSectionFor:(k)=>generateOpSection(k),
         opNextMoveOnTap:(k)=>{
@@ -10148,6 +10148,16 @@ export default function PivotEngine(){
       if(!nextSec)return null
       return{anchorLabel:order[anchorIdx].label,nextId:nextSec.id,nextLabel:nextSec.label}
     })()
+    // Practice This Answer (Phase 4 Part 2, Column 2 row 13, coach-moments.js
+    // 'practice-p11-weakest'): eligible only once delivery-p11 has already
+    // fired for this identity (same anchor-on-delivery shape nextMoveTarget
+    // uses above), so the offer never competes with p11's own Delivery
+    // reaction in the same evaluator pass -- it wins the very next one.
+    const practiceP11Target=(()=>{
+      if(!chosen||!(outputs&&outputs.p11))return null
+      const idKey=`${selectedLane}::${chosen}`
+      return(coachMoments['delivery-p11']&&coachMoments['delivery-p11'][idKey])?{idKey}:null
+    })()
     // stallEligible (Phase 3b, corrected by batch item 1.1.5's D3 finding,
     // 2026-09-10): "nothing built at all yet" is deliberately narrower than
     // "some unbuilt section remains" -- Next move already owns the moment
@@ -10399,7 +10409,7 @@ export default function PivotEngine(){
     // unblocking op-next-move, which reads stage) does not depend on the
     // person happening to say something that matches STAGE_MENTION_RE first.
     const opStageQuickReplies=(opRecord&&!opRecord.stage)?pursuitStageQuickReplies(opRecord.id):[]
-    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
+    const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}
     Object.assign(ctx,{hasIndustryEcosystemView,setSelectedLane})
     const candidates=[]
     for(const entry of MOMENT_CATALOG){

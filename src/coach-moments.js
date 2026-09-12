@@ -381,6 +381,42 @@ export const MOMENT_CATALOG = [
     momentContext: (ctx) => ({ section: 'p11', sectionLabel: ctx.focusLabelFor('p11', ctx.isIndependent), text: ctx.interviewPrepToProse(ctx.outputs.p11) }),
     selfOpenReason: (ctx) => `you finished ${ctx.focusLabelFor('p11', ctx.isIndependent)}, and I have a read on it`,
   },
+  // Row 13 (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md,
+  // §2.2, Column 2): Practice This Answer. Delivery-adjacent -- eligible
+  // only once delivery-p11 has already reacted for this identity
+  // (ctx.practiceP11Target, App.jsx), so it never competes with p11's own
+  // Delivery reaction in the same evaluator pass; it wins the very next one
+  // instead. Ordinary, not open (matches next-move's own reasoning): this
+  // is Coach following up on its own initiative, not reacting live to
+  // something the person just did. Not generated -- a fixed invitation, no
+  // judged read of specific content, so no model call. No specific
+  // question is singled out as "weakest": the copy borrows the op-side
+  // precedent verbatim (opNextMoveTarget/opInterviewCloseTarget's own
+  // 'practice' pick, App.jsx), which already established that Coach's own
+  // judgment picks where to start once the conversation opens, not a
+  // client-side heuristic guessing from JSON it cannot actually judge.
+  // Copy reused verbatim from already-shipped op-side text, not new copy
+  // needing a fresh approval pass. Per CLAUDE.md's page-button rule, the
+  // page's own per-question Practice This Answer door (PracticeAnswerBox,
+  // App.jsx) stays in place until this row has fired on Bob's account and
+  // passed his read.
+  {
+    key: 'practice-p11-weakest',
+    family: 'check',
+    screen: 'focus',
+    significance: 'ordinary',
+    dismissible: true,
+    priority: 2,
+    promptCode: 'practice_p11_weakest',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.practiceP11Target,
+    dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
+    message: 'Interview Prep is built. Want to practice the answer that\'s weakest?',
+    quickReplies: [{ label: 'Practice it', value: 'practice-p11-go' }],
+    onTap: (value, ctx) => {
+      if (value === 'practice-p11-go') ctx.openCoachWith(`I want to practice my interview answers for ${ctx.chosen || 'this role'}.`, false, 'p11')
+      return true
+    },
+  },
   {
     key: 'delivery-p_res',
     family: 'delivery',

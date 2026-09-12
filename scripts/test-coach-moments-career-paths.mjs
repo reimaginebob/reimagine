@@ -64,13 +64,15 @@ check(generatedCount === 20, `${MOMENTS}: expected 20 generated entries total (2
 // the same identity but ALSO compares content (dedupeValue), so a rebuild
 // re-fires it -- this is the load-bearing distinction from Choice.
 check(moments.includes('dedupeKey: (ctx) => ctx.selectedLane') , `${MOMENTS}: choice-lane's dedupeKey (fire once per lane) is missing or has drifted`)
-// +1 as of Phase 3a (next-move), +1 again as of Phase 3b (stall): both
+// +1 as of Phase 3a (next-move), +1 again as of Phase 3b (stall), +1 again
+// as of Phase 4 Part 2's Column 2 batch (practice-p11-weakest): all three
 // share the identical role-identity dedupeKey shape (next-move's own
-// dedupeVALUE is what makes it re-fire on a new target; stall has no
-// dedupeValue at all, firing once per identity ever) -- their own test
-// files cover their own shapes; this just keeps the count honest.
-check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1 + 1,
-  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, next-move, and stall`)
+// dedupeVALUE is what makes it re-fire on a new target; stall and
+// practice-p11-weakest have no dedupeValue at all, firing once per
+// identity ever) -- their own test files cover their own shapes; this just
+// keeps the count honest.
+check((moments.match(/dedupeKey: \(ctx\) => `\$\{ctx\.selectedLane\}::\$\{ctx\.chosen\}`/g) || []).length === 1 + DELIVERY_SECTIONS.length + 1 + 1 + 1,
+  `${MOMENTS}: expected the role-identity dedupeKey on choice-role, all ${DELIVERY_SECTIONS.length} Delivery entries, next-move, stall, and practice-p11-weakest`)
 for (const s of DELIVERY_SECTIONS) {
   // p11 (2026-09-12 production fix): same reasoning as p6's own
   // bridgeStoryToProse -- p11 is one of the whole-response-JSON steps
@@ -125,7 +127,10 @@ check(moments.includes("promptCode: 'delivery_comp_read'"), `${MOMENTS}: deliver
 // Paths' own six fields are still present alongside both, not replaced.
 // opAutoBuildActive added by F1 twenty-minute session item 2 (2026-09-11
 // evening): op-playbook-arrival's own race-with-auto-build gate.
-check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
+// practiceP11Target added by Phase 4 Part 2's Column 2 batch (row 13,
+// practice-p11-weakest) -- Career Paths' own six fields are still present
+// alongside it, not replaced.
+check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,selectedLane,chosen,isIndependent,done,laneLabelFor,focusLabelFor,bridgeStoryToProse,interviewPrepToProse,markDone,addNewOpportunity,advance,nextMoveTarget,genSec,stallEligible,stallTarget,practiceP11Target,savedPlaybooks,opHasRecords:!!opActiveRecords.length,opNearestRecord,opPipelineArrivalCopy,opRecord,opNextMoveTarget,opInterviewCloseTarget,opResumeJumpTarget,viewedSection,opArrivalFired,opAutoBuildActive,opStageQuickReplies,pursuitStatusLoaded,hydrationStable}'),
   // done added by Phase 4 §2.3's coach-intro entry, whose eligibility needs
   // it (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md).
   `${APP}: the evaluator's ctx is missing one of selectedLane/chosen/isIndependent/done/laneLabelFor/focusLabelFor/bridgeStoryToProse -- the catalog entries' eligible/dedupeKey/dedupeValue/momentContext functions need them`)
