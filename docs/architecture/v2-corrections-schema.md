@@ -19,8 +19,33 @@ proven reliable, so there was nothing to build there. `original_inference` and
 backfill fills them in. Read access is `api/admin/corrections.js` (session +
 ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS, same pattern as `api/admin/growth.js`
 -- not the older ADMIN_TOKEN pattern `api/admin/feedback-dashboard.js` still
-carries) -- no dashboard tab yet; a natural follow-up if the raw query view
-isn't enough.
+carries), rendered by the Corrections tab of `/admin/dashboard`
+(`src/CorrectionsDashboard.jsx`).
+
+## Theme classification (2026-09-13)
+
+`theme`/`theme_notes`/`theme_classified_at` are filled by a manually-triggered
+batch classifier, `api/admin/classify-corrections.js` -- a "Classify next
+batch" button on the dashboard, not a cron; at this volume there's no need
+for it to run itself. Calls Claude (claude-sonnet-5, matching every other
+Anthropic call in this repo) with forced tool use so the response is
+schema-valid JSON, no free-text parsing. Themes: `wrong_fact`,
+`hallucination`, `wont_accept_correction`, `ai_voice`, `other` -- Bob's own
+words for the patterns he wanted visible, not the `field_type` taxonomy the
+original spec below anticipated (work-history/credential/industry/etc.);
+`field_type` is unchanged and still unbuilt.
+
+## Personal Brand ramification flags (2026-09-13)
+
+`personal_brand_relevant` and `personal_brand_confirmed` (see the column
+table below) are computed client-side in `recordCorrection()`
+(`src/App.jsx`), not by the classifier -- both are structural/deterministic,
+not judgment calls a model is needed for. `personal_brand_relevant` mirrors
+`SECTION_UPSTREAMS`; `personal_brand_confirmed` reuses the exact same test the
+existing "Track 8" upstream-check prompt already runs
+(`extractCorrectionTerms` + `countTermInText` against the live Personal Brand
+output, both from `src/corrections.js`), captured this time instead of
+discarded once that prompt is dismissed.
 
 ## Table: `corrections`
 
@@ -40,11 +65,20 @@ isn't enough.
 | `browser` | text | user agent at correction time |
 | `created_at` | timestamptz | client-stamped moment of the correction itself (set in `recordCorrection()`), preserved through to this table |
 | `captured_at` | timestamptz | server-side timestamp: when the row was written here (defaults to `NOW()`) |
+| `source` | text | `'refinebox'` for every row today (the RefineBox correction flow). `'coach'` is reserved for Coach-as-Concierge corrections, a deliberate later phase — see `Output/session-continuity/2026-09-13_corrections-vs-coach-concierge-scope-question.md` |
+| `personal_brand_relevant` | boolean | structural: true when `step` is `p3` itself or `SECTION_UPSTREAMS` says it was built from `p3`. Backfilled for historical rows in `migrations/2026-09-13_corrections-diagnostics.sql`; computed at capture time going forward |
+| `personal_brand_confirmed` | boolean | stronger signal: the correction's own wording was found, at capture time, to contradict something already written in the live Personal Brand output. NULL for historical rows (needs the live `outputs.p3` at correction time, not reconstructable after the fact) |
+| `conflict_phrase` | text | set when the user chose "Apply anyway" on the Track 6/7 voice-conflict modal — the phrase Reimagine deliberately writes around |
+| `theme` | text | see Theme classification above |
+| `theme_notes` | text | short model-written rationale for `theme`, not a summary |
+| `theme_classified_at` | timestamptz | when the classifier last set `theme` for this row |
 
 ## Indexes
 
 - `(step, created_at desc)` — for "which step has the most corrections" queries
 - `(user_id, created_at desc)` — for per-user history if accounts page exposes it
+- `(theme)` — for the dashboard's by-theme breakdown
+- `(personal_brand_relevant) WHERE personal_brand_relevant = true` — partial index for the Personal Brand filter
 - `(field_type, created_at desc)` once classifier backfill runs — not yet added; add it alongside that work
 
 ## History

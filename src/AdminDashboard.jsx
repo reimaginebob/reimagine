@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback, Fragment } from "react"
 import FeedbackDashboard from "./FeedbackDashboard"
 import EconomicsDashboard from "./EconomicsDashboard"
 import GrowthDashboard from "./GrowthDashboard"
+import CorrectionsDashboard from "./CorrectionsDashboard"
 
 const NAVY = "#1A2540"
 const GOLD = "#C8924A"
@@ -188,7 +189,7 @@ export default function AdminDashboard() {
     } catch { setResetMomentsMsg("Network error. Try again.") }
     finally { setResetMomentsBusy(false) }
   }
-  const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "growth" | "economics"
+  const [tab, setTab] = useState("analytics") // "analytics" | "feedback" | "growth" | "economics" | "corrections"
   // Bumped by the header Refresh button so child tabs that own their own fetch
   // can react to it.
   const [refreshKey, setRefreshKey] = useState(0)
@@ -351,11 +352,13 @@ export default function AdminDashboard() {
           <button onClick={() => setTab("feedback")} style={tab === "feedback" ? S.tabActive : S.tab}>Feedback</button>
           <button onClick={() => setTab("growth")} style={tab === "growth" ? S.tabActive : S.tab}>Growth</button>
           <button onClick={() => setTab("economics")} style={tab === "economics" ? S.tabActive : S.tab}>Economics</button>
+          <button onClick={() => setTab("corrections")} style={tab === "corrections" ? S.tabActive : S.tab}>Corrections</button>
         </div>
 
         {tab === "feedback" && <FeedbackDashboard range={range} refreshKey={refreshKey} />}
         {tab === "growth" && <GrowthDashboard refreshKey={refreshKey} />}
         {tab === "economics" && <EconomicsDashboard />}
+        {tab === "corrections" && <CorrectionsDashboard refreshKey={refreshKey} />}
 
         {tab === "analytics" && <>
         {error && (
