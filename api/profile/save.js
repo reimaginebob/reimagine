@@ -119,12 +119,14 @@ async function handler(req, res) {
         await sql`
           INSERT INTO corrections (
             id, user_id, user_email, user_name, step, step_display_name,
-            section_output_length, correction_text, app_version, browser, created_at
+            section_output_length, correction_text, app_version, browser, created_at,
+            personal_brand_relevant, personal_brand_confirmed, conflict_phrase
           ) VALUES (
             ${c.id}, ${req.user.id}, ${req.user.email || null}, ${userName},
             ${c.step || null}, ${c.stepDisplayName || null}, ${c.sectionOutputLength ?? null},
             ${c.text || c.correctionText || ''}, ${c.appVersion || null}, ${c.browser || null},
-            ${c.created_at || null}
+            ${c.created_at || null},
+            ${c.personalBrandRelevant === true}, ${c.personalBrandConfirmed === true}, ${c.conflictPhrase || null}
           )
           ON CONFLICT (id) DO NOTHING
         `

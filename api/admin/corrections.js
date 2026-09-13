@@ -4,6 +4,12 @@
 // user makes across any section now lands here automatically via
 // api/profile/save.js; this just reads it back.
 //
+// source is 'refinebox' for every row today. Coach-as-Concierge profile edits
+// that are functionally corrections are a deliberate later phase -- see
+// Output/session-continuity/2026-09-13_corrections-vs-coach-concierge-scope-question.md
+// for why. The dashboard surfaces that gap explicitly rather than reading as
+// complete.
+//
 // Auth: signed-in session + ADMIN_LOGIN_EMAILS/ANALYST_LOGIN_EMAILS
 // (api/_lib/admin-auth.js) -- same pattern as api/admin/growth.js. Read-only,
 // so analyst access is enough.
@@ -25,29 +31,37 @@ export default async function handler(req, res) {
   const rawLimit = (req.query && typeof req.query.limit === 'string') ? parseInt(req.query.limit, 10) : 200
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 1000) : 200
   const stepFilter = (req.query && typeof req.query.step === 'string' && req.query.step) ? req.query.step : null
+  const themeFilter = (req.query && typeof req.query.theme === 'string' && req.query.theme) ? req.query.theme : null
+  const pbOnly = req.query && req.query.pb === '1'
 
-  let rows, byStep
+  let rows, byStep, byTheme, pending
   try {
-    rows = stepFilter
-      ? await sql`
-          SELECT id, user_email, step, step_display_name, correction_text, created_at, captured_at
-          FROM corrections
-          WHERE step = ${stepFilter}
-          ORDER BY created_at DESC NULLS LAST
-          LIMIT ${limit}
-        `
-      : await sql`
-          SELECT id, user_email, step, step_display_name, correction_text, created_at, captured_at
-          FROM corrections
-          ORDER BY created_at DESC NULLS LAST
-          LIMIT ${limit}
-        `
+    rows = await sql`
+      SELECT id, user_email, step, step_display_name, correction_text, source,
+             personal_brand_relevant, personal_brand_confirmed, conflict_phrase,
+             theme, theme_notes, created_at, captured_at
+      FROM corrections
+      WHERE (${stepFilter}::text IS NULL OR step = ${stepFilter})
+        AND (${themeFilter}::text IS NULL OR theme = ${themeFilter})
+        AND (${pbOnly}::boolean IS FALSE OR personal_brand_relevant = true)
+      ORDER BY created_at DESC NULLS LAST
+      LIMIT ${limit}
+    `
     byStep = await sql`
-      SELECT step, count(*)::int AS n, max(created_at) AS last_at
+      SELECT step, count(*)::int AS n, count(*) FILTER (WHERE personal_brand_relevant)::int AS n_pb, max(created_at) AS last_at
       FROM corrections
       GROUP BY step
       ORDER BY n DESC
     `
+    byTheme = await sql`
+      SELECT theme, count(*)::int AS n
+      FROM corrections
+      WHERE theme IS NOT NULL
+      GROUP BY theme
+      ORDER BY n DESC
+    `
+    const pendingRow = await sql`SELECT count(*)::int AS n FROM corrections WHERE theme IS NULL`
+    pending = pendingRow[0].n
   } catch (err) {
     console.error('admin/corrections: query failed', err && err.message)
     return res.status(500).json({ error: 'Query failed' })
@@ -56,7 +70,10 @@ export default async function handler(req, res) {
   return res.status(200).json({
     generatedAt: new Date().toISOString(),
     total: byStep.reduce((sum, r) => sum + r.n, 0),
+    totalPersonalBrandRelevant: byStep.reduce((sum, r) => sum + r.n_pb, 0),
+    pendingClassification: pending,
     byStep,
+    byTheme,
     corrections: rows,
   })
 }

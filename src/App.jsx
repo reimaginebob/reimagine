@@ -11695,6 +11695,23 @@ export default function PivotEngine(){
     // conflict modal immediately before proceed() runs this.
     const conflictPhrase=correctionConflictRef.current;correctionConflictRef.current=null
     if(conflictPhrase)correction.conflictPhrase=conflictPhrase
+    // Personal Brand ramification tags, for the corrections diagnostic (2026-09-13).
+    // Structural: this step is p3 itself, or SECTION_UPSTREAMS already says it was
+    // built from p3 -- cheap, always available, no false negatives against the
+    // known edge map. Confirmed: reuses Track 8's own test (extractCorrectionTerms +
+    // countTermInText against the live p3 output) rather than duplicating a second
+    // heuristic -- if this correction's wording actually contradicts what Personal
+    // Brand currently says, that is the strongest signal available and worth saving
+    // even when the Track 8 prompt itself is dismissed unread.
+    const pbUpstreams=SECTION_UPSTREAMS[step]||[]
+    if(step==='p3'||pbUpstreams.includes('p3')){
+      correction.personalBrandRelevant=true
+      if(step!=='p3'){
+        const terms=extractCorrectionTerms(text)
+        const p3Text=asText(outputs.p3)
+        if(terms.some(t=>countTermInText(p3Text,t)>0))correction.personalBrandConfirmed=true
+      }
+    }
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     // Track 1 (1A, source-scoped): a correction on an upstream that has
     // downstream consumers stamps that upstream as updated, so sections built
