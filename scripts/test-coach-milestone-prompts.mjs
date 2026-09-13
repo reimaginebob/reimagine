@@ -32,10 +32,14 @@ const flags = fs.readFileSync(FLAGS, 'utf8')
 
 check(flags.includes("export const MILESTONE_PROMPT_FLAG = 'milestone_prompt'"),
   `${FLAGS}: MILESTONE_PROMPT_FLAG is missing`)
-check(/export function hasMilestonePrompt\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasMilestonePrompt does not auto-grant internal accounts like its sibling pilot flags`)
-check(flags.includes("[MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' }"),
-  `${FLAGS}: MILESTONE_PROMPT_FLAG has no GRANTABLE_FLAGS entry, so it cannot be granted to a named outside tester from the admin dashboard`)
+// GA 2026-09-13 (Coach as Concierge): milestone_prompt is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasMilestonePrompt\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasMilestonePrompt no longer has GA's plain signed-in body`)
+check(!flags.includes("[MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' }"),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired milestone_prompt entry`)
 
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')

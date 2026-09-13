@@ -19,10 +19,10 @@ const FLAGS = 'api/_lib/feature-flags.js'
 const flags = fs.readFileSync(FLAGS, 'utf8')
 check(/export const SECTION_REWORK_FLAG = 'section_rework'/.test(flags),
   `${FLAGS}: SECTION_REWORK_FLAG is missing`)
-check(/export function hasSectionRework\(user\)/.test(flags),
-  `${FLAGS}: hasSectionRework predicate is missing`)
-check(/\[SECTION_REWORK_FLAG\]:\s*\{\s*label:/.test(flags),
-  `${FLAGS}: SECTION_REWORK_FLAG has no GRANTABLE_FLAGS entry -- it could not be granted to a named tester from the admin dashboard`)
+check(/export function hasSectionRework\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasSectionRework no longer has GA's (2026-09-13, Coach as Concierge) plain signed-in body`)
+check(!/\[SECTION_REWORK_FLAG\]:\s*\{\s*label:/.test(flags),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired section_rework entry -- GA removed it since there is nothing left to grant`)
 
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')

@@ -22,10 +22,14 @@ const flags = fs.readFileSync(FLAGS, 'utf8')
 
 check(flags.includes("export const ORIENTATION_CAPTURE_FLAG = 'orientation_capture'"),
   `${FLAGS}: ORIENTATION_CAPTURE_FLAG is missing`)
-check(/export function hasOrientationCapture\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasOrientationCapture does not auto-grant internal accounts like its sibling pilot flags`)
-check(flags.includes("[ORIENTATION_CAPTURE_FLAG]: { label:"),
-  `${FLAGS}: ORIENTATION_CAPTURE_FLAG has no GRANTABLE_FLAGS entry, so it cannot be granted to a named outside tester from the admin dashboard`)
+// GA 2026-09-13 (Coach as Concierge): orientation_capture is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasOrientationCapture\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasOrientationCapture no longer has GA's plain signed-in body`)
+check(!flags.includes("[ORIENTATION_CAPTURE_FLAG]: { label:"),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired orientation_capture entry`)
 
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')

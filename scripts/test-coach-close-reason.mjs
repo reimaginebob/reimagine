@@ -71,10 +71,14 @@ const FLAGS = 'api/_lib/feature-flags.js'
 const flags = fs.readFileSync(FLAGS, 'utf8')
 check(flags.includes("export const CLOSE_REASON_CAPTURE_FLAG = 'close_reason_capture'"),
   `${FLAGS}: CLOSE_REASON_CAPTURE_FLAG is missing`)
-check(/export function hasCloseReasonCapture\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasCloseReasonCapture does not auto-grant internal accounts like its sibling pilot flags`)
-check(flags.includes('[CLOSE_REASON_CAPTURE_FLAG]: { label:'),
-  `${FLAGS}: CLOSE_REASON_CAPTURE_FLAG has no GRANTABLE_FLAGS entry`)
+// GA 2026-09-13 (Coach as Concierge): close_reason_capture is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasCloseReasonCapture\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasCloseReasonCapture no longer has GA's plain signed-in body`)
+check(!flags.includes('[CLOSE_REASON_CAPTURE_FLAG]: { label:'),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired close_reason_capture entry`)
 
 // --- API endpoint ---
 const ENDPOINT = 'api/pursuit-close-reason.js'
