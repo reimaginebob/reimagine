@@ -58,6 +58,28 @@ export default function FeedbackDashboard({ range = "all", refreshKey = 0 }) {
   // button bumps refreshKey.
   useEffect(() => { fetchData(range) }, [range, refreshKey, fetchData])
 
+  const [momentPayload, setMomentPayload] = useState(null)
+  const [momentLoading, setMomentLoading] = useState(false)
+  const [momentError, setMomentError] = useState(null)
+
+  const fetchMoments = useCallback(async (rng) => {
+    setMomentLoading(true); setMomentError(null)
+    try {
+      const res = await fetch(`/api/admin/moment-engagement?range=${encodeURIComponent(rng || "all")}`, { credentials: "include" })
+      if (res.status === 200) {
+        setMomentPayload(await res.json())
+      } else {
+        setMomentError(`Request failed (HTTP ${res.status}).`)
+      }
+    } catch (e) {
+      setMomentError("Network error reaching the moment-engagement endpoint.")
+    } finally {
+      setMomentLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchMoments(range) }, [range, refreshKey, fetchMoments])
+
   if (loading && !payload) return <div style={S.muted}>Loading feedback…</div>
   if (error && !payload) return (
     <div style={S.errorBanner}><span>{error}</span><button onClick={() => fetchData(range)} style={S.retryBtn}>Retry</button></div>
@@ -199,6 +221,67 @@ export default function FeedbackDashboard({ range = "all", refreshKey = 0 }) {
               {surfaceSentiment.length === 0 && <tr><Td colSpan={6} muted>No events yet.</Td></tr>}
             </tbody>
           </table>
+        </Panel>
+
+        {/* COACH MOMENTS -- shown/accepted/declined per family, from
+            coach_prompt_engagement. Added 2026-09-13: the production test
+            plan's moment-engagement check found the writes existed with no
+            admin view reading them back. */}
+        <Panel title="Coach moments" wide>
+          {momentLoading && !momentPayload && <div style={S.muted}>Loading moment engagement…</div>}
+          {momentError && !momentPayload && (
+            <div style={S.errorBanner}><span>{momentError}</span><button onClick={() => fetchMoments(range)} style={S.retryBtn}>Retry</button></div>
+          )}
+          {momentPayload && (
+            <>
+              <table style={S.table}>
+                <thead><tr>
+                  <Th>Family</Th>
+                  <Th right>Shown</Th>
+                  <Th right>Accepted</Th>
+                  <Th right>Declined</Th>
+                  <Th right>No response</Th>
+                </tr></thead>
+                <tbody>
+                  {momentPayload.byFamily.map(f => (
+                    <tr key={f.family}>
+                      <Td>{f.label}</Td>
+                      <Td right>{f.shown}</Td>
+                      <Td right>{f.accepted}</Td>
+                      <Td right>{f.declined}</Td>
+                      <Td right>{f.noResponse}</Td>
+                    </tr>
+                  ))}
+                  {momentPayload.byFamily.length === 0 && <tr><Td colSpan={5} muted>No moment firings logged in {windowLabel}.</Td></tr>}
+                </tbody>
+              </table>
+              <details style={{ marginTop: 10 }}>
+                <summary style={{ cursor: "pointer", color: GRAYL, fontSize: 13 }}>By moment ({momentPayload.byPromptCode.length})</summary>
+                <table style={{ ...S.table, marginTop: 8 }}>
+                  <thead><tr>
+                    <Th>Moment</Th>
+                    <Th>Family</Th>
+                    <Th right>Shown</Th>
+                    <Th right>Accepted</Th>
+                    <Th right>Declined</Th>
+                    <Th right>No response</Th>
+                  </tr></thead>
+                  <tbody>
+                    {momentPayload.byPromptCode.map(c => (
+                      <tr key={c.promptCode}>
+                        <Td>{c.promptCode}</Td>
+                        <Td>{c.familyLabel}</Td>
+                        <Td right>{c.shown}</Td>
+                        <Td right>{c.accepted}</Td>
+                        <Td right>{c.declined}</Td>
+                        <Td right>{c.noResponse}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            </>
+          )}
         </Panel>
 
         {/* FEED */}
