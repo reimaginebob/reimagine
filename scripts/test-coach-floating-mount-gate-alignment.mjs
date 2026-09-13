@@ -25,9 +25,18 @@
 // touch -- scoped out as a separate, larger change to that specific
 // onboarding surface, not folded in here.
 //
-// Source-level: App.jsx's three Chat mount sites and api/coach.js's note
-// gating are both plain source text, not independently exercisable outside
-// a browser/live request.
+// Source-level: App.jsx's Chat mount sites and api/coach.js's note gating
+// are both plain source text, not independently exercisable outside a
+// browser/live request.
+//
+// Updated 2026-09-13 (One Coach consolidation): the dedicated My Coach
+// step's own embedded mount (a third Chat mount, inside the now-retired
+// case'myCoach') was retired -- the sidebar now opens the floating or
+// concierge-embedded panel in place instead of navigating to a separate
+// page. Two mounts remain: the floating bubble and the concierge-embedded
+// panel. The "baseline that already had activityCaptureActive and should
+// not have changed" check below now anchors on the concierge-embedded
+// mount (the survivor) instead of the retired dedicated one.
 import fs from 'node:fs'
 
 let failures = 0
@@ -41,26 +50,26 @@ const coach = fs.readFileSync(COACH, 'utf8')
 // --- #2.6a: floating bubble mount gains activityCaptureActive -------------
 
 const mountStarts = [...app.matchAll(/<Chat (?:embedded )?currentStep=\{step\}/g)].map(m => m.index)
-check(mountStarts.length === 3, `${APP}: expected exactly 3 Chat mount sites, found ${mountStarts.length} -- this test's assumptions about which mount is which need re-checking`)
+check(mountStarts.length === 2, `${APP}: expected exactly 2 Chat mount sites (the dedicated My Coach mount was retired 2026-09-13), found ${mountStarts.length} -- this test's assumptions about which mount is which need re-checking`)
 
 // Identify the floating bubble mount specifically: it is the one NOT marked
-// `embedded` and gated on `step!=='myCoach'&&!conciergeEmbedded` just before
-// the tag -- distinct from both embedded mounts (the dedicated My Coach step
-// and the onboarding-concierge surface).
-const bubbleIdx = app.indexOf("step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step}")
-check(bubbleIdx !== -1, `${APP}: the floating bubble's mount (gated on step!=='myCoach'&&!conciergeEmbedded) is missing or has changed shape`)
+// `embedded` and gated on `!conciergeEmbedded` just before the tag --
+// distinct from the remaining embedded mount (the onboarding-concierge
+// surface; the dedicated My Coach step's own embedded mount was retired).
+const bubbleIdx = app.indexOf("!conciergeEmbedded&&<Chat currentStep={step}")
+check(bubbleIdx !== -1, `${APP}: the floating bubble's mount (gated on !conciergeEmbedded) is missing or has changed shape`)
 const bubbleEnd = bubbleIdx !== -1 ? app.indexOf('/>', bubbleIdx) : -1
 const bubbleMount = bubbleIdx !== -1 && bubbleEnd !== -1 ? app.slice(bubbleIdx, bubbleEnd) : ''
 check(bubbleMount.includes('activityCaptureActive={hasNextStep}'),
-  `${APP}: the floating bubble mount still does not pass activityCaptureActive -- activity offers would only ever render on the dedicated My Coach step, never from the bubble open on every other screen`)
+  `${APP}: the floating bubble mount still does not pass activityCaptureActive -- activity offers would only ever render on the concierge-embedded surface, never from the bubble open on every other screen`)
 
-// The dedicated My Coach step's embedded mount already had it (this is the
-// baseline the bubble was missing, not something this PR should touch).
-const dedicatedIdx = app.indexOf('<Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed}')
-check(dedicatedIdx !== -1, `${APP}: the dedicated My Coach step's embedded mount is missing or has changed shape`)
+// The concierge-embedded mount already had it (this is the baseline the
+// bubble was missing, not something this PR should touch).
+const dedicatedIdx = app.indexOf('<Chat embedded currentStep={step} C={C} presence={coachPresence}')
+check(dedicatedIdx !== -1, `${APP}: the concierge-embedded mount is missing or has changed shape`)
 const dedicatedEnd = dedicatedIdx !== -1 ? app.indexOf('/>', dedicatedIdx) : -1
 check(dedicatedIdx !== -1 && dedicatedEnd !== -1 && app.slice(dedicatedIdx, dedicatedEnd).includes('activityCaptureActive={hasNextStep}'),
-  `${APP}: the dedicated My Coach step's embedded mount lost activityCaptureActive -- it was always correct and should not have changed`)
+  `${APP}: the concierge-embedded mount lost activityCaptureActive -- it was always correct and should not have changed`)
 
 // --- #2.6c: server-side independent-track exclusion on the 5 pipeline notes
 

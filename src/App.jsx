@@ -7089,7 +7089,7 @@ function SupportPanel({onClose}){
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
+function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -7233,7 +7233,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
-        const active=step===id||childActive
+        const active=(id==='myCoach'?coachActive:step===id)||childActive
         const rows=[
           <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
             <Icon size={16}/>
@@ -7285,7 +7285,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       only surface the entry when a click would actually open a working coach
       (not a "sign in first" dead end). Standalone row — never a sequential
       orientation step, so no progress dot or done-check. */}
-  {signedIn&&(()=>{const active=step==='myCoach';return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
+  {signedIn&&(()=>{const active=coachActive;return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
     <MessageCircle size={17} color={active?'#FFFFFF':C.gold}/>
     <div style={{flex:1}}>
       {/* Batch item 10 (2026-09-10): same mark as the header pill (CoachMark,
@@ -9713,12 +9713,6 @@ export default function PivotEngine(){
     const content=typeof explainEntry.message==='function'?explainEntry.message({...ctx,selfOpenReason:reason}):explainEntry.message
     setChatMessages(m=>[...m,{role:'assistant',content,checkinKey:`moment:${explainEntry.key}`,quickReplies:[]}])
   }
-  // Arriving at the dedicated My Coach step counts as opening the coach, so the
-  // floating panel that remounts on the way back out is already open rather
-  // than collapsed -- otherwise someone who reached My Coach straight from the
-  // sidebar (never having opened the floating bubble first) would still hit
-  // the "lost the coach" problem in reverse the moment they left.
-  useEffect(()=>{if(step==='myCoach')setCoachOpen(true)},[step])
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
   // when a "prep with My Coach" / "talk it through" affordance navigates here.
@@ -9747,17 +9741,19 @@ export default function PivotEngine(){
   // the moment the person leaves myCoach, so this can never point at a
   // section they have since left; hasSectionRework governs the whole feature
   // client-side (the server independently re-checks it).
-  const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn.step==='focus'&&['p6','p_res','p9','income','p7','p8'].includes(coachReturn.section)?coachReturn.section:null
-  const coachReturnLabel=(fromStep,section)=>{
-    if(section&&NAV_LABELS[section])return NAV_LABELS[section]
-    if(fromStep==='focus')return 'your Focus Playbook'
-    // Name it. "Back to this opportunity" makes someone work out which one they
-    // came from; "Back to Imerys · Human Resources Vice President" does not.
-    if(fromStep==='op'){const t=coachSaveTarget();return (t&&t.title)||'this opportunity'}
-    return NAV_LABELS[fromStep]||'where you were'
-  }
-  const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(step==='myCoach'?null:{step,section:returnSection||null,label:coachReturnLabel(step,returnSection)});nav('myCoach')}
-  const returnFromCoach=()=>{const r=coachReturn;if(!r)return;setCoachReturn(null);nav(r.step);if(r.section)setTimeout(()=>scrollToOutput(r.section),150)}
+  // Still gated on being ON the focus step right now, not on a stored "step"
+  // snapshot -- opening Coach no longer leaves the screen, so the live step
+  // IS the only step this could ever be reworking.
+  const sectionReworkTarget=hasSectionRework&&step==='focus'&&coachReturn&&['p6','p_res','p9','income','p7','p8'].includes(coachReturn.section)?coachReturn.section:null
+  // One Coach (2026-09-13): opening Coach no longer navigates anywhere. It
+  // surfaces whichever of the two mounts is live for this account (the
+  // floating panel, or the concierge-embedded one) in its fully-open state,
+  // in place, on the screen the user is already looking at. coachReturn is
+  // kept ONLY as the signal sectionReworkTarget needs (which Focus section,
+  // if any, Coach was opened from) -- there is no "return" to perform
+  // anymore, so its step/label fields are dropped.
+  const openMyCoachPanel=()=>{if(conciergeEmbedded){if(coachPresence==='minimized')beginCoachRestore()}else{setCoachOpen(true);setCoachMaximized(true)}}
+  const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(returnSection?{section:returnSection}:null);openMyCoachPanel()}
   // Subtle inline "ask the coach" nudge woven along the journey — the free-text
   // orientation prompts, the direction choice, a section's empty state. A text
   // link, not a gold Btn, so it invites without competing with the step's
@@ -17245,33 +17241,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     }
-    // height:'100%',display:'flex',flexDirection:'column' (2026-09-09,
-    // composer-visible structural fix): gives the embedded Chat panel below
-    // a genuine, definite height to fill via its own flex:'1 1 auto' rather
-    // than a JS window-measurement -- see Chat.jsx's panelRef sizing
-    // comment. Resolves against contentColumnRef's own height, which is
-    // itself definite (a flex-row item under App's outer 100dvh/overflow:
-    // hidden shell). The back-button + header block above keep their
-    // natural height; Chat takes what's left.
-    case'myCoach':return <div style={{height:'100%',display:'flex',flexDirection:'column'}}>
-      {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12,flexShrink:0}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
-      {/* The header is deliberately thin. Everything above the panel pushes it
-          down, and the panel fills the rest of the flex column -- so a
-          paragraph here is a paragraph of conversation gone, on every visit,
-          forever. What used to sit here introduced the coach
-          ("ask anything: where to focus, how to tell your story, how to prepare
-          for a conversation") directly above the coach's own first message,
-          which says the same thing in the same order. Saying it twice cost
-          about 200px and taught the reader nothing the transcript did not.
-          The privacy line is a first-run reassurance rather than a standing
-          fact, so it shows while the conversation is empty and steps out of the
-          way once there is one to read. */}
-      <div style={{marginBottom:8,flexShrink:0}}>
-        <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
-        {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
-      </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
-    </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
     // playbook. Career Club Corner is fixed at the top and is never a search
@@ -19160,13 +19129,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           the pe_v4 localStorage mirror), so it never returns on any device. */}
       {signedInUser&&!isDemo&&done.includes('p3')&&step!=='myCoach'&&!seenCoachIntro&&<div data-print="hide" role="region" aria-label="My Coach announcement" style={{background:C.gold,color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexWrap:'wrap',flexShrink:0}}>
         <span><strong>New: My Coach.</strong> Ask anything about your search — networking, interviews, your resume, or just a tough day — and get guidance built on your profile.</span>
-        <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
+        <button onClick={()=>{setSeenCoachIntro(true);openMyCoachPanel()}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
         <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
-        {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} coachActive={false} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
@@ -19248,7 +19217,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           padding:coachPresence==='minimized'?0:'40px 56px 28px 24px',
           transition:'width 0.25s ease, min-width 0.25s ease, padding 0.25s ease',
         }}>
-          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
+          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
         </div>}
       </div>
     </div>
@@ -19261,7 +19230,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         concierge embedded panel above (2026-09-07) is the same exclusion for
         the same reason -- suppressed here too, or the floating bubble would
         mount right alongside it, showing the same conversation twice. */}
-    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
+    {signedInUser&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {offerDisclaimerGate&&<OfferDisclaimerGate onAccepted={()=>{setSignedInUser(u=>u?{...u,offer_disclaimer_version:OFFER_DISCLAIMER_VERSION,offer_disclaimer_accepted_at:new Date().toISOString()}:u);const _pending=offerDisclaimerGate;setOfferDisclaimerGate(null);generateOpOfferNegotiation(_pending.correctionText,_pending.overrideOffer,_pending.overrideValueCase,true)}} onCancel={()=>setOfferDisclaimerGate(null)}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>

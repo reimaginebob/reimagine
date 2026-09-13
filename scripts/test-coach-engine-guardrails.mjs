@@ -116,9 +116,11 @@ check(app.includes("if(coachMoodHold&&entry.family!=='delivery'&&entry.family!==
 check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array does not include both new holds`)
 
-// --- Client: all 3 Chat mount sites wired ---
+// --- Client: both remaining Chat mount sites wired ---
+// 2, not 3: One Coach (2026-09-13) retired the dedicated myCoach embedded
+// mount, leaving the floating bubble and the concierge-embedded panel.
 const mountCount = (app.match(/onDistressDetected=\{handleCoachDistressDetected\} onMoodLow=\{handleCoachMoodLow\} onSessionOpen=\{handleCoachSessionOpen\}/g) || []).length
-check(mountCount === 3, `${APP}: expected all 3 Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
+check(mountCount === 2, `${APP}: expected both remaining Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
 
 // --- Chat.jsx: reads the headers, calls the callbacks, fires onSessionOpen ---
 check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {'),
