@@ -18,6 +18,7 @@ const NON_CATALOG_PROMPT_CODES = [
   'life_events_thin',
   'brand_richness',
   'values_thin',
+  'resume_builder_draft_invite',
 ]
 
 // The QUESTION being asked. Every MOMENT_CATALOG row that carries a

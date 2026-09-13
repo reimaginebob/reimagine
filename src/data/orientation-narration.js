@@ -13,6 +13,8 @@
 export const ORIENTATION_NARRATION = {
   resume: 'Now let\'s get started — first up is your resume. It does not need to be current or polished — share what you have and I will help you shape it from there. If yours is dated, there is a guided builder right on this screen that walks you through it instead.',
 
+  'resume-builder': 'I\'m right here while you build this out. If you\'d rather just tell me what you did in a role instead of typing it yourself, say so and I\'ll turn it into resume language for you.',
+
   linkedin: 'Worth adding if you have it — there is a quick how-to right on this screen: open your LinkedIn profile, click More, choose Save to PDF, then upload it here.',
 
   assessment: 'An assessment shows the part of you that stays constant no matter what job you are in — where you do your best work, what you carry with you. Without it I can only work from your track record; with it I can connect what you have done to why you are good at it, which sharpens everything that comes after. Affintus is free if you do not already have one.',
