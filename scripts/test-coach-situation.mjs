@@ -133,7 +133,11 @@ check(coach.includes('overrides anything earlier in the conversation about which
 
 check(flags.includes("export const COACH_SITUATION_FLAG = 'coach_situation'"), `${FLAGS}: COACH_SITUATION_FLAG is missing`)
 check(flags.includes('export function hasCoachSituation(user) {'), `${FLAGS}: hasCoachSituation is missing`)
-check(flags.includes('[COACH_SITUATION_FLAG]: { label: \'Coach situational grounding\' },'), `${FLAGS}: GRANTABLE_FLAGS entry is missing`)
+// GA 2026-09-13 (Coach as Concierge): coach_situation is one of the ten
+// flags that moved to on for every signed-in account; GRANTABLE_FLAGS no
+// longer lists it since there is nothing left to grant.
+check(!flags.includes('[COACH_SITUATION_FLAG]: { label: \'Coach situational grounding\' },'),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired coach_situation entry`)
 
 if (failures) {
   console.error(`test-coach-situation: ${failures} check(s) failed`)

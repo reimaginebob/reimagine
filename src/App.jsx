@@ -8178,63 +8178,24 @@ export default function PivotEngine(){
   // every user would be walked through a four-step setup that dead-ends on a 403
   // consent screen.
   const hasConnectorBeta=Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('my_search')
-  // PILOT — Coach next-move capture, 2026-09-02. Server-side truth is
-  // api/_lib/feature-flags.js (PIPELINE_CAPTURE_FLAG); this mirror only decides
-  // whether the client will render an offer. The server independently decides
-  // whether the model was ever told it could make one, so a tampered client
-  // gains nothing: with no instruction there is no trailer and no header.
-  // On for the team by email, or for a named outside tester granted the flag.
-  // Mirrors isInternalAccount/hasPipelineCapture in api/_lib/feature-flags.js,
-  // which is the real gate; this only decides whether to render an offer.
-  const hasPipelineCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_capture'))
-  // PILOT — Your Next Step, 2026-09-02. Mirrors hasNextStep in
-  // api/_lib/feature-flags.js; the server decides independently what the Coach
-  // is told, so this only governs whether the rail draws the item.
-  const hasNextStep=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('next_step'))
-  // PILOT — Coach-as-Concierge onboarding narration, 2026-09-04. Mirrors
-  // hasOnboardingConcierge in api/_lib/feature-flags.js; the server decides
-  // independently what Coach is told, so this only governs whether the
-  // client fires the check-ins that narrate onboarding. A separate flag from
-  // hasNextStep so the two rollouts can be toggled independently.
-  const hasOnboardingConcierge=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))
-  // PILOT — Coach presence, 2026-09-08. Mirrors hasCoachPresence in
-  // api/_lib/feature-flags.js; gates the widened embedded panel (Phase 1b of
-  // the Coach-as-Concierge redesign). A separate flag from
-  // hasOnboardingConcierge on purpose -- that one still gates the onboarding
-  // steps' own narration and framing, unrelated to whether the panel itself
-  // reaches screens past onboarding.
-  // Coach as Concierge implies presence (2026-09-13): granting onboarding_concierge
-  // alone now also turns on the everywhere-embedded panel, not just the
-  // onboarding-scoped narration/capture behaviors. One-directional on purpose --
-  // presence alone (coach_presence with onboarding_concierge false) stays
-  // grantable as its own narrower pilot; it does not imply the concierge
-  // behaviors back. Named after the confusion it fixes: the admin dashboard's
-  // "Coach as Concierge" grant used to leave someone with proactive nudges but
-  // no panel pinned outside onboarding, needing a second grant most people
-  // granting the first one would not think to make.
-  const hasCoachPresence=hasOnboardingConcierge||(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))
+  // GA 2026-09-13 (Coach as Concierge). Was a per-account pilot mirror; every
+  // signed-in account now has all ten of these, following the same
+  // hasPipeline=!!signedInUser precedent above (My Pipeline's own GA,
+  // 2026-08-30). Server-side truth is api/_lib/feature-flags.js, which made
+  // the identical change to isInternalAccount/feature_flags for all ten.
+  const hasPipelineCapture=!!signedInUser
+  const hasNextStep=!!signedInUser
+  const hasOnboardingConcierge=!!signedInUser
+  const hasCoachPresence=!!signedInUser
   // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
   // api/_lib/feature-flags.js; the server decides who may use the underlying
   // writes, this only decides whether the client renders the summary board.
+  // NOT part of Coach-as-Concierge GA above -- its own separate rollout.
   const hasPipelineBoard=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_board'))
-  // PILOT — Save-to-notes agency, 2026-09-05. Mirrors hasCoachNoteAgency in
-  // api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client renders the disclosure and the offer.
-  const hasCoachNoteAgency=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_note_agency'))
-  // PILOT — Section rework from chat, 2026-09-05. Mirrors hasSectionRework in
-  // api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client threads returnSection at all.
-  const hasSectionRework=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('section_rework'))
-  // PILOT — Orientation field capture, 2026-09-06. Mirrors hasOrientationCapture
-  // in api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client renders the Reputation/Skills offers.
-  const hasOrientationCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('orientation_capture'))
-  // PILOT — Close-reason capture, 2026-09-07. Mirrors hasCloseReasonCapture
-  // in api/_lib/feature-flags.js; the server decides who gets the
-  // instruction, this only decides whether the client renders the
-  // disclosure and the offer. A separate flag from hasPipelineCapture on
-  // purpose -- see that flag's own comment in feature-flags.js.
-  const hasCloseReasonCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('close_reason_capture'))
+  const hasCoachNoteAgency=!!signedInUser
+  const hasSectionRework=!!signedInUser
+  const hasOrientationCapture=!!signedInUser
+  const hasCloseReasonCapture=!!signedInUser
   // PILOT — Industry Insider ecosystem view, 2026-09-10. Mirrors
   // hasIndustryEcosystemView in api/_lib/feature-flags.js; the server decides
   // independently what Coach is told, so this only governs whether the

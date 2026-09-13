@@ -13,10 +13,14 @@ const FLAGS = 'api/_lib/feature-flags.js'
 const flags = fs.readFileSync(FLAGS, 'utf8')
 check(flags.includes("export const COACH_NOTE_AGENCY_FLAG = 'coach_note_agency'"),
   `${FLAGS}: COACH_NOTE_AGENCY_FLAG is missing`)
-check(/export function hasCoachNoteAgency\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasCoachNoteAgency is missing or does not auto-grant internal (@career.club) accounts`)
-check(flags.includes('[COACH_NOTE_AGENCY_FLAG]: { label:'),
-  `${FLAGS}: COACH_NOTE_AGENCY_FLAG is not listed in GRANTABLE_FLAGS`)
+// GA 2026-09-13 (Coach as Concierge): coach_note_agency is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasCoachNoteAgency\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasCoachNoteAgency no longer has GA's plain signed-in body -- did isInternalAccount/feature_flags creep back in?`)
+check(!flags.includes('[COACH_NOTE_AGENCY_FLAG]: { label:'),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired coach_note_agency entry`)
 
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
@@ -43,8 +47,8 @@ check(coach.includes("res.setHeader('X-Coach-Note-Offer', '1')"),
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-check(app.includes("signedInUser.feature_flags.includes('coach_note_agency')"),
-  `${APP}: the client-side hasCoachNoteAgency mirror is missing`)
+check(app.includes('const hasCoachNoteAgency=!!signedInUser'),
+  `${APP}: the client-side hasCoachNoteAgency mirror is missing or has drifted from GA's plain signed-in check`)
 
 // The one-time disclosure: fires once ever (persisted, not per-opportunity),
 // gated on an opportunity actually being in focus, and yields to the
