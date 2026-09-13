@@ -1,5 +1,6 @@
 import { sql } from '../_lib/db.js'
 import { hashToken, createSession, buildCookie } from '../_lib/session.js'
+import { syncNewUserToAllUsersSegment } from '../_lib/resend-segments.js'
 
 // Magic-link verification is deliberately tolerant of email-security scanners
 // and link-preview bots, which pre-fetch the URLs inside an email before the
@@ -92,6 +93,9 @@ export default async function handler(req, res) {
       RETURNING id
     `
     userId = created[0].id
+    // Join the "all registered users" Resend segment. Never throws and never
+    // delays the redirect; a miss is caught by /api/admin/reimagine-segment.
+    syncNewUserToAllUsersSegment({ email: row.email, firstName: row.first_name, lastName: row.last_name })
   }
 
   const userAgent = req.headers['user-agent'] || ''
