@@ -9893,6 +9893,24 @@ export default function PivotEngine(){
 // before any profile work, so the branch only contaminated new accounts
 // with prior-account data from the same browser. See brief
 // 2026-06-04_localstorage-account-scoping.md.
+}).then(()=>{
+  // Sign-out clears reimagine_chat_history by design (clearAccountLocalState),
+  // so the next sign-in's chatMessages initializer (line ~9518) falls back to
+  // [INTRO_MSG] -- indistinguishable from a brand-new account. This restores
+  // the server's own copy in that case. Gated on the panel still being at its
+  // untouched default AT THE TIME THIS CHAIN WAS SET UP (this effect's deps
+  // are [], so this closure over chatMessages reflects the mount-time value,
+  // which is exactly "was there anything to hydrate from locally"). The
+  // actual write below re-checks the SAME condition inside the setChatMessages
+  // updater against the live value, so a message that arrives while this
+  // request is in flight (a proactive moment, a narration line) is never
+  // clobbered by this resolving late -- the Situation-safety rule in CLAUDE.md
+  // section 8 for exactly this render-snapshot-vs-async-use bug class.
+  if(chatMessages.length===1&&chatMessages[0]&&chatMessages[0].role==='assistant'&&!chatMessages[0].banner&&chatMessages[0].content===INTRO_MSG.content){
+    fetch('/api/coach-history',{credentials:'include'}).then(r=>r.ok?r.json():null).then(data=>{
+      if(data&&Array.isArray(data.turns)&&data.turns.length>0)setChatMessages(cur=>(cur.length===1&&cur[0]&&cur[0].role==='assistant'&&!cur[0].banner&&cur[0].content===INTRO_MSG.content)?[INTRO_MSG,...data.turns]:cur)
+    }).catch(()=>{})
+  }
 }).catch(()=>{}).finally(()=>{serverLoadDoneRef.current=true;setServerLoadDone(true);setServerLoadOk(serverLoadOkRef.current)})},[])
   // Privacy: drop the NULL-guard (2026-06-24 conversation-review material update) so
   // grandfathered users who never accepted a version also see the notice before
