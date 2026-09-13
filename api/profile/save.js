@@ -102,6 +102,41 @@ async function handler(req, res) {
     return res.status(409).json({ error: 'stale', message: 'Newer changes already exist on the server' })
   }
 
+  // Corrections replaced the "Reimagine Corrections Log" Google Sheet (dead
+  // since 2026-08-20 -- an Apps Script deployment drifted from the URL baked
+  // into the client, silently, and the fire-and-forget client POST had no way
+  // to notice). profile.corrections already lands here on every accepted
+  // autosave, so capture becomes a byproduct of this already-proven path
+  // instead of a second, independently-fragile one: upsert every entry
+  // present, id is the client-generated natural key, ON CONFLICT DO NOTHING
+  // makes re-sends of the same array a no-op. Best-effort -- a failure here
+  // must never fail the profile save the user is waiting on.
+  if (Array.isArray(profile.corrections) && profile.corrections.length) {
+    const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ').trim() || null
+    try {
+      for (const c of profile.corrections) {
+        if (!c || !c.id) continue
+        await sql`
+          INSERT INTO corrections (
+            id, user_id, user_email, user_name, step, step_display_name,
+            section_output_length, correction_text, app_version, browser, created_at
+          ) VALUES (
+            ${c.id}, ${req.user.id}, ${req.user.email || null}, ${userName},
+            ${c.step || null}, ${c.stepDisplayName || null}, ${c.sectionOutputLength ?? null},
+            ${c.text || c.correctionText || ''}, ${c.appVersion || null}, ${c.browser || null},
+            ${c.created_at || null}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `
+      }
+    } catch (err) {
+      console.error('profile/save corrections-capture failed (non-blocking)', {
+        userId: req.user?.id,
+        message: err?.message || String(err),
+      })
+    }
+  }
+
   return res.status(200).json({ ok: true, updatedAt: rows[0].profile_updated_at })
 }
 
