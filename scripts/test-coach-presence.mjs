@@ -48,9 +48,18 @@ check(resolveConciergeEmbedded({ ...base, hasCoachPresence: true, isMobile: true
 check(flags.includes("export const COACH_PRESENCE_FLAG = 'coach_presence'"), `${FLAGS}: COACH_PRESENCE_FLAG is missing`)
 check(flags.includes('export function hasCoachPresence(user) {'), `${FLAGS}: hasCoachPresence is missing`)
 check(flags.includes("[COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },"), `${FLAGS}: GRANTABLE_FLAGS entry is missing`)
+// Coach as Concierge implies presence (2026-09-13): the dead server-side copy
+// of hasCoachPresence must not quietly diverge in meaning from the client
+// logic that actually runs -- so it gets the same one-directional implication.
+check(flags.includes('if (hasOnboardingConcierge(user)) return true'),
+  `${FLAGS}: hasCoachPresence no longer implies presence from hasOnboardingConcierge -- it would silently diverge from the client-side logic that actually runs`)
 
-check(app.includes("const hasCoachPresence=(!!signedInUser&&/@career\\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))"),
-  `${APP}: client-side hasCoachPresence mirror is missing or has drifted`)
+// Coach as Concierge implies presence (2026-09-13): onboarding_concierge now
+// also turns hasCoachPresence on, one-directionally -- presence alone (the
+// coach_presence flag with onboarding_concierge false) still stays orthogonal,
+// which is exactly what the resolveConciergeEmbedded cases above already cover.
+check(app.includes("const hasCoachPresence=hasOnboardingConcierge||(!!signedInUser&&/@career\\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))"),
+  `${APP}: client-side hasCoachPresence mirror is missing, has drifted, or no longer implies presence from hasOnboardingConcierge`)
 check(app.includes("const conciergeEmbedded=!isMobile&&!isDemo&&!isTest&&!!signedInUser&&(hasCoachPresence?(step!=='welcome'&&step!=='myCoach'):(hasOnboardingConcierge&&CONCIERGE_ORIENTATION_STEPS.includes(step)))"),
   `${APP}: conciergeEmbedded's widened gate is missing or has drifted from the re-derived logic above`)
 check(app.includes("const[coachPresence,setCoachPresence]=useState('open')"), `${APP}: coachPresence state is missing`)

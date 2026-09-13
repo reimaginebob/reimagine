@@ -8188,7 +8188,16 @@ export default function PivotEngine(){
   // hasOnboardingConcierge on purpose -- that one still gates the onboarding
   // steps' own narration and framing, unrelated to whether the panel itself
   // reaches screens past onboarding.
-  const hasCoachPresence=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))
+  // Coach as Concierge implies presence (2026-09-13): granting onboarding_concierge
+  // alone now also turns on the everywhere-embedded panel, not just the
+  // onboarding-scoped narration/capture behaviors. One-directional on purpose --
+  // presence alone (coach_presence with onboarding_concierge false) stays
+  // grantable as its own narrower pilot; it does not imply the concierge
+  // behaviors back. Named after the confusion it fixes: the admin dashboard's
+  // "Coach as Concierge" grant used to leave someone with proactive nudges but
+  // no panel pinned outside onboarding, needing a second grant most people
+  // granting the first one would not think to make.
+  const hasCoachPresence=hasOnboardingConcierge||(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))
   // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
   // api/_lib/feature-flags.js; the server decides who may use the underlying
   // writes, this only decides whether the client renders the summary board.

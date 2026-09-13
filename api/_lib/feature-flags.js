@@ -233,6 +233,7 @@ export const COACH_PRESENCE_FLAG = 'coach_presence'
 
 export function hasCoachPresence(user) {
   if (isInternalAccount(user)) return true
+  if (hasOnboardingConcierge(user)) return true
   const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
   return flags.includes(COACH_PRESENCE_FLAG)
 }
