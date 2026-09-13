@@ -124,12 +124,12 @@ check(walkthroughBlock.includes('Do not mention that this is an automated check'
 // never memoized at render time; PR #838/#841 fixed this bug class once) ---
 const situationIdx = app.indexOf('const computeSituation=()=>{')
 check(situationIdx !== -1, `${APP}: computeSituation is missing`)
-const situationBlock = situationIdx !== -1 ? app.slice(situationIdx, situationIdx + 1000) : ''
+const situationBlock = situationIdx !== -1 ? app.slice(situationIdx, situationIdx + 1200) : ''
 check(situationBlock.includes("step==='resume-builder'&&profile.builder&&profile.builder.phase==='draft'&&profile.baselineResume&&Array.isArray(profile.baselineResume.experience)"),
   `${APP}: computeSituation's builderRoles gate is missing or has drifted`)
 check(situationBlock.includes('bulletsMissingNumbers:Array.isArray(r.bullets)?r.bullets.filter(b=>!/\\d/.test(String(b||\'\'))).length:0'),
   `${APP}: computeSituation no longer counts bullets missing a number per role`)
-check(situationBlock.includes('return{screen:step,record,section:activeSectionRef.current||null,builderRoles}'),
+check(situationBlock.includes("return{screen:step,record,section:activeSectionRef.current||null,builderRoles,lane:selectedLane||null,ecosystemCategory:(step==='p4'&&selectedLane==='insider'&&hasIndustryEcosystemView&&ecosystem.expanded)||null}"),
   `${APP}: computeSituation no longer returns builderRoles alongside screen/record/section`)
 
 // --- api/coach.js: the on-request help note ---

@@ -12952,7 +12952,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const builderRoles=(step==='resume-builder'&&profile.builder&&profile.builder.phase==='draft'&&profile.baselineResume&&Array.isArray(profile.baselineResume.experience))
       ?profile.baselineResume.experience.map(r=>({company:r.company||'',title:(r.titles&&r.titles[0]&&r.titles[0].title)||'',bulletCount:Array.isArray(r.bullets)?r.bullets.length:0,bulletsMissingNumbers:Array.isArray(r.bullets)?r.bullets.filter(b=>!/\d/.test(String(b||''))).length:0}))
       :null
-    return{screen:step,record,section:activeSectionRef.current||null,builderRoles}
+    return{screen:step,record,section:activeSectionRef.current||null,builderRoles,lane:selectedLane||null,ecosystemCategory:(step==='p4'&&selectedLane==='insider'&&hasIndustryEcosystemView&&ecosystem.expanded)||null}
   }
   const saveCoachNoteToOpportunity=(text,personName)=>{
     const t=(typeof text==='string'?text:'').trim();if(!t)return ''
