@@ -107,17 +107,12 @@ export function hasOnboardingConcierge(user) {
   return !!user
 }
 
-// PILOT -- Pipeline board, 2026-09-05. The equal-width, stage-grouped visual
-// summary above the existing editable My Pipeline list. Gated because it is a
-// new rendering of live opportunity data on a screen every signed-in account
-// already uses, which is not a change to make to 145 accounts before Bob has
-// looked at it himself.
-export const PIPELINE_BOARD_FLAG = 'pipeline_board'
-
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasPipelineBoard(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(PIPELINE_BOARD_FLAG)
+  return !!user
 }
 
 // PILOT -- Save-to-notes agency, 2026-09-05. Coach mentions once, early, that
@@ -257,18 +252,12 @@ export function hasCoachPresence(user) {
   return !!user
 }
 
-// PILOT -- Industry Insider ecosystem view, 2026-09-10. Category -> Role ->
-// Company exploration that replaces p4's role-suggestion step for the
-// Industry Insider lane only (Familiar Ground and Work That Matters keep p4
-// exactly as today). Gated because it replaces an existing lane's entire
-// suggestion surface for every account that reaches it, which is not a change
-// to make to 145 accounts before Bob has QC'd it himself.
-export const INDUSTRY_ECOSYSTEM_VIEW_FLAG = 'industry_ecosystem_view'
-
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasIndustryEcosystemView(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(INDUSTRY_ECOSYSTEM_VIEW_FLAG)
+  return !!user
 }
 
 // The flags the admin dashboard may grant and revoke by email. A flag that is
@@ -281,6 +270,4 @@ export function hasIndustryEcosystemView(user) {
 // lives only in the database is the failure mode this file exists to prevent.
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
-  [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
-  [INDUSTRY_ECOSYSTEM_VIEW_FLAG]: { label: 'Industry Insider ecosystem view' },
 }
