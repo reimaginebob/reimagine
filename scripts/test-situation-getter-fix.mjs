@@ -43,7 +43,7 @@ const playbook = fs.readFileSync(PLAYBOOK, 'utf8')
 check(!app.includes('situation={computeSituation()}'),
   `${APP}: a <Chat> mount still evaluates computeSituation() at render time -- reintroduces the stale-snapshot bug`)
 const getterMountCount = (app.match(/getSituation=\{computeSituation\}/g) || []).length
-check(getterMountCount === 3, `${APP}: expected all 3 <Chat> mounts to pass getSituation={computeSituation}, found ${getterMountCount}`)
+check(getterMountCount === 2, `${APP}: expected both remaining <Chat> mounts to pass getSituation={computeSituation} (the dedicated myCoach mount was retired 2026-09-13), found ${getterMountCount}`)
 // fireMoment (App.jsx) is a separate, already-correct call site: it calls
 // computeSituation() inline, inside its own async fetch construction, at the
 // moment the request is actually built -- never stored as a snapshot value

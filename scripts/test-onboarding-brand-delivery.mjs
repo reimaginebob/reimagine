@@ -103,14 +103,15 @@ check(chat.includes("'brand-rework', [") && chat.includes("label: 'Yes, rework i
 check(chat.includes('Want me to rework it with that?'),
   `${CHAT}: the brand-rework offer no longer shows the note back before acting on it -- every sibling capture shows exactly what it is about to do before the tap`)
 
-// All three <Chat> mount points must pass the prop, or the capture works on
-// some surfaces and silently not others -- the same discipline the
-// pipeline-capture brief used. Three as of 2026-09-07: the embedded myCoach
-// panel, the floating bubble, and the concierge orientation-flow embedded
-// panel (which is what actually renders on p3 for a flagged account now).
+// Both remaining <Chat> mount points must pass the prop, or the capture
+// works on some surfaces and silently not others -- the same discipline
+// the pipeline-capture brief used. Two as of 2026-09-13 (One Coach
+// consolidation retired the dedicated myCoach embedded mount): the
+// floating bubble and the concierge orientation-flow embedded panel
+// (which is what actually renders on p3 for a flagged account now).
 const chatMountHits = (app.match(/brandReworkCaptureActive=\{hasOnboardingConcierge&&step==='p3'\}/g) || []).length
-check(chatMountHits === 3,
-  `${APP}: expected brandReworkCaptureActive passed at all three <Chat> call sites -- found ${chatMountHits}`)
+check(chatMountHits === 2,
+  `${APP}: expected brandReworkCaptureActive passed at both remaining <Chat> call sites -- found ${chatMountHits}`)
 
 // The write path: MUST route through submitCorrection (Track 6 conflict
 // detection) with a proceed callback. As of the 2026-09-10 box-stacking fix,

@@ -46,10 +46,10 @@ check(app.includes('const pursuitStageQuickReplies=(targetId)=>PURSUIT_STAGES.ma
   `${APP}: the pursuit-stage quick replies no longer carry targetId in their value`)
 check(app.includes("const pursuitOfferMessage=(title,targetId)=>({role:'assistant'"),
   `${APP}: pursuitOfferMessage no longer accepts a targetId parameter`)
-// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
-// the same capture props the other two mounts already carried.
-check((app.match(/pursuitOfferMessage\(coachSaveTarget\(\)\.title,coachSaveTarget\(\)\.id\)/g) || []).length === 3,
-  `${APP}: expected all 3 Chat mounts to pass coachSaveTarget().id into pursuitOfferMessage -- the offer must be built with the target that was actually in focus when it was shown`)
+// 2, not 3: One Coach (2026-09-13) retired the dedicated myCoach embedded
+// mount, leaving the floating bubble and the concierge-embedded panel.
+check((app.match(/pursuitOfferMessage\(coachSaveTarget\(\)\.title,coachSaveTarget\(\)\.id\)/g) || []).length === 2,
+  `${APP}: expected both remaining Chat mounts to pass coachSaveTarget().id into pursuitOfferMessage -- the offer must be built with the target that was actually in focus when it was shown`)
 
 // The tap handler reads targetId from the parsed payload and writes to it
 // directly -- it must NOT call coachSaveTarget() again to resolve where to

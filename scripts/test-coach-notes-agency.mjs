@@ -82,12 +82,12 @@ const writeBlock = writeIdx !== -1 ? app.slice(writeIdx, writeIdx + 200) : ''
 check(writeBlock.includes('saveCoachNoteToOpportunity(value)'),
   `${APP}: coach-note-save does not write through saveCoachNoteToOpportunity, the existing save path`)
 
-// Prop wiring: both Chat mounts must pass notesCaptureActive, gated on the
-// flag AND an opportunity actually being open.
-// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
-// the same capture props the other two mounts already carried.
+// Prop wiring: both remaining Chat mounts must pass notesCaptureActive,
+// gated on the flag AND an opportunity actually being open. 2, not 3: One
+// Coach (2026-09-13) retired the dedicated myCoach embedded mount, leaving
+// the floating bubble and the concierge-embedded panel.
 const notesCaptureActiveCount = (app.match(/notesCaptureActive=\{hasCoachNoteAgency&&!!coachSaveTarget\(\)\}/g) || []).length
-check(notesCaptureActiveCount === 3, `${APP}: expected notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} on all 3 <Chat> mounts, found ${notesCaptureActiveCount}`)
+check(notesCaptureActiveCount === 2, `${APP}: expected notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} on both remaining <Chat> mounts, found ${notesCaptureActiveCount}`)
 
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')

@@ -67,13 +67,17 @@ const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 check(/const hasSectionRework=/.test(app),
   `${APP}: hasSectionRework client-side flag mirror is missing`)
-check(/const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn\.step==='focus'&&\['p6','p_res','p9','income','p7','p8'\]\.includes\(coachReturn\.section\)\?coachReturn\.section:null/.test(app),
-  `${APP}: sectionReworkTarget is not derived from coachReturn, scoped to the six known sections, and gated on hasSectionRework`)
-// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
-// the same capture props the other two mounts already carried.
+// One Coach (2026-09-13): opening Coach no longer navigates to a separate
+// step, so coachReturn no longer carries a "step" snapshot to compare --
+// the gate is now the LIVE step (step==='focus'), since Coach opening in
+// place means the live step is the only step this could ever be reworking.
+check(/const sectionReworkTarget=hasSectionRework&&step==='focus'&&coachReturn&&\['p6','p_res','p9','income','p7','p8'\]\.includes\(coachReturn\.section\)\?coachReturn\.section:null/.test(app),
+  `${APP}: sectionReworkTarget is not derived from the live step + coachReturn, scoped to the six known sections, and gated on hasSectionRework`)
+// 2, not 3: One Coach (2026-09-13) retired the dedicated myCoach embedded
+// mount, leaving the floating bubble and the concierge-embedded panel.
 const mountHits = (app.match(/sectionReworkTarget=\{sectionReworkTarget\}/g) || []).length
-check(mountHits === 3,
-  `${APP}: expected sectionReworkTarget={sectionReworkTarget} at all 3 <Chat> mount sites, found ${mountHits}`)
+check(mountHits === 2,
+  `${APP}: expected sectionReworkTarget={sectionReworkTarget} at both remaining <Chat> mount sites, found ${mountHits}`)
 const branchIdx = app.indexOf("checkinKey==='section-rework'")
 check(branchIdx !== -1, `${APP}: the checkinKey==='section-rework' branch is missing from handleEmploymentQuickReply`)
 if (branchIdx !== -1) {

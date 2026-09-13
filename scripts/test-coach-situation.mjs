@@ -83,7 +83,7 @@ check(!app.includes("situation={computeSituation()}"),
 check(app.includes("getSituation={computeSituation}"),
   `${APP}: at least one <Chat> mount is missing the getSituation prop`)
 const situationMountCount = (app.match(/getSituation=\{computeSituation\}/g) || []).length
-check(situationMountCount === 3, `${APP}: expected all 3 <Chat> mounts to carry getSituation={computeSituation}, found ${situationMountCount}`)
+check(situationMountCount === 2, `${APP}: expected both remaining <Chat> mounts to carry getSituation={computeSituation} (the dedicated myCoach mount was retired 2026-09-13), found ${situationMountCount}`)
 check(app.includes("new IntersectionObserver(entries=>{"), `${APP}: the visibleSection IntersectionObserver tracker is missing`)
 
 // presence/setPresence (Phase 1b) now sit between getSituation and

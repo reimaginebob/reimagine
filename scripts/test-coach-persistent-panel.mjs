@@ -51,15 +51,21 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(app.includes('const[coachOpen,setCoachOpen]=useState(false)') && app.includes('const[coachMaximized,setCoachMaximized]=useState(false)'),
   `${APP}: coachOpen/coachMaximized are not lifted to App.jsx state`)
-check(app.includes("useEffect(()=>{if(step==='myCoach')setCoachOpen(true)},[step])"),
-  `${APP}: arriving at the dedicated My Coach step does not mark the coach open -- without this, someone who reached My Coach without ever opening the floating bubble would still lose the coach in reverse on the way out`)
+// One Coach (2026-09-13) retired the dedicated My Coach step entirely --
+// the sidebar now calls openMyCoachPanel() directly (setCoachOpen(true) for
+// the floating mount, or beginCoachRestore() for the concierge-embedded
+// one), so the useEffect that used to mark the coach open on ARRIVING at
+// that step is gone too: there is no longer a step to arrive at.
+check(!app.includes("useEffect(()=>{if(step==='myCoach')setCoachOpen(true)},[step])"),
+  `${APP}: the retired arriving-at-myCoach effect is back -- openMyCoachPanel already opens the panel directly, so this would be redundant dead code again`)
 check(app.includes('open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized}'),
   `${APP}: the floating <Chat> mount does not receive the lifted open/maximized state and setters`)
 
-// The embedded mount (inside case'myCoach') must NOT also receive these --
-// it never reads `open` meaningfully (there is an early `if (embedded)`
-// return before the open/bubble branch), and passing them there would be
-// dead weight suggesting the two mounts share more than they do.
+// The remaining embedded mount (concierge-embedded; the dedicated My Coach
+// step's own embedded mount was retired) must NOT also receive these -- it
+// never reads `open` meaningfully (there is an early `if (embedded)` return
+// before the open/bubble branch), and passing them there would be dead
+// weight suggesting the two mounts share more than they do.
 const embeddedMountIdx = app.indexOf('<Chat embedded currentStep={step}')
 check(embeddedMountIdx !== -1, `${APP}: the embedded <Chat> mount is missing`)
 const embeddedMountLine = embeddedMountIdx !== -1 ? app.slice(embeddedMountIdx, app.indexOf('\n', embeddedMountIdx)) : ''

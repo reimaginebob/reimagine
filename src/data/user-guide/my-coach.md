@@ -8,7 +8,7 @@ Ask it the tactical questions (how to open a networking conversation, how to fol
 
 A few ways in, one conversation: the chat button in the corner of every screen once you're signed in; My Coach in the sidebar, there from your very first screen in orientation; and an **Ask My Coach about this** button on each section you build — your Personal Brand and every part of your playbook — which opens the coach with a question about that section ready for you to send or edit. Along the way you'll also see quieter prompts at the spots where people tend to pause — "Not sure what to write?" on the orientation questions, a nudge to talk through which direction fits you, a heads-up on a section before you build it — each one opening the coach with the right question already framed. Your history follows you across all of them.
 
-**And a way back.** When you reach My Coach from a button inside your work, a **Back to** link sits at the top of the coach screen and returns you to the exact section you left, scrolled to where you were. Reaching the coach from the sidebar or the corner chat button is a destination rather than a detour, so there is no link in those cases.
+**And it never takes you anywhere.** However you open it — the sidebar, the corner button, or an **Ask My Coach about this** button — the coach opens right on the screen you're already on, with your conversation exactly as you left it. You never step away from your work to talk to it, so there's nothing to come back from.
 
 ## What it can do
 
