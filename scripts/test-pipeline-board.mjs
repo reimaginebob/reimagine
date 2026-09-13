@@ -9,20 +9,20 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 
 const FLAGS = 'api/_lib/feature-flags.js'
 const flags = fs.readFileSync(FLAGS, 'utf8')
-check(flags.includes("export const PIPELINE_BOARD_FLAG = 'pipeline_board'"),
-  `${FLAGS}: PIPELINE_BOARD_FLAG is missing`)
-check(/export function hasPipelineBoard\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasPipelineBoard is missing or does not auto-grant internal (@career.club) accounts`)
-check(flags.includes('[PIPELINE_BOARD_FLAG]: { label:'),
-  `${FLAGS}: PIPELINE_BOARD_FLAG is not listed in GRANTABLE_FLAGS -- an outside tester could never be granted it from the admin dashboard`)
+check(!flags.includes('PIPELINE_BOARD_FLAG'),
+  `${FLAGS}: PIPELINE_BOARD_FLAG should be gone -- this pilot went GA 2026-09-13`)
+check(/export function hasPipelineBoard\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasPipelineBoard should be a plain !!user check post-GA`)
+check(!flags.includes("[PIPELINE_BOARD_FLAG]"),
+  `${FLAGS}: GRANTABLE_FLAGS should no longer carry an entry for the pipeline board -- it is not a grantable pilot anymore`)
 
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-// Client-side mirror: same internal-email regex + feature_flags check as its
-// siblings (hasNextStep, hasOnboardingConcierge), not a server round-trip.
-check(app.includes("signedInUser.feature_flags.includes('pipeline_board')"),
-  `${APP}: the client-side hasPipelineBoard mirror is missing`)
+// Post-GA: plain signed-in check, no feature_flags round-trip, same pattern
+// as hasPipeline's own GA (2026-08-30).
+check(app.includes('const hasPipelineBoard=!!signedInUser'),
+  `${APP}: the client-side hasPipelineBoard mirror should be a plain !!signedInUser check post-GA`)
 
 // The board itself: gated on the flag, additive (never replaces the existing
 // list), grouped into the six stage columns (closed excluded), each card a

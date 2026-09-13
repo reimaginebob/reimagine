@@ -8187,21 +8187,18 @@ export default function PivotEngine(){
   const hasNextStep=!!signedInUser
   const hasOnboardingConcierge=!!signedInUser
   const hasCoachPresence=!!signedInUser
-  // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
-  // api/_lib/feature-flags.js; the server decides who may use the underlying
-  // writes, this only decides whether the client renders the summary board.
-  // NOT part of Coach-as-Concierge GA above -- its own separate rollout.
-  const hasPipelineBoard=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_board'))
+  // GA 2026-09-13. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasPipelineBoard=!!signedInUser
   const hasCoachNoteAgency=!!signedInUser
   const hasSectionRework=!!signedInUser
   const hasOrientationCapture=!!signedInUser
   const hasCloseReasonCapture=!!signedInUser
-  // PILOT — Industry Insider ecosystem view, 2026-09-10. Mirrors
-  // hasIndustryEcosystemView in api/_lib/feature-flags.js; the server decides
-  // independently what Coach is told, so this only governs whether the
-  // client renders the ecosystem hub instead of p4's role list for the
-  // Industry Insider lane, and whether the Moments evaluator may suggest it.
-  const hasIndustryEcosystemView=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('industry_ecosystem_view'))
+  // GA 2026-09-13. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasIndustryEcosystemView=!!signedInUser
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
