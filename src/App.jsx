@@ -1401,10 +1401,23 @@ function parseEcosystemCategoriesJSON(raw){
 // no industry name at all) -- empty string when the model omitted it or the
 // whole response failed to parse, so the render side can fall back to a
 // generic label rather than showing nothing.
+//
+// Cap length at a WORD boundary (2026-09-13 fix): a plain .slice() cut a long
+// industry name off mid-word in the center hub's small circle ("...Workforc").
+// This trims to the last full word inside the cap and appends an ellipsis of
+// its own, so the render side's CSS line-clamp is a backstop against a rare
+// long name, not the thing doing the truncating.
+function truncateAtWordBoundary(s,max){
+  const t=s.trim()
+  if(t.length<=max)return t
+  const cut=t.slice(0,max)
+  const lastSpace=cut.lastIndexOf(' ')
+  return (lastSpace>max*0.6?cut.slice(0,lastSpace):cut).trim()+'…'
+}
 function backstopEcosystemCategories(obj){
   const src=obj&&typeof obj==='object'?obj:{}
   const okStr=v=>typeof v==='string'&&v.trim().length>0
-  const industry=okStr(src.industry)?src.industry.trim().slice(0,60):''
+  const industry=okStr(src.industry)?truncateAtWordBoundary(src.industry,42):''
   const byKey={}
   ECOSYSTEM_CATEGORY_KEYS.forEach(k=>{
     const c=src[k]
@@ -3574,7 +3587,7 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   // exactly (same pc fields, already proven against check-prompt-refs.mjs).
   iiEcosystem:(pr,o3,o3Structured,ecosystemRefine)=>{const _struct=buildSynthesisContext(o3Structured);const _catList=ECOSYSTEM_CATEGORIES.map(c=>`${c.key} (${c.label})`).join('; ');const _catKeys=ECOSYSTEM_CATEGORY_KEYS.map(k=>`"${k}"`).join(', ');return `Map the ecosystem around this person's industry into exactly these seven fixed categories: ${_catList}.
 
-FIRST, name this person's specific industry in a short, common name (2 to 5 words, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate") -- the same industry the seven categories below are built around. This becomes the "industry" field described below.
+FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders in a small circle on the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
 
 For EACH of the seven categories, whether or not it turns out to be a real factor in this industry, produce:
 - description: one to two plain sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label). If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
@@ -5639,12 +5652,13 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
 // Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
 // one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
 // clear both the center hub and each other at the node width below. Widened
-// 2026-09-11 (Bob's review: cards were too small to show a full description)
-// -- radius 36 / node width 27% keeps the same clearance margin the original
-// 34/25% pairing had.
+// again 2026-09-13 (Bob's second review: descriptions still truncated) --
+// radius 38 / node width 29% keeps roughly the same clearance margin the
+// 36/27% pairing had, while giving every card more room in both directions
+// (not just taller, which is what a wider clamp alone would have done).
 const ECOSYSTEM_NODE_POS=[
-  {x:50,y:14},{x:78.16,y:27.56},{x:85.1,y:58.01},{x:65.62,y:82.43},
-  {x:34.38,y:82.43},{x:14.9,y:58.01},{x:21.84,y:27.56},
+  {x:50,y:12},{x:79.73,y:26.31},{x:87.06,y:58.46},{x:66.49,y:84.23},
+  {x:33.51,y:84.23},{x:12.94,y:58.46},{x:20.27,y:26.31},
 ]
 function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
   return <div>
@@ -5667,24 +5681,32 @@ function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,e
         busy={busy}
         onSubmit={onRefine}
       />
-      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'28px auto 0'}}>
+      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'40px auto 30px'}}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
           {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
         </svg>
-        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'19%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:10,boxSizing:'border-box'}}>
+        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'24%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:12,boxSizing:'border-box'}}>
           <Compass size={20} color="#FFFFFF"/>
-          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
+          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
         </div>
         {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
           const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
-          const isEmpty=!c.count
+          // isEmpty reads the description, not the count (2026-09-13 fix): a
+          // real, populated category can still come back with no count, or
+          // count:0, and that is NOT the same thing as "not a factor in this
+          // industry" -- that exact phrase (the prompt's own instruction for
+          // a real non-factor, and what the backstop above writes when the
+          // model skipped a key entirely) is the only reliable signal.
+          // Reading count instead grayed out a real category ("Customers &
+          // channels") that simply had no count number.
+          const isEmpty=/^not a factor in this industry/i.test((c.description||'').trim())
           const p=ECOSYSTEM_NODE_POS[i]
-          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'27%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
+          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'29%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
               <div style={{fontSize:17,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
               {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
             </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
+            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:6,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
             <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:8,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
           </button>
         })}
