@@ -1131,6 +1131,20 @@ function searchIntakeNote(si) {
 // is a different job than this one governs.
 const ORIENTATION_LISTENING_NOTE = '\n\nORIENTATION LISTENING MODE: when this person shares something real — a struggle, a frustration, how something is going for them — reflect it back and stay with it before you redirect, caveat, or pivot to anything else, including one of the capture notes elsewhere in this prompt. Resist the pull to solve it, defer it to "once your brand is built," or steer toward whatever is still missing from their profile. One open question that builds on what they actually said is worth more here than a capture offer or a redirect. If nothing calls for a follow-up, a brief, genuine acknowledgment is enough — you do not owe them a next question every turn. This does not cancel any capture note elsewhere in this prompt — still offer to save something that clearly fits — it governs what comes FIRST in your reply: their words get heard on their own terms before anything else happens in the same breath.'
 
+// Resume builder, on-request help for later roles (2026-09-13, v3 of the
+// builder hand-holding work). The client-side effect (src/App.jsx) already
+// walks someone through their first role once, unprompted, the moment their
+// baseline draft exists -- naming common areas of responsibility and, for
+// any bullet without a number, naming how that kind of work is usually
+// measured. That walkthrough closes by telling them they can ask for the
+// same thing on any other role. This note is what makes that close true:
+// without it, Coach has no visibility into the builder's in-progress roles
+// at all, so a request for "the same help on my second job" would have
+// nothing real to answer with. Deliberately reactive only -- gated on the
+// person asking, never fired unprompted a second time (Bob's own framing:
+// repeating the walkthrough per role unprompted reads as nagging).
+const RESUME_BUILDER_HELP_NOTE = '\n\nRESUME BUILDER, IN PROGRESS: this person is in the guided resume builder. Their roles so far: {builderRolesSummary}. Coach already walked them through this same kind of help once, on their first role: naming common areas of responsibility for a role like theirs, and, for any bullet without a number, naming how that kind of work is usually measured (an impact figure or a scope figure) and asking them to recall it. If they ask for that same help on any other role, give it the same way, reasoned fresh for that specific role and company, not a generic prompt to "add more detail." Do not repeat the first-role walkthrough unprompted; only do this when they ask.'
+
 // WIDEN THE SEARCH (Phase 4 Part 2, brief §2.6). DRAFT -- Bob has not signed
 // off on this exact wording yet; it ships gated on hasOnboardingConcierge,
 // same as the rest of the widen-the-search set, for his own live read before
@@ -1973,6 +1987,17 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
 
   if (currentStep === 'p3' && hasPersonalBrand && hasOnboardingConcierge({ feature_flags: featureFlags, email: userEmail })) {
     profileBlock += BRAND_REWORK_CAPTURE_NOTE
+  }
+
+  if (currentStep === 'resume-builder' && situation && Array.isArray(situation.builderRoles) && situation.builderRoles.length && hasOnboardingConcierge({ feature_flags: featureFlags, email: userEmail })) {
+    const builderRolesSummary = situation.builderRoles.map(r => {
+      const company = _hasText(r && r.company) ? r.company.trim().slice(0, 80) : 'unnamed company'
+      const title = _hasText(r && r.title) ? r.title.trim().slice(0, 80) : 'unnamed title'
+      const bulletCount = Number.isFinite(r && r.bulletCount) ? r.bulletCount : 0
+      const missing = Number.isFinite(r && r.bulletsMissingNumbers) ? r.bulletsMissingNumbers : 0
+      return `${title} at ${company} (${bulletCount} bullet${bulletCount === 1 ? '' : 's'}, ${missing} without a number)`
+    }).join('; ')
+    profileBlock += RESUME_BUILDER_HELP_NOTE.replace('{builderRolesSummary}', builderRolesSummary)
   }
 
   const sectionReworkLabel = SECTION_REWORK_LABELS[returnSection]

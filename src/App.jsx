@@ -3989,6 +3989,7 @@ For each note, return an object with:
 
 Return ONLY a JSON array of objects { "shaped": string, "nudge"?: string } in the same order as the input lines. No preamble, no markdown fence. Input lines:
 ${rawLines}`,
+  BUILDER_FIRST_ROLE_WALKTHROUGH:(title,companyContext,bullets)=>`You are Coach, talking to someone building their resume for the first time in the guided builder. This is their first company: ${title}${companyContext?` at ${companyContext}`:''}. ${bullets&&bullets.length?`They already have these lines for it:\n${bullets.join('\n')}\n\nFor any line here that is measurable but has no number, name how this kind of work is usually measured (an impact figure like money, time, or volume moved, or a scope figure like budget, headcount, or geography) and ask them if they can recall roughly where it landed.`:`They have not written any bullets for this role yet.`} Also name three or four areas of responsibility or impact someone in a role like this commonly owns, spanning the functional work, any management or leadership piece, cross-functional or stakeholder work, and domain or compliance work where relevant, and ask if any of these sound familiar so they can add what applies. Do not invent specifics about this person; these are prompts for their own recall, not claims about them. Close by telling them plainly that you can walk through this same thing for any other company on their resume whenever they want, just by asking. Keep it warm, plain, and no more than a short paragraph or two, spoken as Coach in the first person. Do not mention that this is an automated check.`,
   SKILLS:(title,industry,shapedAccomplishments)=>`Build a skills list for a ${title}${industry?` in ${industry}`:''}, to appear on their resume. Ground it in what they described:
 ${shapedAccomplishments||'(no accomplishments captured yet; use the role and industry)'}
 
@@ -10950,13 +10951,23 @@ export default function PivotEngine(){
     if(isDemo||isTest)return
     if(!hasOnboardingConcierge||!signedInUser)return
     if(step!=='resume-builder'||!profile.builder||profile.builder.phase!=='draft')return
-    if(!profile.baselineResume)return
+    if(!profile.baselineResume||!(profile.baselineResume.experience&&profile.baselineResume.experience[0]))return
     if(seenResumeBuilderDraftInvite||resumeBuilderDraftInviteFiredRef.current)return
     resumeBuilderDraftInviteFiredRef.current=true
     setSeenResumeBuilderDraftInvite(true)
     logPromptEngagement('resume_builder_draft_invite','hub_arrival','shown')
-    setChatMessages(m=>[...m,resumeBuilderDraftInviteMessage()])
-    setPbCheckinOpenReq(x=>x+1)
+    ;(async()=>{
+      const role=profile.baselineResume.experience[0]
+      const title=(role.titles&&role.titles[0]&&role.titles[0].title)||''
+      const bullets=Array.isArray(role.bullets)?role.bullets:[]
+      try{
+        const walkthrough=await callClaudeWithVoiceGate(()=>P.BUILDER_FIRST_ROLE_WALKTHROUGH(title,role.company||'',bullets),{maxTokens:900,voiceMode:'prose'},{step:'builder-first-role-walkthrough',onEvent:logVoiceEvent})
+        setChatMessages(m=>[...m,{role:'assistant',content:String(walkthrough||'').trim()||resumeBuilderDraftInviteMessage().content,checkinKey:'resume-builder-draft-invite'}])
+      }catch{
+        setChatMessages(m=>[...m,resumeBuilderDraftInviteMessage()])
+      }
+      setPbCheckinOpenReq(x=>x+1)
+    })()
   },[step,signedInUser,hasOnboardingConcierge,profile.builder,profile.baselineResume,seenResumeBuilderDraftInvite,isDemo,isTest])
   // Save-to-notes disclosure (2026-09-05, brief: "let Coach save to notes on
   // request, not on its own judgment"). Fires once ever, the first time Coach
@@ -12938,7 +12949,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const slotId=currentSavedSlotIdRef.current
     const rec=slotId?savedPlaybooks.find(x=>x&&x.id===slotId):null
     const record=rec?{id:rec.id,source:rec.source,title:rec.title||(rec.source==='door2'?'this opportunity':'this direction'),lane:rec.lane||null,company:rec.company||null}:null
-    return{screen:step,record,section:activeSectionRef.current||null}
+    const builderRoles=(step==='resume-builder'&&profile.builder&&profile.builder.phase==='draft'&&profile.baselineResume&&Array.isArray(profile.baselineResume.experience))
+      ?profile.baselineResume.experience.map(r=>({company:r.company||'',title:(r.titles&&r.titles[0]&&r.titles[0].title)||'',bulletCount:Array.isArray(r.bullets)?r.bullets.length:0,bulletsMissingNumbers:Array.isArray(r.bullets)?r.bullets.filter(b=>!/\d/.test(String(b||''))).length:0}))
+      :null
+    return{screen:step,record,section:activeSectionRef.current||null,builderRoles}
   }
   const saveCoachNoteToOpportunity=(text,personName)=>{
     const t=(typeof text==='string'?text:'').trim();if(!t)return ''
