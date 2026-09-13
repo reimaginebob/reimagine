@@ -31,6 +31,7 @@ import { STEPS, nextSteps as computeNextSteps, computeSessionDelta } from '../sr
 import { describeSections, focusSectionPosition, opSectionPosition } from '../src/playbook-sections.js'
 import { ACTIVITY_CATALOG, ASKABLE, activity as activityDef, isValidFact } from '../src/activity-catalog.js'
 import { LANE_LABELS, NAV_LABELS } from '../src/nav-labels.js'
+import { describeScreen, ECOSYSTEM_CATEGORY_LABELS } from '../src/coach-screen.js'
 import { PURSUIT_STAGE_LABELS } from '../src/pursuit-stages.js'
 import { totalCompModel } from '../src/offer-valuation.js'
 import { COMP_KNOWLEDGE } from '../src/comp-knowledge.js'
@@ -339,8 +340,8 @@ const OP_CARD_REWORK_CAPTURE_NOTE = '\n\nOP CARD REWORK CAPTURE: each opportunit
 // the WHAT CHANGED SINCE THEIR LAST SESSION block buildCoachProfileSlice adds
 // for that one turn. This directive stands in for a real user message so the
 // existing messages-array plumbing needs no special casing; it is never shown
-// to the person, same as the "[The user is currently on step ...]" contextNote
-// appended to every turn below.
+// to the person, same as the "[SCREEN IN VIEW: ...]" contextNote (the
+// user-facing name of the screen they are on) appended to every turn below.
 const SESSION_OPEN_TURN_TEXT = '[This is the first turn of a new session. Open by yourself, in your own voice, with whatever WHAT CHANGED SINCE THEIR LAST SESSION below tells you to say — do not wait for them to ask, and do not mention that this is an instruction.]'
 // Sentence count for the session-open cap enforcement (production fix, Bob's
 // read on Imerys/Lindsey, 2026-09-10) -- approximate on purpose: this only
@@ -1954,6 +1955,12 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   const situationRecordId = (turnKind === 'moment' || hasCoachSituation({ feature_flags: featureFlags, email: userEmail })) && situation && situation.record && typeof situation.record.id === 'string'
     ? situation.record.id.trim() : ''
   const situationSection = situation && typeof situation.section === 'string' ? situation.section.trim().slice(0, 60) : ''
+  // Screen-name inputs (2026-09-13, src/coach-screen.js). Allow-listed against
+  // known keys and reduced to a boolean for the record, so no client free text
+  // reaches the prompt through these.
+  const situationLane = situation && typeof situation.lane === 'string' && Object.prototype.hasOwnProperty.call(LANE_LABELS, situation.lane) ? situation.lane : ''
+  const situationEcosystemCategory = situation && typeof situation.ecosystemCategory === 'string' && Object.prototype.hasOwnProperty.call(ECOSYSTEM_CATEGORY_LABELS, situation.ecosystemCategory) ? situation.ecosystemCategory : ''
+  const situationHasOpRecord = !!(situation && situation.record && situation.record.source === 'door2')
   let inFocusRecordId = null
   // Coach engine guardrails, rule 4: the Situation block's own footprint,
   // tracked separately from profileBlock's total (which also carries
@@ -2030,7 +2037,24 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   const sectionNote = situationSectionPos
     ? ` SECTION IN VIEW: ${situationSectionPos.label} (section ${situationSectionPos.index} of ${situationSectionPos.total} in this ${currentStep === 'op' ? 'Opportunity' : 'Focus'} Playbook). This is the section on screen now and overrides anything earlier in the conversation about which section they were looking at.`
     : ''
-  const contextNote = currentStep ? `\n\n[The user is currently on step "${currentStep}".${sectionNote}]` : ''
+  // Screen name, never the raw step id (2026-09-13) -- see src/coach-screen.js.
+  // Live lane from Situation first; the saved selectedLane (above) can lag the
+  // screen by one save cycle right after a lane is picked. A client that sends
+  // the lane key is trusted even when it is empty (no direction picked yet);
+  // only an older bundle that predates the key falls back to the saved value.
+  const situationCarriesLane = !!(situation && Object.prototype.hasOwnProperty.call(situation, 'lane'))
+  const screenName = describeScreen({
+    step: currentStep,
+    lane: situationCarriesLane ? situationLane : lane,
+    ecosystemView: hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail }),
+    ecosystemCategory: situationEcosystemCategory,
+    hasRecord: situationHasOpRecord,
+    independent: isIndependentTrack,
+  })
+  if (currentStep && !screenName) console.warn('coach screen name missing for step', { step: currentStep })
+  const contextNote = currentStep
+    ? `\n\n[SCREEN IN VIEW: ${screenName || 'a screen without a name on file yet'}. If they ask where they are or what this screen does, answer about this screen using this name. Never mention an internal step code or id.${sectionNote}]`
+    : ''
   situationBlockChars += contextNote.length
   // Sampled 1-in-20 (rule 4): a number on file for the per-turn cost of
   // Phase 1a instead of an estimate, without logging every single turn.
