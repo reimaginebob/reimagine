@@ -26,7 +26,8 @@
     { "source": "/quick-start", "destination": "/index.html" },
     { "source": "/admin/dashboard", "destination": "/index.html" },
     { "source": "/admin/coach-insights", "destination": "/index.html" },
-    { "source": "/admin/desk", "destination": "/index.html" }
+    { "source": "/admin/desk", "destination": "/index.html" },
+    { "source": "/admin/support", "destination": "/index.html" }
   ],
   "headers": [
     {

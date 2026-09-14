@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react"
+import { useState, useEffect, useRef, createContext, useContext, lazy, Suspense } from "react"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
@@ -56,6 +56,11 @@ import Privacy from "./Privacy"
 import Terms from "./Terms"
 import AdminDashboard from "./AdminDashboard"
 import CoachInsights from "./CoachInsights"
+// /admin/support is lazy, unlike the two admin screens above it. Those predate
+// code-splitting here and are eagerly imported; this one is a staff-only screen
+// with no reason to sit in the bundle all 145 accounts download on every visit.
+// Suspense is required for React.lazy and has no other consumer in this file.
+const SupportView = lazy(() => import("./components/SupportView"))
 import ResearchDesk from "./components/ResearchDesk"
 import CookieBanner from "./CookieBanner"
 import { Analytics, track } from "@vercel/analytics/react"
@@ -7585,6 +7590,12 @@ export default function PivotEngine(){
   if(_path==='/terms')return <Terms/>
   if(_path==='/admin/dashboard')return <AdminDashboard/>
   if(_path==='/admin/coach-insights')return <CoachInsights/>
+  // Same unconditional render as its two siblings above, for the same reason:
+  // the gate is on the DATA endpoint (api/admin/support-timeline.js, session +
+  // ADMIN_LOGIN_EMAILS), and signedInUser is not declared until well below this
+  // early-return block, so reading it here would be a TDZ crash. An unauthorized
+  // visitor gets the page shell and a 403 from every lookup it tries.
+  if(_path==='/admin/support')return <Suspense fallback={null}><SupportView/></Suspense>
   // ResearchDesk gates itself against /api/me. The two screens above render
   // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
   // one has no endpoint of its own, and signedInUser is not declared until well
