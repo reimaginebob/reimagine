@@ -39,6 +39,41 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const flag = resolveFlag(req.query && req.query.flag)
       if (!flag) return res.status(400).json({ error: 'unknown flag' })
+
+      // The connector beta is the one pilot where "who has it" isn't the whole
+      // question -- a granted flag only lets someone MINT a credential, and the
+      // credential is the thing that actually reaches a user's pipeline
+      // unattended. Every other flag stops mattering once granted, so only this
+      // one pays for the extra join.
+      if (flag === CONNECTOR_BETA_FLAG) {
+        const rows = await sql`
+          SELECT
+            u.email,
+            u.push_token_hash IS NOT NULL AS has_push_token,
+            u.push_token_created_at,
+            ot.active_oauth_tokens,
+            ot.latest_oauth_token_at
+          FROM users u
+          LEFT JOIN LATERAL (
+            SELECT count(*)::int AS active_oauth_tokens, max(t.created_at) AS latest_oauth_token_at
+            FROM oauth_tokens t
+            WHERE t.user_id = u.id AND t.expires_at > NOW()
+          ) ot ON true
+          WHERE ${flag} = ANY(u.feature_flags)
+          ORDER BY lower(u.email)
+        `
+        const tokenStatus = {}
+        for (const r of rows) {
+          tokenStatus[r.email] = {
+            hasPushToken: !!r.has_push_token,
+            pushTokenCreatedAt: r.push_token_created_at,
+            activeOAuthTokens: r.active_oauth_tokens || 0,
+            latestOAuthTokenAt: r.latest_oauth_token_at,
+          }
+        }
+        return res.status(200).json({ testers: rows.map(r => r.email), tokenStatus, flag, flags: GRANTABLE_FLAGS })
+      }
+
       const rows = await sql`SELECT email FROM users WHERE ${flag} = ANY(feature_flags) ORDER BY lower(email)`
       // `flags` lets the dashboard build its picker from the server's registry
       // rather than from a copy of it that can drift.
