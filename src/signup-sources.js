@@ -21,6 +21,14 @@
 export const SIGNUP_SOURCES = [
   { code: 'referral',   label: 'Someone I know recommended it', detailPrompt: 'Who, if you would like to say? (optional)' },
   { code: 'outplacement', label: 'My outplacement firm referred me', detailPrompt: 'Which one? (optional)' },
+  // Sponsored arrival (2026-09-14): an employer, or a firm a former employer
+  // hired, is paying for this person to use Reimagine (NextPlacement is the
+  // first). Its own code, separate from a word-of-mouth outplacement referral,
+  // because someone whose access was bought for them at a job loss behaves
+  // differently from someone who found the product alone, and every funnel
+  // number would otherwise average the two. Self-reported for now; the detail
+  // box names the program.
+  { code: 'employer', label: 'My employer or former employer is providing it', detailPrompt: 'Which company or program? (optional)' },
   { code: 'bob',        label: 'Bob Goodwin or Career Club' },
   { code: 'linkedin',   label: 'LinkedIn' },
   { code: 'media',      label: 'A newsletter, podcast, or article', detailPrompt: 'Which one? (optional)' },
