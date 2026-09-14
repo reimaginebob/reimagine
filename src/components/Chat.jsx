@@ -4,7 +4,7 @@ import CoachMark from './CoachMark'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
-import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
+import { PURSUIT_STAGE_LABELS, PURSUIT_OUTCOME_LABELS } from '../pursuit-stages.js'
 import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
 import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from '../coach-moments.js'
@@ -957,6 +957,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           try {
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(ouHeader), c => c.charCodeAt(0))))
             const stage = data && typeof data.stage === 'string' ? data.stage : ''
+            const outcome = data && typeof data.outcome === 'string' && PURSUIT_OUTCOME_LABELS[data.outcome] ? data.outcome : ''
             const move = data && typeof data.move === 'string' ? data.move.trim() : ''
             const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
             const people = (data && Array.isArray(data.people) ? data.people : []).filter(p => p && p.name)
@@ -966,7 +967,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               // local rendering can show the day before.
               const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
               const heard = []
-              if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}`)
+              if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}${outcome ? `, ${PURSUIT_OUTCOME_LABELS[outcome]}` : ''}`)
               if (move) heard.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
               if (meeting) heard.push(`Next scheduled meeting: ${fmt(meeting)}`)
               // Batch item 17: the title the model captured (already carried

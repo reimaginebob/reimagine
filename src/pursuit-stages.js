@@ -13,3 +13,15 @@ export const PURSUIT_STAGES = [
   { value: 'closed', label: 'Closed' },
 ]
 export const PURSUIT_STAGE_LABELS = Object.fromEntries(PURSUIT_STAGES.map(s => [s.value, s.label]))
+
+// How a closed opportunity ended. Same values api/pursuit-status.js accepts
+// (VALID_OUTCOMES); read by Chat.jsx's opportunity-update recap so a Coach
+// capture can say "Closed, Accepted" before the tap (2026-09-14).
+export const PURSUIT_OUTCOMES = [
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'declined', label: 'Declined' },
+  { value: 'not_selected', label: 'Not selected' },
+  { value: 'withdrew', label: 'Withdrew' },
+  { value: 'no_response', label: 'No response' },
+]
+export const PURSUIT_OUTCOME_LABELS = Object.fromEntries(PURSUIT_OUTCOMES.map(o => [o.value, o.label]))

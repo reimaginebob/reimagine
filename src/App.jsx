@@ -8396,14 +8396,24 @@ export default function PivotEngine(){
       checkinKey:'pursuit-saved-open',
       quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
   }
+  // Outcome (2026-09-14): how a closed opportunity ended, from the person's own
+  // words via Coach. The server already drops an outcome that disagrees with
+  // the stage; checked again here because this is the write. A valid outcome
+  // implies Closed.
+  const updateStageAndOutcome=(data)=>{
+    const rawStage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+    const outcome=data&&typeof data.outcome==='string'&&PURSUIT_OUTCOME_LABELS[data.outcome]&&(!rawStage||rawStage==='closed')?data.outcome:''
+    return{stage:outcome?'closed':rawStage,outcome}
+  }
   const execOpportunityUpdate=(data,targetId)=>{
-    const stage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+    const{stage,outcome}=updateStageAndOutcome(data)
     const move=data&&typeof data.move==='string'?data.move.trim():''
     const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
     const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
     const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
     const patch={}
     if(stage){patch.stage=stage;if(stage==='closed')patch.closed_at=new Date().toISOString()}
+    if(outcome)patch.outcome=outcome
     if(move)patch.next_move=move
     if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
     if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
@@ -8429,7 +8439,7 @@ export default function PivotEngine(){
     }
     const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
     const landed=[]
-    if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)
+    if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}${outcome?` (${PURSUIT_OUTCOME_LABELS[outcome]})`:''}`)
     if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
     if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
     if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
@@ -8809,7 +8819,7 @@ export default function PivotEngine(){
       const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
       const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
       const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
-      if(!stage&&!move&&!meeting&&!people.length&&!removePeople.length)return false
+      if(!stage&&!(data&&PURSUIT_OUTCOME_LABELS[data.outcome])&&!move&&!meeting&&!people.length&&!removePeople.length)return false
       const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
       if(resolved.status==='ambiguous')return buildDisambiguationOffer('opportunity-update',data,resolved.matches)
       const tgt=coachSaveTarget()
