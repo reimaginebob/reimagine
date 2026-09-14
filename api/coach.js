@@ -18,8 +18,10 @@ import { GO_INDEPENDENT_KNOWLEDGE } from '../src/data/go-independent-knowledge.j
 import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowledge.js'
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { INDUSTRY_ECOSYSTEM_KNOWLEDGE } from '../src/data/industry-ecosystem-knowledge.js'
+import { CORRECTION_ACTIONS_KNOWLEDGE } from '../src/data/correction-actions-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
 import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation } from './_lib/feature-flags.js'
+import { hasCorrectionActions } from './_lib/feature-flags.js'
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
 import { COACH_NAV_MAP } from '../src/coach-nav-map.js'
@@ -1923,6 +1925,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(PIPELINE_CAPTURE_KNOWLEDGE)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
+  if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
   const knowledgeBlock = knowledgeParts.length ? knowledgeParts.join('\n\n---\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
   // The person's own local calendar date (My Coach review, finding #3.6), not
