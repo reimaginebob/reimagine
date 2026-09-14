@@ -72,7 +72,13 @@ check(/\/api\/support\/client-event/.test(eb),
 check(/kind: 'client_crash'/.test(eb), `${EB}: the posted kind is not client_crash`)
 check(/error_class: 'render'/.test(eb), `${EB}: the crash is not classed as a render error`)
 
-const post = eb.slice(eb.indexOf('reportCrash(record)'), eb.indexOf('copyDiagnostic'))
+// Scoped to the reportCrash METHOD BODY specifically, not "everything between
+// here and copyDiagnostic". The consented Send path (PR 4) also lives in this
+// file and DOES await its fetch -- correctly, because the person clicked Send
+// and is waiting to be told it worked. Only the automatic report has to be
+// fire-and-forget.
+const postStart = eb.indexOf('reportCrash(record) {')
+const post = eb.slice(postStart, eb.indexOf('\n  }', postStart) + 4)
 const postBody = post.slice(post.indexOf('body: JSON.stringify('), post.indexOf('keepalive'))
 for (const forbidden of ['stack', 'componentStack', 'record.url', 'url:']) {
   check(!postBody.includes(forbidden),
