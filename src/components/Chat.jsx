@@ -9,6 +9,7 @@ import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
 import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from '../coach-moments.js'
 import { isWidenSearchRowEligible } from '../widen-search.js'
+import { BUILD_SHA } from '../build-meta.js'
 
 // intro: true opts this one message into the same collapse-to-strip
 // treatment as banner:true narration (see isCollapsedBanner below) without
@@ -679,7 +680,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        // x-reimagine-build: the bundle this browser is running, so a coach_failed
+        // row in support_events can say which build produced the failure. An
+        // older cached bundle omits it, which answers the same question.
+        headers: { 'Content-Type': 'application/json', 'x-reimagine-build': BUILD_SHA || '' },
         signal: controller.signal,
         body: JSON.stringify({
           ...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? { sessionOpen: true } : { message: userMsg.content })),
