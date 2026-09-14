@@ -50,6 +50,44 @@ export default class ErrorBoundary extends Component {
       url: typeof location !== 'undefined' ? location.href : '',
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(record)) } catch {}
+    this.reportCrash(record)
+  }
+
+  // Tell the server a crash happened (2026-09-08 observability brief). Until
+  // this existed, a crash left the browser only if the user copied the record
+  // above and pasted it into an email, so every crash nobody bothered to report
+  // simply never happened as far as we knew.
+  //
+  // THREE of the record's fields are deliberately NOT sent. `stack` and
+  // `componentStack` are strings we do not control the contents of, and `url`
+  // can carry query state; support_events has no column for any of them and
+  // would drop them anyway, but not sending them at all is the honest version
+  // of that. What goes is the error message (capped at 200), which screen, and
+  // which build -- enough to tell "this one user hit something odd" from "the
+  // build that shipped an hour ago is crashing on p3".
+  //
+  // Fire-and-forget inside a try/catch, with the promise rejection swallowed:
+  // this runs on a screen that has ALREADY failed, and an unhandled rejection
+  // here would be a second error on top of the first. No await, no state, no
+  // effect on what the user sees. The fuller record (component stack included)
+  // still reaches us only if the user clicks Send on the crash screen, where
+  // they can read exactly what they are sending first.
+  reportCrash(record) {
+    try {
+      fetch('/api/support/client-event', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'client_crash',
+          step: record.step,
+          error_class: 'render',
+          build_sha: record.build,
+          detail: record.message,
+        }),
+        keepalive: true,
+      }).catch(() => {})
+    } catch {}
   }
 
   copyDiagnostic = async () => {

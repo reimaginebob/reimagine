@@ -392,7 +392,13 @@ async function callClaude(prompt, opts={}) {
     content=prompt
   }
   const body={model:"claude-sonnet-5",max_tokens:effectiveMaxTokens,...(effort&&{output_config:{effort}}),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
-  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+  // x-reimagine-build: the bundle this browser is running, stamped on every
+  // generation and Coach request so a support_events failure row can say WHICH
+  // build produced it. "It broke for one user" and "it broke for everyone on
+  // the build that shipped an hour ago" are indistinguishable without it. An
+  // older cached bundle omits the header, which is itself the answer to the
+  // same question.
+  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json","x-reimagine-build":BUILD_SHA||""},body:JSON.stringify(body)})
   if(!res.ok){
     const e=await res.json().catch(()=>({}))
     // Account paused (auto or manual): surface it to the app so it can show the
@@ -7779,6 +7785,41 @@ export default function PivotEngine(){
   // into a void and every reload restored them to their last successful save.
   // One account sat over the ceiling for six days that way without being told.
   const[saveError,setSaveError]=useState(null)
+  // The last save-failure reason already reported to the server, so a run of
+  // identical failures writes one row rather than one per debounce tick. The
+  // autosave effect reschedules on every state change, and a person typing
+  // through an offline stretch would otherwise post a row every few seconds.
+  // Cleared on the next successful save, so a failure that comes BACK after a
+  // recovery is reported again -- a save that keeps breaking and healing is a
+  // different story from one that broke once, and both are worth being able to
+  // tell apart.
+  const lastReportedSaveFailureRef=useRef(null)
+  // Reports the two save failures the SERVER never sees. api/profile/save.js
+  // records its own 413/409/500 rows, so posting those from here as well would
+  // double-count every one of them; 'offline' means the request never arrived
+  // and 'device_full' means it was never sent, which is exactly why they need a
+  // client-side path. 'paused' and 'signed_out' are not recorded at all: the
+  // account-hold modal and the sign-in prompt own those screens, and neither is
+  // a failure of the save machinery.
+  //
+  // Fire-and-forget with the rejection swallowed. On the 'offline' path this
+  // POST is itself likely to fail, which is fine and expected -- what it must
+  // never do is surface a second error to someone whose work is already not
+  // saving.
+  const reportSaveFailure=(reason)=>{
+    if(reason!=='offline'&&reason!=='device_full')return
+    if(lastReportedSaveFailureRef.current===reason)return
+    lastReportedSaveFailureRef.current=reason
+    try{
+      fetch('/api/support/client-event',{
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({kind:'save_failed',error_class:reason,step,build_sha:BUILD_SHA||''}),
+        keepalive:true,
+      }).catch(()=>{})
+    }catch{}
+  }
   const[toast,setToast]=useState(null)
   const saveRef=useRef(null)
   // Batch item 18 (2026-09-10, production report L8: a false "not being
@@ -10153,7 +10194,7 @@ export default function PivotEngine(){
       setCoachThinkingCount(c=>c+1)
       try{
         if(saveRef.current)await saveRef.current()
-        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})})
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})})
         if(!res.ok)return
         const raw=await res.text()
         const reply=raw&&raw.trim()
@@ -10815,7 +10856,7 @@ export default function PivotEngine(){
         // seeing ANCHOR 1 empty, was then free to offer to "save" values
         // that were already saved. My Coach review, finding #3.3.
         if(saveRef.current)await saveRef.current()
-        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
         if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
         if(!res.ok){
           // Release the fired-guard on failure -- leaving it set (as this
@@ -11192,16 +11233,17 @@ export default function PivotEngine(){
         // modal already owns that screen and a second notice behind it is noise.
         let reason=null
         try{
-          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({...stateForSave,profile_updated_at:profileUpdatedAtRef.current})})
+          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},credentials:'include',body:JSON.stringify({...stateForSave,profile_updated_at:profileUpdatedAtRef.current})})
           if(r.ok){const saved=await r.json().catch(()=>null);if(saved&&saved.updatedAt)profileUpdatedAtRef.current=saved.updatedAt}
           else reason=r.status===409?'stale':r.status===413?'too_large':r.status===403?'paused':r.status===401?'signed_out':'server'
         }catch{reason='offline'}
-        if(reason){setSaveStatus('error');setSaveError(reason);return}
+        if(reason){setSaveStatus('error');setSaveError(reason);reportSaveFailure(reason);return}
       }
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
       setSaveError(null)
-    }catch{setSaveStatus('error');setSaveError('device_full')}
+      lastReportedSaveFailureRef.current=null
+    }catch{setSaveStatus('error');setSaveError('device_full');reportSaveFailure('device_full')}
     finally{
       saveInFlightRef.current=false
       // A dependency change arrived while this save's fetch was still in
