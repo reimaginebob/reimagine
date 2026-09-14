@@ -119,6 +119,9 @@ If a step keeps failing or the output is not making sense after multiple refines
 3. Sign out and sign back in. A clean session sometimes resolves transient state issues.
 4. If none of that works, email [bob@career.club](mailto:bob@career.club) and describe what was happening. Beta feedback is what shapes the next build.
 
+**What does "Send diagnostics" send?**
+There is a **Send diagnostics** button under **Share feedback**, and a **Send to Career Club** button on the screen you see if the app ever crashes outright. Both send the same thing: which screen you were on, what kind of error came up, the version of Reimagine you were running, and your browser. Nothing is sent until you press the button, and you see the exact text on screen first so you can read it before deciding. It does not include your resume, your profile, your playbooks, or anything you have said to My Coach. It helps most when something keeps happening and is hard to describe, because it tells us where to look.
+
 ---
 
 *Next: [Glossary →](glossary.md)*

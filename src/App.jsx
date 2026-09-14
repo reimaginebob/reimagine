@@ -40,6 +40,7 @@ import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_CATEGORY_KEYS, ecosystemSignatureFor, E
 // gitignored; the script writes them from one SHA read so the bundled
 // constant and the deployed JSON are consistent by construction.
 import { BUILD_SHA, BUILT_AT } from "./build-meta.js"
+import { recordLocalFailure, buildDiagnosticsPayload } from "./support-trail.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import Staircase from "./components/Staircase"
@@ -7821,6 +7822,9 @@ export default function PivotEngine(){
     if(reason!=='offline'&&reason!=='device_full')return
     if(lastReportedSaveFailureRef.current===reason)return
     lastReportedSaveFailureRef.current=reason
+    // Local mirror, so the Send box can show the person their recent failures
+    // before they approve sending them. Class and screen only, same as the row.
+    recordLocalFailure({kind:'save_failed',step,error_class:reason})
     try{
       fetch('/api/support/client-event',{
         method:'POST',
@@ -7963,7 +7967,35 @@ export default function PivotEngine(){
   const[feedbackSending,setFeedbackSending]=useState(false)
   const[feedbackError,setFeedbackError]=useState(null)
   const feedbackTaRef=useRef(null)
-  const closeFeedback=()=>{setFeedbackOpen(false);setFeedbackText('');setFeedbackSent(false);setFeedbackSending(false);setFeedbackError(null)}
+  // "Send to Career Club" inside the Share feedback modal (2026-09-08
+  // observability brief, part C). The brief called this the Help panel; there
+  // is no such surface -- "Support Reimagine" is the donation panel -- and this
+  // modal is where someone already goes when something is wrong, so the second
+  // entrance lives here. The crash screen (src/ErrorBoundary.jsx) is the other.
+  //
+  // Nothing is sent until the person has seen the exact JSON and clicked Send.
+  // buildDiagnosticsPayload builds what is DISPLAYED and what is POSTED, so
+  // there is no second path that could add a field the preview never showed.
+  const[diagOpen,setDiagOpen]=useState(false)
+  const[diagPayload,setDiagPayload]=useState(null)
+  const[diagSending,setDiagSending]=useState(false)
+  const[diagSent,setDiagSent]=useState(false)
+  const[diagError,setDiagError]=useState(null)
+  const openDiagnostics=()=>{
+    let crash=null
+    try{crash=JSON.parse(localStorage.getItem('reimagine_last_error')||'null')}catch{}
+    setDiagPayload(buildDiagnosticsPayload({crash,step,buildSha:BUILD_SHA}))
+    setDiagSent(false);setDiagError(null);setDiagOpen(true)
+  }
+  const sendDiagnostics=async()=>{
+    setDiagSending(true);setDiagError(null)
+    try{
+      const r=await fetch('/api/support/diagnostics',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(diagPayload)})
+      if(!r.ok){setDiagError('That did not go through. Try again in a moment.');setDiagSending(false);return}
+      setDiagSending(false);setDiagSent(true)
+    }catch{setDiagError('We could not reach the server. Check your connection and try again.');setDiagSending(false)}
+  }
+  const closeFeedback=()=>{setFeedbackOpen(false);setFeedbackText('');setFeedbackSent(false);setFeedbackSending(false);setFeedbackError(null);setDiagOpen(false);setDiagSent(false);setDiagError(null)}
   useEffect(()=>{if(!feedbackOpen)return;const t=setTimeout(()=>{if(feedbackTaRef.current)feedbackTaRef.current.focus()},0);return()=>clearTimeout(t)},[feedbackOpen])
   // One-way drop: posts the note plus silently-gathered context (current
   // surface, lane, focused role, build SHA). user_id and email are resolved
@@ -19238,6 +19270,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             {feedbackError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,margin:'12px 0 0',padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{feedbackError}</div>}
             <div style={{display:'flex',gap:10,marginTop:18}}>
               <Btn disabled={feedbackSending||!feedbackText.trim()} onClick={sendFeedback}>{feedbackSending?'Sending…':'Send'}</Btn>
+            </div>
+            {/* Send diagnostics (2026-09-08 observability brief, part C). Sits
+                below the note rather than beside it: a note is what most people
+                came here to write, and this is for the narrower case where
+                something broke and the technical details would help. Nothing
+                leaves the browser until the exact payload has been read. */}
+            <div style={{marginTop:20,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
+              {!diagOpen&&!diagSent&&<>
+                <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Something acting up? You can send us the technical details of what the app was doing.</div>
+                <Btn small secondary onClick={openDiagnostics}>Send diagnostics</Btn>
+              </>}
+              {diagOpen&&!diagSent&&<>
+                <CoachingCallout>
+                  This sends Career Club a record of what the app was doing when it ran into trouble: the screen you were on, the kind of error, and the version you were running. It does not include your resume, your profile, your playbooks, or anything you have said to My Coach. Here is exactly what will be sent.
+                </CoachingCallout>
+                <pre style={{background:'#F2F4F7',border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px',margin:0,maxHeight:220,overflow:'auto',fontSize:15,lineHeight:1.5,color:'#1A2540',fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{JSON.stringify(diagPayload,null,2)}</pre>
+                {diagError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,margin:'12px 0 0',padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{diagError}</div>}
+                <div style={{display:'flex',gap:10,marginTop:14,flexWrap:'wrap'}}>
+                  <Btn small prominent disabled={diagSending} onClick={sendDiagnostics}>{diagSending?'Sending…':'Send to Career Club'}</Btn>
+                  <Btn small secondary onClick={()=>setDiagOpen(false)}>Cancel</Btn>
+                </div>
+              </>}
+              {diagSent&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Sent. If you emailed support@career.club, mention the time and we&rsquo;ll match it up.</div>}
             </div>
           </>:<div style={{textAlign:'center',padding:'12px 4px 4px'}}>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:23,fontWeight:700,color:'#1A2540',margin:'0 0 18px',lineHeight:1.45}}>Feedback is a gift, thanks for sharing yours.</h2>

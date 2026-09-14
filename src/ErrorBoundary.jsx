@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { BUILD_SHA } from './build-meta.js'
+import { recordLocalFailure, buildDiagnosticsPayload } from './support-trail.js'
 
 // Top-level React Error Boundary. When any child throws during render or in a
 // lifecycle method, this catches it, renders a recoverable fallback, and writes
@@ -24,14 +25,23 @@ const C = {
 
 const STORAGE_KEY = 'reimagine_last_error'
 
+const btnSolid = {
+  background: C.gold, color: '#FFF', border: 'none', borderRadius: 8,
+  padding: '10px 18px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+}
+const btnOutline = {
+  background: '#FFF', color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 8,
+  padding: '10px 18px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+}
+
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { error: null, errorInfo: null, copied: false }
+    this.state = { error: null, errorInfo: null, copied: false, sendOpen: false, sending: false, sent: false, sendError: null }
   }
 
   static getDerivedStateFromError(error) {
-    return { error, errorInfo: null, copied: false }
+    return { error, errorInfo: null, copied: false, sendOpen: false, sending: false, sent: false, sendError: null }
   }
 
   componentDidCatch(error, errorInfo) {
@@ -50,6 +60,9 @@ export default class ErrorBoundary extends Component {
       url: typeof location !== 'undefined' ? location.href : '',
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(record)) } catch {}
+    // Local mirror, so the Send box below can show the person what it would
+    // send. Same discipline as the server row: class and screen, no content.
+    recordLocalFailure({ kind: 'client_crash', step: record.step, error_class: 'render', detail: record.message })
     this.reportCrash(record)
   }
 
@@ -90,6 +103,39 @@ export default class ErrorBoundary extends Component {
     } catch {}
   }
 
+  // "Send to Career Club" (2026-09-08 observability brief, part C). The
+  // automatic crash row (reportCrash above) is deliberately thin -- no
+  // component stack, no URL. This is the consented path for the cases where
+  // seeing more than that is what solves the problem, and the consent is real:
+  // the exact JSON is rendered on screen first, built by the same function that
+  // posts it, so what is shown and what is sent cannot drift.
+  openSend = () => {
+    let record = null
+    try { record = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') } catch {}
+    this.setState({ sendOpen: true, sent: false, sendError: null, payload: buildDiagnosticsPayload({ crash: record }) })
+  }
+
+  cancelSend = () => this.setState({ sendOpen: false, sendError: null })
+
+  sendDiagnostic = async () => {
+    this.setState({ sending: true, sendError: null })
+    try {
+      const r = await fetch('/api/support/diagnostics', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.state.payload),
+      })
+      if (!r.ok) {
+        this.setState({ sending: false, sendError: 'That did not go through. The Copy button below still works, and the details are on this device either way.' })
+        return
+      }
+      this.setState({ sending: false, sent: true })
+    } catch {
+      this.setState({ sending: false, sendError: 'We could not reach the server. The Copy button below still works, and the details are on this device either way.' })
+    }
+  }
+
   copyDiagnostic = async () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY) || ''
@@ -118,22 +164,54 @@ export default class ErrorBoundary extends Component {
             Something went wrong on this screen.
           </div>
           <p style={{ margin: '0 0 16px' }}>
-            Your work is saved. The error has been recorded on this device.
-            Reload to keep going; if the same screen keeps failing, copy the diagnostic
-            info below and email it to bob@career.club so we can investigate.
+            Your work is saved. Reload to keep going. If the same screen keeps failing,
+            send us what happened and we can look into it.
           </p>
-          <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-            <button onClick={this.reload} style={{
-              background: C.gold, color: '#FFF', border: 'none', borderRadius: 8,
-              padding: '10px 18px', fontSize: 16, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}>Reload</button>
-            <button onClick={this.copyDiagnostic} style={{
-              background: '#FFF', color: C.gold, border: `1px solid ${C.gold}`,
-              borderRadius: 8, padding: '10px 18px', fontSize: 16, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>{this.state.copied ? 'Copied' : 'Copy diagnostic info'}</button>
-          </div>
+          {!this.state.sendOpen && !this.state.sent && <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
+            <button onClick={this.reload} style={btnSolid}>Reload</button>
+            <button onClick={this.openSend} style={btnOutline}>Send to Career Club</button>
+            <button onClick={this.copyDiagnostic} style={btnOutline}>{this.state.copied ? 'Copied' : 'Copy diagnostic info'}</button>
+          </div>}
+
+          {/* The payload, shown in full before anything is sent. Guidance gets
+              the gold-accent treatment (CLAUDE.md section 8) so it reads as
+              explanation rather than as more of the error. */}
+          {this.state.sendOpen && !this.state.sent && <div style={{ marginTop: 20 }}>
+            <div style={{
+              background: `${C.gold}10`, borderLeft: `3px solid ${C.gold}`, padding: '14px 18px',
+              borderRadius: 8, marginBottom: 14, fontSize: 16, color: C.gray, lineHeight: 1.6,
+            }}>
+              This sends Career Club a record of what the app was doing when it ran into trouble:
+              the screen you were on, the kind of error, and the version you were running.
+              It does not include your resume, your profile, your playbooks, or anything you have
+              said to My Coach. Here is exactly what will be sent.
+            </div>
+            <pre style={{
+              background: '#F2F4F7', border: `1px solid ${C.border}`, borderRadius: 8,
+              padding: '14px 16px', margin: 0, maxHeight: 260, overflow: 'auto',
+              fontSize: 15, lineHeight: 1.5, color: C.cream,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            }}>{JSON.stringify(this.state.payload, null, 2)}</pre>
+            {this.state.sendError && <div role="alert" style={{
+              marginTop: 12, fontSize: 16, color: C.cream, lineHeight: 1.55,
+              background: '#C0392B10', border: '1px solid #C0392B40', borderLeft: '4px solid #C0392B',
+              borderRadius: 8, padding: '12px 16px',
+            }}>{this.state.sendError}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+              <button onClick={this.sendDiagnostic} disabled={this.state.sending} style={{
+                ...btnSolid, cursor: this.state.sending ? 'default' : 'pointer', opacity: this.state.sending ? 0.6 : 1,
+              }}>{this.state.sending ? 'Sending…' : 'Send to Career Club'}</button>
+              <button onClick={this.cancelSend} style={btnOutline}>Cancel</button>
+            </div>
+          </div>}
+
+          {this.state.sent && <div style={{ marginTop: 20 }}>
+            <p style={{ margin: '0 0 16px' }}>
+              Sent. If you emailed support@career.club, mention the time and we&rsquo;ll match it up.
+            </p>
+            <button onClick={this.reload} style={btnSolid}>Reload</button>
+          </div>}
         </div>
       </div>
     )
