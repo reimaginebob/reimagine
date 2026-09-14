@@ -260,6 +260,19 @@ export function hasIndustryEcosystemView(user) {
   return !!user
 }
 
+// PILOT -- Correction actions, 2026-09-14 (launch capture foundation, PR 4).
+// Gates the optional "What should happen?" choice in the "Does this feel
+// right?" box (Fix a fact / Add something / Change how it reads / Leave this
+// out of what I show employers), and the Coach knowledge that describes it.
+// Capture only: the choice is stored on corrections.action and changes nothing
+// about how corrections reach a prompt. The client mirror lives in src/App.jsx.
+export const CORRECTION_ACTIONS_FLAG = 'correction_actions'
+
+export function hasCorrectionActions(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(CORRECTION_ACTIONS_FLAG) || isInternalAccount(user)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -270,4 +283,5 @@ export function hasIndustryEcosystemView(user) {
 // lives only in the database is the failure mode this file exists to prevent.
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
+  [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
 }

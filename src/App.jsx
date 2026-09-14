@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, createContext, useContext } from "react"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
@@ -6865,8 +6865,50 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 // specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
 // About This Company). Default false preserves existing behavior for the
 // Focus per-section, Personal Brand, and op v1 consumers.
+//
+// Correction actions (PILOT, correction_actions flag, launch capture
+// foundation 2026-09-14, PR 4). An optional "What should happen?" choice
+// above the box. CAPTURE ONLY: the choice is stored on the correction
+// (corrections.action) and does not yet change how corrections reach any
+// prompt -- correctionsBlock still sorts on its negation rule. Routing on the
+// stored action is deliberate post-launch work; it changes every generation.
+//
+// The choice reaches recordCorrection through a small text-keyed hand-off
+// rather than through each of the thirteen onRegenerate call sites and the
+// Personal Brand correction queue: RefineBox notes the action against the
+// exact text it submits, and recordCorrection takes it back by that same
+// text. Keyed on the text, a note left behind by a box that never records
+// (Salary Read, a conflict taken offline) can never attach itself to a
+// different correction, and it expires.
+const CORRECTION_ACTIONS=[
+  {code:'fact',label:'Fix a fact'},
+  {code:'add',label:'Add something'},
+  {code:'wording',label:'Change how it reads'},
+  {code:'omit',label:'Leave this out of what I show employers'},
+]
+const CORRECTION_ACTION_CODES=CORRECTION_ACTIONS.map(a=>a.code)
+const CORRECTION_ACTION_TTL_MS=30*60*1000
+const pendingCorrectionActions=new Map()
+function notePendingCorrectionAction(text,action){
+  if(typeof text!=='string'||!text.trim()||!CORRECTION_ACTION_CODES.includes(action))return
+  const now=Date.now()
+  for(const[k,e]of pendingCorrectionActions)if(now-e.at>CORRECTION_ACTION_TTL_MS)pendingCorrectionActions.delete(k)
+  pendingCorrectionActions.set(text.trim(),{action,at:now})
+}
+function takePendingCorrectionAction(text){
+  if(typeof text!=='string')return null
+  const key=text.trim(),e=pendingCorrectionActions.get(key)
+  if(!e)return null
+  pendingCorrectionActions.delete(key)
+  return Date.now()-e.at<=CORRECTION_ACTION_TTL_MS?e.action:null
+}
+// Whether RefineBox shows the choice. A context rather than a prop on all
+// fourteen RefineBox usages; App provides it from hasCorrectionActions.
+const CorrectionActionsContext=createContext(false)
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId,anchorId}){
   const[open,setOpen]=useState(false)
+  const actionsOn=useContext(CorrectionActionsContext)
+  const[action,setAction]=useState('')
   // Submit guard (2026-08-11 dead-button fix): the update/fresh regen is a multi-
   // minute call and the button gave no click feedback, so users re-clicked and
   // each click recorded a duplicate correction (inflating the correction counts).
@@ -6886,6 +6928,8 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
   const submit=fresh=>{
     if(submittingRef.current)return
     submittingRef.current=true;setSubmitting(true)
+    if(!fresh&&actionsOn&&action)notePendingCorrectionAction(value,action)
+    setAction('')
     if(fresh){onChange('');setOpen(false);onRegenerate('')}
     else if(guard&&value&&value.trim()){const v=value;guard(sectionId,v,()=>{onChange('');setOpen(false);onRegenerate(v)})}
     else{const v=value;onChange('');setOpen(false);onRegenerate(v)}
@@ -6900,6 +6944,12 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
       <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>{hint||'If anything feels off, wrong tone, missing context, something we misread, describe it here and we\'ll adjust.'}</div>
+      {actionsOn&&<div style={{marginBottom:12}} role="radiogroup" aria-label="What should happen?">
+        <span style={S.label}>What should happen? <span style={{textTransform:'none',letterSpacing:0,fontWeight:400}}>(optional)</span></span>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {CORRECTION_ACTIONS.map(a=>{const on=action===a.code;return <button key={a.code} type="button" role="radio" aria-checked={on} onClick={()=>setAction(on?'':a.code)} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540'}}>{a.label}</button>})}
+        </div>
+      </div>}
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
         <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>{onChange(e.target.value);if(submittingRef.current)clearSubmit()}} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
         {hasSpeech&&<SpeechBtn onResult={t=>onChange(t)} style={{marginTop:2}}/>}
@@ -8197,6 +8247,9 @@ export default function PivotEngine(){
   // now has this. Server-side truth is api/_lib/feature-flags.js, which
   // made the identical change.
   const hasIndustryEcosystemView=!!signedInUser
+  // PILOT -- correction actions (2026-09-14). Mirror of hasCorrectionActions in
+  // api/_lib/feature-flags.js: the flag, or any internal account.
+  const hasCorrectionActions=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('correction_actions'))||/@career\.club$/i.test(signedInUser.email||''))
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -11758,6 +11811,10 @@ export default function PivotEngine(){
   const recordCorrection=(step,text,ctx={})=>{
     if(!text||!text.trim())return
     const correction={id:`corr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,step,text:text.trim(),created_at:new Date().toISOString()}
+    // Pilot (correction_actions): the "What should happen?" choice RefineBox
+    // noted against this exact text, if any. Capture only -- see RefineBox.
+    const action=takePendingCorrectionAction(text)
+    if(action)correction.action=action
     const original=ctx&&typeof ctx.original==='string'?ctx.original:''
     if(original.trim()&&signedInUser&&!isDemo&&!isTest){
       try{fetch('/api/correction-context',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:correction.id,step,original,recordId:ctx.recordId||null})}).catch(()=>{})}catch{}
@@ -18963,7 +19020,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <CookieBanner/>
   </>
 
-  return <>
+  return <CorrectionActionsContext.Provider value={hasCorrectionActions}>
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
@@ -19392,5 +19449,5 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       )
     })()}
     <CookieBanner/>
-  </>
+  </CorrectionActionsContext.Provider>
 }

@@ -116,6 +116,10 @@ async function handler(req, res) {
   // text is too large to ride every autosave. The client posts it separately
   // to api/correction-context.js; if that landed first, the subselect below
   // picks it up here, and if it lands second, that endpoint fills the column.
+  // action (2026-09-14, correction_actions pilot): the person's own answer to
+  // "What should happen?", one of four codes, or NULL when they skipped it or
+  // the choice was not shown. Anything else a client sends is dropped.
+  const CORRECTION_ACTION_CODES = ['fact', 'add', 'wording', 'omit']
   if (Array.isArray(profile.corrections) && profile.corrections.length) {
     const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ').trim() || null
     try {
@@ -126,14 +130,15 @@ async function handler(req, res) {
             id, user_id, user_email, user_name, step, step_display_name,
             section_output_length, correction_text, app_version, browser, created_at,
             personal_brand_relevant, personal_brand_confirmed, conflict_phrase,
-            original_inference
+            original_inference, action
           ) VALUES (
             ${c.id}, ${req.user.id}, ${req.user.email || null}, ${userName},
             ${c.step || null}, ${c.stepDisplayName || null}, ${c.sectionOutputLength ?? null},
             ${c.text || c.correctionText || ''}, ${c.appVersion || null}, ${c.browser || null},
             ${c.created_at || null},
             ${c.personalBrandRelevant === true}, ${c.personalBrandConfirmed === true}, ${c.conflictPhrase || null},
-            (SELECT original_text FROM correction_context WHERE correction_id = ${c.id} AND user_id = ${req.user.id})
+            (SELECT original_text FROM correction_context WHERE correction_id = ${c.id} AND user_id = ${req.user.id}),
+            ${CORRECTION_ACTION_CODES.includes(c.action) ? c.action : null}
           )
           ON CONFLICT (id) DO NOTHING
         `
