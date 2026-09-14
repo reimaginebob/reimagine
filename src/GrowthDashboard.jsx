@@ -127,6 +127,7 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
   const outcomes = payload.outcomes || []
   const hist = payload.history_coverage || {}
   const rec = payload.recognition || {}
+  const recDelivery = payload.recognition_delivery || {}
   const coach = payload.coach || {}
   const sources = payload.sources || []
   const defs = payload.definitions || {}
@@ -423,8 +424,16 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
 
         {/* Recognition */}
         <Panel title="Does this sound like you?">
+          <div style={{ ...S.subSectionLabel, marginTop: 0 }}>Right after the Personal Brand is built (from Sept 14)</div>
           <div style={S.tileGrid}>
-            <Stat label="Recognition rate" value={fmtPct(rec.rate)} sub={`${fmtInt(rec.total)} answers`} accent />
+            <Stat label="Recognition rate" value={fmtPct(recDelivery.rate)} sub={`${fmtInt(recDelivery.total)} answers`} accent />
+            <Stat label="Yes" value={fmtInt(recDelivery.yes)} />
+            <Stat label="Mostly" value={fmtInt(recDelivery.mostly)} />
+            <Stat label="Not quite" value={fmtInt(recDelivery.not_quite)} danger={recDelivery.not_quite > 0} />
+          </div>
+          <div style={S.subSectionLabel}>On arrival at Put It to Work (June 25 to Sept 13, no longer asked)</div>
+          <div style={S.tileGrid}>
+            <Stat label="Recognition rate" value={fmtPct(rec.rate)} sub={`${fmtInt(rec.total)} answers`} />
             <Stat label="Yes" value={fmtInt(rec.yes)} />
             <Stat label="Mostly" value={fmtInt(rec.mostly)} />
             <Stat label="Not quite" value={fmtInt(rec.not_quite)} danger={rec.not_quite > 0} />
@@ -611,7 +620,7 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
 const DEF_LABELS = {
   activation: "Activated", orientation: "Orientation done", focusComplete: "Focus Playbook complete",
   opportunity: "Opportunity Playbook", activeDay: "Active day", returnWeek: "Return week",
-  resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition",
+  resurrection: "Resurrection", workingSession: "Working session", depth: "Depth", recognition: "Recognition", recognitionDelivery: "Recognition at brand delivery",
   reached: "Ever reached", outcome: "Outcome",
   funnelStep: "Funnel step", playbooksPerBuilder: "Playbooks per builder",
   careerPaths: "Career Paths", crossover: "Crossover", trunk: "The trunk",
