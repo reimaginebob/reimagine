@@ -9069,7 +9069,7 @@ export default function PivotEngine(){
       const section=data&&typeof data.section==='string'?data.section:''
       if(!note||!['p6','p_res','p9','income','p7','p8'].includes(section))return false
       submitCorrection(section,note,()=>{
-        recordCorrection(section,note)
+        recordCorrection(section,note,{original:focusSectionText(section)})
         if(section==='p6'){generateP6({refine:note});return}
         const O=sanitizeUpstreamForSection(section,outputs)
         const laneLbl=laneLabelFor(selectedLane)
@@ -9215,7 +9215,7 @@ export default function PivotEngine(){
       setStoryLostNums(n=>({...n,[story.id]:missingNumbers(note,story,next)}))
       // The correction carries forward the way every other correction in Reimagine
       // does, so a fact they fixed once does not come back wrong somewhere else.
-      if(note&&note.trim())recordCorrection('stories',note)
+      if(note&&note.trim())recordCorrection('stories',note,{original:JSON.stringify({title:story.title||'',question:story.question||'',slots:story.slots||{}})})
     }catch(e){
       setStoryRefineErr(er=>({...er,[story.id]:e.message||'That did not come back. Try again.'}))
     }finally{setStoryRefining(null)}
@@ -11744,9 +11744,24 @@ export default function PivotEngine(){
   const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}
   const handleCoachMoodLow=()=>{setCoachMoodHold(true)}
   const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}
-  const recordCorrection=(step,text)=>{
+  // The Focus-section text a correction on that section is aimed at. Only for
+  // Focus sections: the Opportunity Playbook cards and the opportunity Bridge
+  // Story share these step ids but live on the saved record, so their call
+  // sites pass their own text instead of calling this.
+  const focusSectionText=(step)=>step==='p6'?bridgeStoryToProse(outputs.p6):asText(outputs[step])
+  // ctx.original: the section exactly as the person saw it when they wrote
+  // the correction (launch capture foundation, 2026-09-14). Posted once to
+  // api/correction-context.js and NEVER added to the correction object --
+  // profile.corrections rides every autosave, and a section snapshot per
+  // correction would bloat that blob toward its size cap. ctx.recordId names
+  // the saved playbook for an opportunity-card correction.
+  const recordCorrection=(step,text,ctx={})=>{
     if(!text||!text.trim())return
     const correction={id:`corr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,step,text:text.trim(),created_at:new Date().toISOString()}
+    const original=ctx&&typeof ctx.original==='string'?ctx.original:''
+    if(original.trim()&&signedInUser&&!isDemo&&!isTest){
+      try{fetch('/api/correction-context',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:correction.id,step,original,recordId:ctx.recordId||null})}).catch(()=>{})}catch{}
+    }
     // Track 7: when the user chose "Apply anyway" on a correction that asks for a
     // phrase Reimagine writes around, tag the stored correction with that phrase
     // so the staleness indicator on downstream sections can use honest wording
@@ -12009,7 +12024,7 @@ export default function PivotEngine(){
   const runP3Correction=(ask)=>{
     const prevBrand=outputsRef.current.p3||''
     const prevPres=(outputsRef.current.p3_structured&&outputsRef.current.p3_structured.presentation)||null
-    recordCorrection('p3',ask)
+    recordCorrection('p3',ask,{original:asText(prevBrand)})
     out('p3','')
     refreshP3(ask,prevBrand,prevPres)
   }
@@ -14773,7 +14788,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // matches Focus per-section refine behavior (corrections carry forward).
   const refineOpCard=(cardKey,correctionText)=>{
     if(cardKey==='p6')return
-    recordCorrection(cardKey,correctionText)
+    // The card as it stands on the open saved record -- not outputs[cardKey],
+    // which is the Focus section that shares this step id.
+    const _ctxRec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current)
+    const _ctxSec=_ctxRec&&_ctxRec.sections?_ctxRec.sections[cardKey]:null
+    const _ctxBody=_ctxSec&&typeof _ctxSec==='object'&&'content' in _ctxSec?_ctxSec.content:_ctxSec
+    recordCorrection(cardKey,correctionText,{original:asText(_ctxBody),recordId:_ctxRec?_ctxRec.id:null})
     if(cardKey==='companyRead'){
       generateOpCompanyRead(correctionText)
     }else if(cardKey==='p_cover'){
@@ -16917,7 +16937,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const FOCUS_ORDER=focusOrderFor(isIndependent)
       const FOCUS_GROUPS_ACTIVE=focusGroupsFor(isIndependent)
       const laneLbl=laneLabelFor(selectedLane)
-      const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
+      const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v,{original:focusSectionText(id)});if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         // Legacy tolerance: object-shape outputs.p6 from pre-2026-05-31 records is preserved by normalizeProfileState (no migration). Do not delete this branch.
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
@@ -17449,7 +17469,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // playbook. Income content generated here is keyed on `chosen`; the
       // orphan state (chosen cleared via addNewOpportunity while outputs.income
       // survives) intentionally renders the gated screen, never stale content.
-      const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
+      const refineIncome=(v)=>{recordCorrection('income',v,{original:asText(outputs.income)});generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
       if(!(chosen&&chosen.length>0))return <div>
         <h1 style={S.title}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
         <p style={S.sub}>{isIndependent
@@ -17643,7 +17663,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "Does this feel right?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
           </CoachingCallout>}
           {(()=>{const _body=<>{!opIsV2&&<div id="section-op" style={{scrollMarginTop:80}}><OutPanel text={outputs.op} onCopy={copy} copied={copied}/></div>}
-          {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
+          {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v,{original:asText(outputs.op)});out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
           {opIsV2&&!_anyOpCardBuilt&&<>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:28,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook'}</h2>
             <CoachingCallout>Build each section when you're ready. They are independent; build the ones that help most.</CoachingCallout>
@@ -18180,7 +18200,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:12}}>A tell-me-about-yourself answer written for this specific opportunity, sharper than your general one. This is the case above, in words you can say out loud.</div>
                     {opSectionErrors.p6&&<div style={{marginBottom:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
                     {_busyP6&&<div style={{marginBottom:6}}><Loading msg="Finishing with your bridge story…" step="p6"/></div>}
-                    {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small prominent onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
+                    {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v,{original:bridgeStoryToProse(_p6),recordId:currentSavedSlotIdRef.current||null});generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small prominent onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
                   </div>}
                   {_pfBuilt&&!isDemo&&<div style={{marginTop:16}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`,false,'p5')}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>}
                 </>,'section-p5')

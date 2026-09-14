@@ -111,6 +111,11 @@ async function handler(req, res) {
   // present, id is the client-generated natural key, ON CONFLICT DO NOTHING
   // makes re-sends of the same array a no-op. Best-effort -- a failure here
   // must never fail the profile save the user is waiting on.
+  //
+  // original_inference (2026-09-14) is NOT carried in the blob -- the section
+  // text is too large to ride every autosave. The client posts it separately
+  // to api/correction-context.js; if that landed first, the subselect below
+  // picks it up here, and if it lands second, that endpoint fills the column.
   if (Array.isArray(profile.corrections) && profile.corrections.length) {
     const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ').trim() || null
     try {
@@ -120,13 +125,15 @@ async function handler(req, res) {
           INSERT INTO corrections (
             id, user_id, user_email, user_name, step, step_display_name,
             section_output_length, correction_text, app_version, browser, created_at,
-            personal_brand_relevant, personal_brand_confirmed, conflict_phrase
+            personal_brand_relevant, personal_brand_confirmed, conflict_phrase,
+            original_inference
           ) VALUES (
             ${c.id}, ${req.user.id}, ${req.user.email || null}, ${userName},
             ${c.step || null}, ${c.stepDisplayName || null}, ${c.sectionOutputLength ?? null},
             ${c.text || c.correctionText || ''}, ${c.appVersion || null}, ${c.browser || null},
             ${c.created_at || null},
-            ${c.personalBrandRelevant === true}, ${c.personalBrandConfirmed === true}, ${c.conflictPhrase || null}
+            ${c.personalBrandRelevant === true}, ${c.personalBrandConfirmed === true}, ${c.conflictPhrase || null},
+            (SELECT original_text FROM correction_context WHERE correction_id = ${c.id} AND user_id = ${req.user.id})
           )
           ON CONFLICT (id) DO NOTHING
         `
