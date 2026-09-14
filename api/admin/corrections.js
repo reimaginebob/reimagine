@@ -17,6 +17,18 @@
 import { sql } from '../_lib/db.js'
 import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
 
+// Mirrors parseAdminEmails in api/admin/growth.js and api/admin/analytics.js.
+// Duplicated rather than shared, same reasoning as those two files: this is
+// eight lines of pure parsing with fixed semantics, not worth a new shared
+// import surface across api/admin/*.
+function parseAdminEmails(envValue) {
+  if (typeof envValue !== 'string') return []
+  return envValue
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(e => e.length > 0)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -27,6 +39,8 @@ export default async function handler(req, res) {
   if (!(await checkAdminAuth(req, res, { allowAnalyst: true }))) {
     return res.status(403).json({ error: 'Forbidden' })
   }
+
+  const adminEmails = parseAdminEmails(process.env.ADMIN_EMAILS)
 
   const rawLimit = (req.query && typeof req.query.limit === 'string') ? parseInt(req.query.limit, 10) : 200
   const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 1000) : 200
@@ -44,12 +58,14 @@ export default async function handler(req, res) {
       WHERE (${stepFilter}::text IS NULL OR step = ${stepFilter})
         AND (${themeFilter}::text IS NULL OR theme = ${themeFilter})
         AND (${pbOnly}::boolean IS FALSE OR personal_brand_relevant = true)
+        AND (user_email IS NULL OR LOWER(user_email) <> ALL(${adminEmails}::text[]))
       ORDER BY created_at DESC NULLS LAST
       LIMIT ${limit}
     `
     byStep = await sql`
       SELECT step, count(*)::int AS n, count(*) FILTER (WHERE personal_brand_relevant)::int AS n_pb, max(created_at) AS last_at
       FROM corrections
+      WHERE (user_email IS NULL OR LOWER(user_email) <> ALL(${adminEmails}::text[]))
       GROUP BY step
       ORDER BY n DESC
     `
@@ -57,10 +73,16 @@ export default async function handler(req, res) {
       SELECT theme, count(*)::int AS n
       FROM corrections
       WHERE theme IS NOT NULL
+        AND (user_email IS NULL OR LOWER(user_email) <> ALL(${adminEmails}::text[]))
       GROUP BY theme
       ORDER BY n DESC
     `
-    const pendingRow = await sql`SELECT count(*)::int AS n FROM corrections WHERE theme IS NULL`
+    const pendingRow = await sql`
+      SELECT count(*)::int AS n
+      FROM corrections
+      WHERE theme IS NULL
+        AND (user_email IS NULL OR LOWER(user_email) <> ALL(${adminEmails}::text[]))
+    `
     pending = pendingRow[0].n
   } catch (err) {
     console.error('admin/corrections: query failed', err && err.message)
