@@ -1,6 +1,7 @@
 import { sql } from '../_lib/db.js'
 import { requireAuth } from '../_lib/session.js'
 import { stripNul } from '../_lib/strip-nul.js'
+import { recordSupportEvent } from '../_lib/support-events.js'
 
 // Validates the client's claimed profile_updated_at (finding #2.5). Absent
 // or unparsable is deliberately treated the same as "no precondition" --
@@ -11,10 +12,32 @@ export function parseIncomingUpdatedAt(raw) {
   return typeof raw === 'string' && raw && !Number.isNaN(Date.parse(raw)) ? raw : null
 }
 
+// The three ways a save can fail on the SERVER, recorded per account so "my
+// work stopped saving" is answerable without a console search (2026-09-08
+// observability brief). Byte counts and status codes only -- the profile
+// itself never goes near this row. The two failures the server never sees
+// (the browser being offline, and localStorage being full) are posted by the
+// client to api/support/client-event.js instead, so the trail covers both
+// halves without either side double-counting the other's.
+async function recordSaveFailure(req, errorClass, httpStatus, detail, startedAt) {
+  const buildSha = typeof req.headers['x-reimagine-build'] === 'string' && req.headers['x-reimagine-build'].trim()
+    ? req.headers['x-reimagine-build'].trim()
+    : null
+  await recordSupportEvent(req.user && req.user.id, 'save_failed', {
+    error_class: errorClass,
+    http_status: httpStatus,
+    duration_ms: Date.now() - startedAt,
+    build_sha: buildSha,
+    user_agent: req.headers['user-agent'],
+    detail,
+  })
+}
+
 async function handler(req, res) {
   if (req.method !== 'PUT' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+  const startedAt = Date.now()
   const rawBody = req.body
   if (!rawBody || typeof rawBody !== 'object') {
     return res.status(400).json({ error: 'Invalid profile' })
@@ -53,6 +76,7 @@ async function handler(req, res) {
       bodyBytes: serialized.length,
       ceiling: MAX_PROFILE_BYTES,
     })
+    await recordSaveFailure(req, 'too_large', 413, `${serialized.length} bytes over the ${MAX_PROFILE_BYTES} ceiling`, startedAt)
     return res.status(413).json({ error: 'Profile too large', bytes: serialized.length, ceiling: MAX_PROFILE_BYTES })
   }
 
@@ -95,10 +119,14 @@ async function handler(req, res) {
       bodyBytes: serialized.length,
       message: err?.message || String(err),
     })
+    // pgCode, not err.message: the driver's message can quote the offending
+    // value back, and the offending value here is the user's own profile.
+    await recordSaveFailure(req, 'server', 500, `postgres ${(err && err.code) || 'error'}`, startedAt)
     return res.status(500).json({ error: 'Save failed' })
   }
 
   if (rows.length === 0) {
+    await recordSaveFailure(req, 'stale', 409, 'staleness precondition rejected the save', startedAt)
     return res.status(409).json({ error: 'stale', message: 'Newer changes already exist on the server' })
   }
 
