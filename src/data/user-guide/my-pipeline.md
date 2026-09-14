@@ -68,7 +68,7 @@ If a date is more than a year in the past or more than five years out, the card 
 
 Two ways.
 
-**Tell My Coach.** When you mention that something moved — a date shifted, an interview happened, an opportunity ended — the coach offers to save it, and one tap writes it here. The same works for interviewers: name the people you are meeting and the coach offers to add them to that opportunity's Interview Team.
+**Tell My Coach.** When you mention that something moved — a date shifted, an interview happened, an opportunity ended — the coach offers to save it, and one tap writes it here. When an opportunity ends, tell the coach how: that you accepted the offer, turned it down, were not selected, withdrew, or stopped hearing back. The offer shows the outcome it heard before you tap, and the card records it. The same works for interviewers: name the people you are meeting and the coach offers to add them to that opportunity's Interview Team.
 
 **Connect your own assistant.** If you use Claude with Gmail and Calendar connected, you can give it permission to watch for movement and update your pipeline for you. When it does, the card shows what it saw, in quotes, marked as coming from your assistant. Reimagine never reads your inbox — your assistant does the reading and sends back only the status.
 
