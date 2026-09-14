@@ -62,6 +62,21 @@ check(!brandDeliveryFullBlock.includes('Your story just came together above'),
   `${APP}: the brand-delivery effect still pushes the old static line -- it should defer to the brand-richness orientation check instead`)
 check(brandDeliveryFullBlock.includes('setPbCheckinOpenReq(x=>x+1)'),
   `${APP}: the brand-delivery effect no longer opens the coach panel on the big reveal`)
+
+// Recognition check at delivery (2026-09-14). #928 retired the Put it to Work
+// check-in for everyone and this effect recorded nothing in its place. The
+// question has to come back here, under its own key (never the frozen
+// personal-brand one), only for accounts that never answered the old one, and
+// its tap has to be handled (return true) so the follow-up line renders.
+const recognitionBlock = app.slice(brandDeliveryIdx, brandDeliveryIdx + 2000)
+check(recognitionBlock.includes('const askRecognition=!seenPbCheckin') && recognitionBlock.indexOf('const askRecognition') < recognitionBlock.indexOf('setSeenPbCheckin(true)'),
+  `${APP}: the brand-delivery effect must read seenPbCheckin into askRecognition BEFORE setting it, or it re-asks accounts that already answered`)
+check(recognitionBlock.includes("checkinKey:'personal-brand-delivery'") && !recognitionBlock.includes("checkinKey:'personal-brand',"),
+  `${APP}: the delivery recognition question must record under personal-brand-delivery, never the frozen personal-brand key`)
+const deliveryTapIdx = app.indexOf("if(checkinKey==='personal-brand-delivery'){")
+const deliveryTapBlock = deliveryTapIdx >= 0 ? app.slice(deliveryTapIdx, deliveryTapIdx + 400) : ''
+check(deliveryTapBlock.includes('/api/pb-checkin') && deliveryTapBlock.includes('return true'),
+  `${APP}: handleEmploymentQuickReply must record the delivery recognition tap and return true so its follow-up renders`)
 // The invitation to reply here or use "Does this feel right?" moved into
 // the brand-richness prompt itself, so it is still said, just as part of a
 // real reaction instead of a fixed line -- verified in

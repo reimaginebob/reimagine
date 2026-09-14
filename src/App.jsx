@@ -8487,6 +8487,15 @@ export default function PivotEngine(){
       logPromptEngagement('life_events_thin','topic_close_tap','shown')
       setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-tap')])
     }
+    // Recognition check at brand delivery (2026-09-14). Handled here rather
+    // than left to Chat's fall-through POST, because only a handled tap
+    // (return true) shows its follow-up line. The write is best-effort: the
+    // conversation moves on whether or not it lands.
+    if(checkinKey==='personal-brand-delivery'){
+      if(value==='dismiss')return true
+      try{await fetch('/api/pb-checkin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkin:checkinKey,answer:value})})}catch{}
+      return true
+    }
     if(checkinKey==='employment-status'){
       await saveEmployment(value)
       // A save-and-stop here was a dead end: the acknowledgment landed and the
@@ -9999,6 +10008,17 @@ export default function PivotEngine(){
   // prompts' own "did the PB check-in just take this slot" guards correct
   // without touching them: they read seenPbCheckin, which this sets exactly
   // as if the existing check-in had already run.
+  //
+  // Recognition check (launch capture foundation, 2026-09-14). Taking over the
+  // old check-in's slot also took away its one recorded signal: from #928
+  // (2026-09-13) nobody was asked "does this sound like you?" and nothing
+  // replaced the answer. This effect now asks the same one-tap question at the
+  // moment the brand is first read -- only for an account that never answered
+  // the old check-in (askRecognition is read before seenPbCheckin is set). It
+  // records under its own key, personal-brand-delivery, not the old
+  // personal-brand: the question fires at a different moment, and folding the
+  // two together would quietly change what the frozen Recognition series on
+  // the Growth tab measures.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
@@ -10007,6 +10027,7 @@ export default function PivotEngine(){
     if(seenBrandDeliveryMoment||brandDeliveryFiredRef.current)return
     brandDeliveryFiredRef.current=true
     setSeenBrandDeliveryMoment(true)
+    const askRecognition=!seenPbCheckin
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
     // The actual words come from the brand-richness orientation check below
@@ -10016,7 +10037,12 @@ export default function PivotEngine(){
     // brand-richness's own dedupe (orientationCheckFields, keyed on the
     // built brand + raw material) fires the reaction moments later.
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,isDemo,isTest])
+    if(askRecognition){
+      const yesFollow='Good. Everything Reimagine builds for you from here starts from this read.'
+      const lukewarmFollow='Use the "Does this feel right?" box right under it to say what\'s missing or off, and Reimagine will rework it with your notes. Or tell me here what doesn\'t sound like you.'
+      setChatMessages(m=>[...m,{role:'assistant',content:'Now that you\'ve read it, does this sound like you?',checkinKey:'personal-brand-delivery',quickReplies:[{label:'Yes',value:'yes',followUp:yesFollow},{label:'Mostly',value:'mostly',followUp:lukewarmFollow},{label:'Not quite',value:'not_quite',followUp:lukewarmFollow}]}])
+    }
+  },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,seenPbCheckin,isDemo,isTest])
   // Personal Brand check-in. The first time a signed-in user reaches Put it to
   // Work with a built Personal Brand, open My Coach once with a one-tap check-in.
   // Dedupe via seenPbCheckin (persists in the synced profile) + a session ref;
