@@ -54,7 +54,6 @@ import { parseMoney, monetizeBenefits, bonusModel, totalCompModel } from "./offe
 import { COMP_KNOWLEDGE } from "./comp-knowledge"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
-import QuickStart from "./QuickStart"
 import AdminDashboard from "./AdminDashboard"
 import CoachInsights from "./CoachInsights"
 import ResearchDesk from "./components/ResearchDesk"
@@ -7528,7 +7527,6 @@ export default function PivotEngine(){
   const _path=typeof window!=='undefined'?(window.location.pathname.replace(/\/+$/,'')||'/'):'/'
   if(_path==='/privacy')return <Privacy/>
   if(_path==='/terms')return <Terms/>
-  if(_path==='/quick-start')return <QuickStart/>
   if(_path==='/admin/dashboard')return <AdminDashboard/>
   if(_path==='/admin/coach-insights')return <CoachInsights/>
   // ResearchDesk gates itself against /api/me. The two screens above render
@@ -17547,7 +17545,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
             <Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn>
-            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{...S.sec,display:'inline-flex',alignItems:'center',gap:8,textDecoration:'none'}}><Download size={14}/>Download User Guide (PDF)</a>
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
@@ -19176,14 +19173,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          {/* Footer sits on ONE horizontal row: guide button, its one-line
-              explainer, then Privacy/Terms. flexWrap lets it fall to a second
-              row on narrow columns rather than stacking three deep. The
-              explainer is desktop-only — on mobile the row is button +
-              Privacy/Terms, which fits without wrapping. */}
+          {/* Footer sits on ONE horizontal row: Privacy/Terms, centered.
+              flexWrap lets it fall to a second row on narrow columns. */}
           <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px':'12px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:isMobile?'8px 14px':'8px 20px'}}>
-            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            {!isMobile&&<span style={{fontSize:15,color:'#718096'}}>Everything Reimagine does, explained in plain English.</span>}
             <span style={{display:'inline-flex',alignItems:'center',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
