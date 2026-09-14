@@ -20,19 +20,17 @@
 
 export const SIGNUP_SOURCES = [
   { code: 'referral',   label: 'Someone I know recommended it', detailPrompt: 'Who, if you would like to say? (optional)' },
-  // RETIRED from the form 2026-09-14 (still here so old rows resolve): it
-  // overlapped `employer` below. NextPlacement is an outplacement firm AND
-  // paid for by a former employer, so its users could honestly pick either,
-  // splitting one population across two codes. Zero accounts had chosen it.
-  { code: 'outplacement', label: 'My outplacement firm referred me', detailPrompt: 'Which one? (optional)' },
-  // Sponsored arrival (2026-09-14): an employer, or an outplacement firm a
-  // former employer hired, set this person up with Reimagine. One option for
-  // both, named with the firms people will recognize, because someone whose
-  // access was arranged for them at a job loss behaves differently from
-  // someone who found the product alone, and every funnel number would
-  // otherwise average the two. Self-reported for now; the detail box names
-  // the company or firm.
-  { code: 'employer', label: 'My employer or outplacement firm (e.g., NextPlacement, LHH, Right Management)', detailPrompt: 'Which company or firm? (optional)' },
+  // Competitor outplacement referrals, counted on their own on purpose
+  // (Bob, 2026-09-14): firms like LHH and Right Management send people to
+  // Reimagine for service delivery without paying for it, and this count is
+  // the evidence for approaching them. NextPlacement is Career Club's own and
+  // must NEVER be folded in here -- it is identified separately, by a routine
+  // that matches Career Club's participant emails, not by this form.
+  { code: 'outplacement', label: 'An outplacement firm referred me (e.g., LHH, Right Management)', detailPrompt: 'Which one? (optional)' },
+  // RETIRED from the form 2026-09-14, the same day it shipped, with zero
+  // accounts holding it (kept so the code stays valid). It mixed Career
+  // Club's own NextPlacement with competitor outplacement firms; see above.
+  { code: 'employer', label: 'My employer or outplacement firm provided it', detailPrompt: 'Which company or firm? (optional)' },
   { code: 'bob',        label: 'Bob Goodwin or Career Club' },
   { code: 'linkedin',   label: 'LinkedIn' },
   { code: 'media',      label: 'A newsletter, podcast, or article', detailPrompt: 'Which one? (optional)' },
@@ -44,7 +42,7 @@ export const SIGNUP_SOURCES = [
 // Codes currently offered on the form. Separate from the full list so a code
 // can be retired without orphaning the rows that hold it. The API still
 // accepts a retired code (a cached signup page may send one).
-const RETIRED_SIGNUP_SOURCES = ['outplacement']
+const RETIRED_SIGNUP_SOURCES = ['employer']
 export const ACTIVE_SIGNUP_SOURCES = SIGNUP_SOURCES.filter(s => !RETIRED_SIGNUP_SOURCES.includes(s.code))
 
 export const SIGNUP_SOURCE_CODES = SIGNUP_SOURCES.map(s => s.code)
