@@ -42,6 +42,7 @@ import { sql } from './_lib/db.js'
 import { getSavedPlaybooks } from './_lib/saved-playbooks.js'
 import { costFromUsage, addUsage } from './_lib/usage-cost.js'
 import { classifyAnthropicError, operatorLine, operatorSubject, operatorImpactLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
+import { recordSupportEvent } from './_lib/support-events.js'
 import { alertOnce } from './_lib/ops-alerts.js'
 
 const ALLOWED_HOSTS = new Set([
@@ -2134,6 +2135,17 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  // Both read only by the support_events rows this handler writes on its two
+  // failure paths (2026-09-08 observability brief). Stamped here rather than at
+  // each failure site so duration_ms measures the turn the user actually
+  // waited through, including the profile read and prompt assembly, not just
+  // the upstream call. The build header is what the client stamps on every
+  // Coach request (src/components/Chat.jsx); absent on an older cached bundle.
+  const turnStartedAt = Date.now()
+  const turnBuildSha = typeof req.headers['x-reimagine-build'] === 'string' && req.headers['x-reimagine-build'].trim()
+    ? req.headers['x-reimagine-build'].trim()
+    : null
+
   const origin = req.headers.origin || req.headers.referer || ''
   if (!isAllowedOrigin(origin)) return res.status(403).json({ error: 'Forbidden' })
 
@@ -2207,6 +2219,19 @@ export default async function handler(req, res) {
       const turnCapRows = await sql`SELECT COUNT(*)::int AS n FROM generation_events WHERE user_id = ${user.id} AND kind = 'coach' AND created_at >= NOW() - INTERVAL '1 hour'`
       const turnCount = (turnCapRows[0] && turnCapRows[0].n) || 0
       if (turnCount >= COACH_TURN_CAP_HR) {
+        // Recorded because from the user's side this is indistinguishable from
+        // Coach being broken: they typed, and nothing came back. A run of these
+        // on one account is also the signal that the cap is set wrong, which
+        // nothing else in the system would surface.
+        await recordSupportEvent(user.id, 'coach_failed', {
+          step: currentStep,
+          error_class: 'rate_limited',
+          http_status: 429,
+          duration_ms: Date.now() - turnStartedAt,
+          build_sha: turnBuildSha,
+          user_agent: req.headers['user-agent'],
+          detail: `coach turn cap ${COACH_TURN_CAP_HR}/hr reached`,
+        })
         return res.status(429).json({ error: 'rate_limited', message: 'You have reached the hourly limit for My Coach messages. Try again in a few minutes.' })
       }
     } catch (e) { console.error('coach turn-cap check skipped:', e && e.message) }
@@ -2520,6 +2545,15 @@ export default async function handler(req, res) {
         ], { cooldownHours: 6 })
       } catch { /* alerting must never take the request down */ }
     }
+    await recordSupportEvent(user.id, 'coach_failed', {
+      step: currentStep,
+      error_class: c.kind,
+      http_status: c.status,
+      duration_ms: Date.now() - turnStartedAt,
+      build_sha: turnBuildSha,
+      user_agent: req.headers['user-agent'],
+      detail: c.detail,
+    })
     return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
   }
 

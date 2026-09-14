@@ -59,8 +59,17 @@ check(updateIdx !== -1 && whereIdx !== -1 && updateIdx < whereIdx,
   `${SAVE}: the precondition does not gate the same UPDATE that writes profile_state`)
 
 check(save.includes('RETURNING profile_updated_at'), `${SAVE}: the UPDATE no longer returns the new timestamp for the client to track`)
-check(/if \(rows\.length === 0\) \{\s*return res\.status\(409\)/.test(save),
+// The zero-rows branch may now log the rejection to support_events first
+// (2026-09-08 observability brief) before it returns, so the 409 is no longer
+// the literal next statement. What must stay true is that this branch RETURNS
+// A 409 and does nothing else -- an early return, not a fall-through into the
+// success path, which would report a rejected save as saved.
+const staleBranch = save.slice(save.indexOf('if (rows.length === 0) {'))
+const staleBranchBody = staleBranch.slice(0, staleBranch.indexOf('\n  }') + 1)
+check(/return res\.status\(409\)/.test(staleBranchBody),
   `${SAVE}: a precondition failure (zero rows) no longer returns 409`)
+check(!/return res\.status\((?!409)/.test(staleBranchBody),
+  `${SAVE}: the zero-rows branch returns a status other than 409`)
 check(save.includes("res.status(200).json({ ok: true, updatedAt: rows[0].profile_updated_at })"),
   `${SAVE}: a successful save no longer reports the new updatedAt back to the client`)
 
