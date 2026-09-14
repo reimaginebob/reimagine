@@ -99,12 +99,14 @@ export default function AdminDashboard() {
   const [pipelineBusy, setPipelineBusy] = useState(false)
   const [pipelineMsg, setPipelineMsg] = useState("")
   const [testers, setTesters] = useState([])
+  const [tokenStatus, setTokenStatus] = useState(null)
   const fetchTesters = useCallback(async (flag) => {
     try {
       const res = await fetch(`/api/admin/pipeline-access?flag=${encodeURIComponent(flag)}`, { credentials: "include" })
       if (res.ok) {
         const d = await res.json()
         setTesters(Array.isArray(d.testers) ? d.testers : [])
+        setTokenStatus(d.tokenStatus && typeof d.tokenStatus === "object" ? d.tokenStatus : null)
         if (d.flags && typeof d.flags === "object") setFlagOptions(d.flags)
       }
     } catch { /* leave the list as-is */ }
@@ -406,7 +408,27 @@ export default function AdminDashboard() {
             {pipelineMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{pipelineMsg}</div>}
             {testers.length > 0 && <div style={{ marginTop: 12, fontSize: 14, color: "#4A5568" }}>
               <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>Current testers</div>
-              {testers.map((e) => <div key={e} style={{ padding: "2px 0" }}>{e}</div>)}
+              {testers.map((e) => {
+                const t = tokenStatus && tokenStatus[e]
+                let detail = null
+                if (t) {
+                  const parts = []
+                  if (t.activeOAuthTokens > 0) {
+                    parts.push(`${t.activeOAuthTokens} active OAuth token${t.activeOAuthTokens === 1 ? "" : "s"}` +
+                      (t.latestOAuthTokenAt ? `, most recent ${new Date(t.latestOAuthTokenAt).toLocaleDateString()}` : ""))
+                  }
+                  if (t.hasPushToken) {
+                    parts.push(`push token minted${t.pushTokenCreatedAt ? ` ${new Date(t.pushTokenCreatedAt).toLocaleDateString()}` : ""}`)
+                  }
+                  detail = parts.length > 0 ? parts.join(" · ") : "no token minted yet"
+                }
+                return (
+                  <div key={e} style={{ padding: "2px 0" }}>
+                    {e}
+                    {detail && <span style={{ color: "#8A93A6" }}> — {detail}</span>}
+                  </div>
+                )
+              })}
             </div>}
           </Panel>
 
