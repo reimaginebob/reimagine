@@ -10607,7 +10607,7 @@ export default function PivotEngine(){
       const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice'&&pick!=='tradeoff')?{key:pick,label:cardLabel(pick)}:null
       const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
-        :pick==='practice'?'Interview Prep is built — want to practice the answer that’s weakest?'
+        :pick==='practice'?'Interview Prep is built — want to practice the weakest answer?'
         :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
@@ -10712,7 +10712,7 @@ export default function PivotEngine(){
       const days=Math.round((ms-now)/86400000)
       const when=days<=0?'today':days===1?'tomorrow':'in two days'
       const copy=prepBuilt
-        ?`${company} is ${when}. Interview Prep is built. Want to practice the answer that's weakest?`
+        ?`${company} is ${when}. Interview Prep is built. Want to practice the weakest answer?`
         :`${company} is ${when}. Interview Prep isn't built for it yet. Want me to build it now?`
       return{recordId:rec.id,dateIso,copy,tapLabel:prepBuilt?'Practice it':'Build Interview Prep',prepBuilt}
     })()
