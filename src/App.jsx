@@ -7057,7 +7057,7 @@ function DemoUnavailable(){
     </div>
   </div>
 }
-// Support Reimagine — voluntary-support surface. Reimagine stays entirely
+// Pay It Forward — voluntary-support surface. Reimagine stays entirely
 // free; this is the one place a user can choose to give back. No paywall, no
 // gating; nothing else in the app keys off whether it is opened. All copy and
 // the Stripe payment links live in this single constant so a wording or amount
@@ -7065,7 +7065,7 @@ function DemoUnavailable(){
 // external donate.stripe.com checkout pages (each with its own thank-you
 // configured on Stripe's side) — no backend route, no success/return handling.
 const SUPPORT_PANEL_COPY={
-  navLabel:'Support Reimagine',
+  navLabel:'Pay It Forward',
   navSubline:'Free to use, help keep it that way',
   header:'Reimagine is free',
   body:[
@@ -7089,7 +7089,7 @@ const SUPPORT_PANEL_COPY={
   ],
 }
 
-// One-time announcement that points every user at the Support Reimagine sidebar
+// One-time announcement that points every user at the Pay It Forward sidebar
 // entry. Purely informational — it does not ask for money itself, it just says
 // where the ask already lives. Copy sits next to SUPPORT_PANEL_COPY so both are
 // edited in one place. Shown once per account and never again (seenSupportAnnounce
@@ -7195,7 +7195,7 @@ function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,cho
   // render in either mode going forward; My Playbooks (PR3a dashboard)
   // supersedes it. hasPrereq predicate was removed in the same change:
   // the only steps it gated (p4, focus) no longer appear in PHASES.
-  // Always-on Support Reimagine entry. Pinned to the TOP of the rail in both
+  // Always-on Pay It Forward entry. Pinned to the TOP of the rail in both
   // sidebar shapes (dashboard and the linear PHASES flow) since 2026-09-11:
   // it sat at the bottom, below Inputs, and a user who wanted to give could not
   // find it. Styled as a card rather than a rail row so it reads as a different
@@ -7891,7 +7891,7 @@ export default function PivotEngine(){
   // a localStorage key, so "seen once" survives sign-out and follows the user to
   // a second device.
   //
-  // The Support Reimagine announcement is NOT a "what's new" popup, so it is not
+  // The Pay It Forward announcement is NOT a "what's new" popup, so it is not
   // gated on a ship date. It is the one time a person is told that voluntary
   // support exists, and every account gets it, new ones included. It waits until
   // they have something to show for their time (any completed phase) so the ask
@@ -19125,7 +19125,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {/* One-time Support Reimagine announcement. Every signed-in account sees it
+    {/* One-time Pay It Forward announcement. Every signed-in account sees it
         once -- it is how a person learns voluntary support exists, not a
         what's-new note -- but only after a completed phase, so the ask never
         arrives before the value. Waits for hydration so it cannot flash before
@@ -19145,7 +19145,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>}
     {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&!showMoveAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Pay It Forward announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
         <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 22px'}}>{SUPPORT_ANNOUNCEMENT_COPY.body}</p>
