@@ -2,11 +2,14 @@
 // batch-and-phase4-brief.md, §2.2, Column 2, row 13): "Practice This
 // Answer" -- the first of the eight Column 2 affordances folded into
 // MOMENT_CATALOG. Delivery-adjacent: fires once delivery-p11 has already
-// reacted for the current identity, offering to practice the interview
-// answer that's weakest, tapping through to the same openCoachWith
-// mechanism the existing per-question practice door already uses (that
-// page-level door stays in place until this row has fired on Bob's account
-// and passed his read -- CLAUDE.md's page-button removal rule).
+// reacted for the current identity, offering to practice an interview
+// answer, tapping through to the same openCoachWith mechanism the existing
+// per-question practice door already uses (that page-level door stays in
+// place until this row has fired on Bob's account and passed his read --
+// CLAUDE.md's page-button removal rule). Corrected 2026-09-15 (Bob): the
+// fixed message no longer names an abstract "weakest" answer; the seed
+// instead asks Coach to reach for a real to_strengthen note, prioritizing
+// Thought Process and Result.
 import fs from 'node:fs'
 
 let failures = 0
@@ -34,12 +37,12 @@ check(pBlock.includes('eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.
   `${MOMENTS}: practice-p11-weakest's eligibility (flagged account + a resolved practiceP11Target) has drifted`)
 check(pBlock.includes('dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`'),
   `${MOMENTS}: practice-p11-weakest's dedupeKey (fire once per role identity) is missing or has drifted`)
-check(pBlock.includes("message: 'Interview Prep is built. Want to practice the answer that\\'s weakest?'"),
-  `${MOMENTS}: practice-p11-weakest's message has drifted from the already-shipped op-side phrasing it reuses`)
+check(pBlock.includes("message: 'Interview Prep is built — want to practice one of your answers?'"),
+  `${MOMENTS}: practice-p11-weakest's message has drifted -- it should not name an abstract "weakest" answer (2026-09-15, Bob)`)
 check(pBlock.includes("quickReplies: [{ label: 'Practice it', value: 'practice-p11-go' }]"),
   `${MOMENTS}: practice-p11-weakest's quickReplies has drifted`)
-check(/onTap: \(value, ctx\) => \{\s*if \(value === 'practice-p11-go'\) ctx\.openCoachWith\(`I want to practice my interview answers for \$\{ctx\.chosen \|\| 'this role'\}\.`, false, 'p11'\)\s*return true\s*\}/.test(pBlock),
-  `${MOMENTS}: practice-p11-weakest's onTap no longer calls ctx.openCoachWith with the expected seed`)
+check(/onTap: \(value, ctx\) => \{\s*if \(value === 'practice-p11-go'\) ctx\.openCoachWith\(`I want to practice my interview answers for \$\{ctx\.chosen \|\| 'this role'\}\. Is there one that could use some work, especially the thinking behind it or the result\?`, false, 'p11'\)\s*return true\s*\}/.test(pBlock),
+  `${MOMENTS}: practice-p11-weakest's onTap no longer seeds Coach with a request for a real to_strengthen note prioritizing Thought Process and Result`)
 
 // --- practiceP11Target: anchored on delivery-p11 having already fired for
 // the current identity, same shape nextMoveTarget uses for its own anchor
@@ -73,5 +76,5 @@ if (failures) {
   console.error(`test-coach-moments-practice-p11: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-moments-practice-p11: OK (practice-p11-weakest is a fixed, Delivery-adjacent invitation gated on delivery-p11 having already fired for the identity; its tap reuses the existing op-side practice mechanism verbatim; ctx wiring and derived PROMPT_CODES both cover it)')
+  console.log('test-coach-moments-practice-p11: OK (practice-p11-weakest is a fixed, Delivery-adjacent invitation gated on delivery-p11 having already fired for the identity; its message no longer names an abstract "weakest" answer and its seed asks Coach for a real to_strengthen note prioritizing Thought Process and Result; ctx wiring and derived PROMPT_CODES both cover it)')
 }

@@ -430,16 +430,15 @@ export const MOMENT_CATALOG = [
   // is Coach following up on its own initiative, not reacting live to
   // something the person just did. Not generated -- a fixed invitation, no
   // judged read of specific content, so no model call. No specific
-  // question is singled out as "weakest": the copy borrows the op-side
-  // precedent verbatim (opNextMoveTarget/opInterviewCloseTarget's own
-  // 'practice' pick, App.jsx), which already established that Coach's own
-  // judgment picks where to start once the conversation opens, not a
-  // client-side heuristic guessing from JSON it cannot actually judge.
-  // Copy reused verbatim from already-shipped op-side text, not new copy
-  // needing a fresh approval pass. Per CLAUDE.md's page-button rule, the
-  // page's own per-question Practice This Answer door (PracticeAnswerBox,
-  // App.jsx) stays in place until this row has fired on Bob's account and
-  // passed his read.
+  // question is singled out here as "weakest" and the fixed message does
+  // not name one either (corrected 2026-09-15, Bob): Coach's own judgment
+  // picks a real, specific to_strengthen note once the conversation opens,
+  // not a client-side heuristic guessing from JSON it cannot actually judge
+  // -- the seed below asks for it explicitly, prioritizing Thought Process
+  // and Result. Per CLAUDE.md's page-button rule, the page's own
+  // per-question Practice This Answer door (PracticeAnswerBox, App.jsx)
+  // stays in place until this row has fired on Bob's account and passed
+  // his read.
   {
     key: 'practice-p11-weakest',
     family: 'check',
@@ -450,10 +449,19 @@ export const MOMENT_CATALOG = [
     promptCode: 'practice_p11_weakest',
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.practiceP11Target,
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
-    message: 'Interview Prep is built. Want to practice the answer that\'s weakest?',
+    message: 'Interview Prep is built — want to practice one of your answers?',
     quickReplies: [{ label: 'Practice it', value: 'practice-p11-go' }],
+    // Seed asks Coach to reach for a real to_strengthen note rather than the
+    // fixed message naming an abstract "weakest" answer (no client-side
+    // ranking, per the row's own design above) -- prioritizing Thought
+    // Process and Result, per Bob, 2026-09-15: those two carry the most
+    // weight in how an answer actually lands. Coach already carries the
+    // built p11 content, to_strengthen fields included, for an
+    // interview-intent turn on this record (buildPlaybookExpansion /
+    // detectIntent, api/coach.js), so this is a real, specific answer, not
+    // an instruction the model has to invent content to satisfy.
     onTap: (value, ctx) => {
-      if (value === 'practice-p11-go') ctx.openCoachWith(`I want to practice my interview answers for ${ctx.chosen || 'this role'}.`, false, 'p11')
+      if (value === 'practice-p11-go') ctx.openCoachWith(`I want to practice my interview answers for ${ctx.chosen || 'this role'}. Is there one that could use some work, especially the thinking behind it or the result?`, false, 'p11')
       return true
     },
   },
