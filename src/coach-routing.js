@@ -61,11 +61,11 @@ export const FEATURE_MAP = [
   // it early and without conditions — it costs nothing and needs no direction.
   { slug: 'job-search-resources', reach: 'standalone',  labelId: 'resources',
     does: 'points someone to free help and community near them: Career Club Corner first (Bob\'s free weekly call, Mondays at 12:00 ET, every session recorded), then public library job-seeker programs and accountability groups, all-volunteer job-search groups, the publicly funded American Job Center system, faith-based career ministries, and college career services open to non-students. It needs no chosen direction and no playbook, so it can be offered to anyone at any point, including on their first day. It names organizations and links their own events pages rather than promising a date, because a meeting time found in a search goes stale. It also links three places that keep their own listings Reimagine cannot read: the American Job Center directory, LinkedIn, and Meetup. On choosing a group, it says to listen for what the hour is spent on: in one worth going back to, people say what they tried, what came back, and what they are doing next' },
-  // Support Reimagine (2026-09-11). Not a step: a card at the top of the rail
-  // that opens the voluntary-support panel. Listed here because a user who
-  // asked Coach how to give was told nothing existed; the guide FAQ carries the
-  // same facts, this is the pointer.
-  { slug: 'support-reimagine',    reach: 'always-on',   label: 'Support Reimagine',
+  // Pay It Forward (2026-09-11, renamed from Support Reimagine 2026-09-15). Not
+  // a step: a card at the top of the rail that opens the voluntary-support
+  // panel. Listed here because a user who asked Coach how to give was told
+  // nothing existed; the guide FAQ carries the same facts, this is the pointer.
+  { slug: 'support-reimagine',    reach: 'always-on',   label: 'Pay It Forward',
     where: 'the gold card with a heart at the very top of the left sidebar, above My Coach and everything else, on every screen and every track; it opens a panel rather than a new screen, so nobody loses their place',
     does: 'is the one place a person can choose to give back. Reimagine is free and stays free, nothing in it is gated on giving, and someone in a search without a paycheck should use it as much as they want with no expectation of payment. If they have found value and have the capacity, the panel offers one-time gifts ($20, $50, $100, or an amount they choose) and a $10 monthly option, each opening a Stripe checkout page in a new tab. The reason asking helps: AI tokens are expensive and Reimagine is token-intensive, so every contribution pays it forward for the next person. When someone asks how to support, donate, pay, tip, contribute, or give back, or whether there is a cost, this is the answer, and say where the card is' },
   // Groups for This Path (2026-09-01). focus-gated like its siblings: it needs a

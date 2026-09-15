@@ -103,7 +103,7 @@ ok('community slugs are in the canonical set',
 // catalog, and Job Search Resources was added. The count is a tripwire for an
 // accidental edit to FEATURE_MAP, so it moves deliberately with the map and
 // never on its own; 25 when Groups for This Path shipped alongside it; 26 when
-// Support Reimagine (the always-on sidebar card) joined the catalog.
+// Pay It Forward (the always-on sidebar card) joined the catalog.
 ok('CANONICAL_FEATURE_SLUGS has 26 entries', CANONICAL_FEATURE_SLUGS.length === 26)
 
 // --- FEATURE_MAP is the single structured source ---
