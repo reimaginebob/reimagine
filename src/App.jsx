@@ -7620,6 +7620,12 @@ export default function PivotEngine(){
   // otherwise a stray link would reframe a standard user's whole product around
   // work they never did.
   const trackParam=isTrack(_params.get(TRACK_PARAM))?_params.get(TRACK_PARAM):null
+  // Where to send the user back after sign-in, e.g. an admin bookmark that
+  // bounced them here for a fresh magic link (AdminDashboard.jsx,
+  // CoachInsights.jsx). Carried through request-link.js -> the emailed link
+  // -> verify.js, which is the only place it is actually trusted -- this is
+  // just read-and-forward.
+  const nextParam=_params.get('next')||null
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',resumeDelta:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',bridgeTarget:'',bridgeRunway:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',fitNeed:'',fitBuyer:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
@@ -12580,7 +12586,7 @@ export default function PivotEngine(){
       if(!cr.ok){setSignupError('Something went wrong. Try again.');return}
       const cdata=await cr.json().catch(()=>({}))
       if(cdata.exists){
-        const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
+        const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,next:nextParam})})
         if(!r.ok){
           const data=await r.json().catch(()=>({}))
           if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
@@ -12611,7 +12617,7 @@ export default function PivotEngine(){
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam,next:nextParam})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')

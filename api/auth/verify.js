@@ -1,6 +1,17 @@
 import { sql } from '../_lib/db.js'
 import { hashToken, createSession, buildCookie } from '../_lib/session.js'
 import { syncNewUserToAllUsersSegment } from '../_lib/resend-segments.js'
+import { sanitizeNextPath } from '../_lib/next-path.js'
+
+// Where to send the user after the cookie is set. `next` arrives on the URL
+// the human clicked in their inbox, so it gets the same validation
+// request-link.js applied before emailing it -- never trust a redirect
+// target coming back from a link, even one this same flow generated.
+function buildRedirectTarget(next) {
+  const safeNext = sanitizeNextPath(next)
+  if (!safeNext) return '/?auth=ok'
+  return `${safeNext}${safeNext.includes('?') ? '&' : '?'}auth=ok`
+}
 
 // Magic-link verification is deliberately tolerant of email-security scanners
 // and link-preview bots, which pre-fetch the URLs inside an email before the
@@ -31,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
 
-  const { token } = req.query
+  const { token, next } = req.query
   if (!token || typeof token !== 'string') {
     return res.redirect(302, '/?auth=invalid')
   }
@@ -105,5 +116,5 @@ export default async function handler(req, res) {
   const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
   const SESSION_DAYS = parseInt(process.env.SESSION_DAYS || '30', 10)
   res.setHeader('Set-Cookie', buildCookie(sessionToken, SESSION_DAYS * 24 * 60 * 60, isProd))
-  return res.redirect(302, '/?auth=ok')
+  return res.redirect(302, buildRedirectTarget(next))
 }

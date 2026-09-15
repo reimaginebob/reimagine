@@ -272,7 +272,7 @@ export default function AdminDashboard() {
         <div style={S.authWrap}>
           <h1 style={S.authTitle}>Reimagine Daily</h1>
           <p style={S.authSub}>Admin analytics. Sign in to Reimagine with an admin account, then reload this page.</p>
-          <a href="/" style={{ ...S.primaryBtn, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>Go to sign in</a>
+          <a href={`/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`} style={{ ...S.primaryBtn, display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>Go to sign in</a>
           {error && <div style={S.authErr}>{error}</div>}
         </div>
       </div>
