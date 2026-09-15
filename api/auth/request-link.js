@@ -5,6 +5,7 @@ import { isSignupSource } from '../../src/signup-sources.js'
 import { isTrack } from '../../src/tracks.js'
 import { isAllowedHost } from '../_lib/allowed-hosts.js'
 import { getClientIp, checkIpRateLimit, logIpEvent } from '../_lib/auth-rate-limit.js'
+import { sanitizeNextPath } from '../_lib/next-path.js'
 
 const TOKEN_EXPIRY_MINUTES = 15
 // Rate limits keyed by email. Both windows must clear for a request to pass.
@@ -56,7 +57,13 @@ export default async function handler(req, res) {
   await logIpEvent('request-link', clientIp)
 
   const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion,
-    signupSource, signupSourceDetail, track } = req.body || {}
+    signupSource, signupSourceDetail, track, next } = req.body || {}
+  // Where to send the user back to after verify, e.g. an admin bookmark that
+  // bounced them here for a fresh link. Optional and doesn't need to be
+  // secret, so it rides as a plain query param on the emailed link rather
+  // than a DB column. Dropped silently (not rejected) when invalid -- a
+  // failed sign-in is far too steep a price for a bad redirect target.
+  const safeNext = sanitizeNextPath(next)
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'Invalid email' })
   }
@@ -162,7 +169,9 @@ export default async function handler(req, res) {
   // The prior MAGIC_LINK_BASE_URL env override pinned every deploy to a single
   // host; removed because that was the exact cause of the preview-auth bug.
   const baseUrl = getRequestOrigin(req)
-  const link = `${baseUrl}/auth/verify?token=${rawToken}`
+  const link = safeNext
+    ? `${baseUrl}/auth/verify?token=${rawToken}&next=${encodeURIComponent(safeNext)}`
+    : `${baseUrl}/auth/verify?token=${rawToken}`
 
   try {
     await sendMagicLinkEmail(normalizedEmail, link, cappedFirstName)
