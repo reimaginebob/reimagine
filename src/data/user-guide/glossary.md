@@ -91,7 +91,7 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 
 **Resume Builder.** The path on the Resume screen for anyone whose resume is out of date, thin, or missing. Give it an old resume, a LinkedIn PDF, or just companies and titles, and it writes a complete draft you edit on the page. It has its own sidebar entry and your draft is saved, so you can come back and add to it.
 
-**Resume Refresh.** Section 5 of the Focus Playbook, and a section of the Opportunity Playbook. Your resume rewritten so the strongest evidence for the role you are exploring is visible in the first seven seconds, downloadable as a Word document in a Human version and an ATS version.
+**Resume Refresh.** Section 5 of the Focus Playbook, and a section of the Opportunity Playbook. Your resume rewritten so the strongest evidence for the role you are exploring is visible in the first seven seconds, downloadable as a Word document in a Human version, a Traditional version, and an ATS version.
 
 **Role Options.** The screen that lists role options for the one direction you picked. An umbrella paragraph carries the credibility case for the direction, then each option shows a title, an organization type, a vehicle, and a sector. Click any one to open its full Focus Playbook. It also holds the "Tell us where else to look" box and honest handling when only a few strong options exist.
 
