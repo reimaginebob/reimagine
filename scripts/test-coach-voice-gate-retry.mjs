@@ -29,8 +29,11 @@ check(/const hardViolations = detectVoiceViolations\(strippedText, \{ scope: 'ru
 // sessionOpenTooLong/sessionOpenSaysINoticed (the session-open three-
 // sentence cap and "I noticed" ban) now trail hardViolations.length in the
 // same trigger condition -- see test-coach-session-open-cap.mjs for those
-// checks specifically.
-check(/flags\.citedStat \|\| hardViolations\.length \|\| sessionOpenTooLong \|\| sessionOpenSaysINoticed\)/.test(coach),
+// checks specifically. Widened again 2026-09-16 with four repetition-cap
+// terms after sessionOpenSaysINoticed (see test-coach-voice-retry-
+// repetition-caps.mjs) -- this only needs the prefix through
+// hardViolations.length, not the exact trailing `)`.
+check(/flags\.citedStat \|\| hardViolations\.length \|\| sessionOpenTooLong \|\| sessionOpenSaysINoticed \|\|/.test(coach),
   `${COACH}: the retry trigger condition does not fold in hardViolations.length alongside the existing five flags`)
 
 check(/for \(const v of hardViolations\.slice\(0, 3\)\) wants\.push/.test(coach),
@@ -40,11 +43,13 @@ check(/const hardViolations2 = detectVoiceViolations\(cleaned2, \{ scope: 'runti
   `${COACH}: the retry's re-check does not re-run detectVoiceViolations on the regenerated reply`)
 
 // score()'s signature grew two params for the same session-open production
-// fix (tooLong/saysINoticed) -- hv.length is still in there unchanged.
-check(/const score = \(f, hv, tooLong, saysINoticed\) => .*\+ hv\.length/.test(coach),
+// fix (tooLong/saysINoticed), then four more for the 2026-09-16 repetition
+// caps -- hv.length is still in there unchanged regardless of how many
+// params trail it.
+check(/const score = \(f, hv, tooLong, saysINoticed.*\) => .*\+ hv\.length/.test(coach),
   `${COACH}: the before/after scoring function does not count hardViolations toward whether the retry wins`)
 
-check(/useRetry = score\(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2\) < score\(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed\)/.test(coach),
+check(/useRetry = score\(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2.*\) < score\(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed/.test(coach),
   `${COACH}: useRetry does not compare the widened score (deterministic flags + hard violations) before and after`)
 
 // Additive, not a replacement: detectResidualVoice's own five-category check

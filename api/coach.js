@@ -356,6 +356,53 @@ export function countSentences(text) {
   return String(text || '').trim() ? 1 : 0
 }
 
+// Coach voice-retry repetition caps (2026-09-16). A live reply in Offer &
+// Negotiation read as AI-generated for reasons no single-match regex in
+// voice-patterns.js catches: the same hedge word ("worth") did five
+// different jobs, a two-word flat-verdict pivot ("That's real X") repeated
+// with a different noun, four sentences used a colon-launch, and five em
+// dashes did three different jobs across seven short paragraphs. Each of
+// these constructions is ordinary ONCE and only reads as machine-written on
+// repetition, which is a threshold HARD_PATTERNS' single-match detection was
+// never built to hold -- every consumer of hardViolations treats .length as
+// a fail signal at the first hit, not a count. Rejected as a system-prompt
+// fix: PLAIN_ENGLISH already asks Coach to write like a person and did not
+// stop this reply, and an instruction read on every turn adds fixed prompt
+// weight where a code-side count only costs a regeneration on the turns
+// that actually need one. Same shape as the session-open checks above: a
+// plain counting function, re-run on both the original and the rewrite,
+// folded into the same score() comparison below.
+const WORTH_HEDGE_RE = /\bworth\s+(?:a\s+\w+\s+)?(?:naming|noting|noticing|knowing|mentioning|surfacing|flagging|checking|asking|weighing|treating|doing|looking)\b/gi
+export function countWorthHedge(text) {
+  const matches = String(text || '').match(WORTH_HEDGE_RE)
+  return matches ? matches.length : 0
+}
+const FLAT_VERDICT_RE = /\bthat'?s\s+(?:a\s+)?real\s+\w+\b/gi
+export function countFlatVerdict(text) {
+  const matches = String(text || '').match(FLAT_VERDICT_RE)
+  return matches ? matches.length : 0
+}
+// Literal colon-launches only (a short label, then a colon, then the real
+// content) -- the reliable core of this construction. A punctuation-free
+// equivalent doing the identical job ("Here's what you know." functioning
+// as the label) is real but too close to a style judgment to add without
+// risking false positives on ordinary short sentences; left for a later
+// pass once real traffic shows how often it actually needs to fire.
+const COLON_LAUNCH_RE = /(?:^|[.!?]\s+)[^.!?\n]{1,60}:/g
+export function countColonLaunch(text) {
+  const matches = String(text || '').match(COLON_LAUNCH_RE)
+  return matches ? matches.length : 0
+}
+// Em dashes are ordinary punctuation Coach uses freely (the ban was dropped
+// 2026-05-27 -- see stripRoomsPlaceholder's own comment in
+// src/text-strippers.js); this only flags when the SAME mark is doing too
+// many different jobs in one reply, never using it at all.
+const EM_DASH_RE = /—/g
+export function countEmDash(text) {
+  const matches = String(text || '').match(EM_DASH_RE)
+  return matches ? matches.length : 0
+}
+
 // Orientation quality check (Coach-as-Concierge, item 1 follow-on, 2026-09-04,
 // extended same day to Resume/LinkedIn/Assessment). The moment someone
 // leaves a covered orientation step, Coach reads what they actually gave it
@@ -3071,7 +3118,14 @@ export default async function handler(req, res) {
   // and only reads as padding on this one specific turn shape.
   const sessionOpenTooLong = turnKind === 'session_open' && countSentences(strippedText) > 3
   const sessionOpenSaysINoticed = turnKind === 'session_open' && /\bi noticed\b/i.test(strippedText)
-  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length || sessionOpenTooLong || sessionOpenSaysINoticed) {
+  // Repetition caps (2026-09-16, see countWorthHedge and its neighbors
+  // above): not scoped to any turnKind -- the reproducing reply was an
+  // ordinary Offer & Negotiation turn, not a session-open one.
+  const worthHedgeCount = countWorthHedge(strippedText)
+  const flatVerdictCount = countFlatVerdict(strippedText)
+  const colonLaunchCount = countColonLaunch(strippedText)
+  const emDashCount = countEmDash(strippedText)
+  if (flags.comparative || flags.sincerity || flags.theMove || flags.sitWith || flags.citedStat || hardViolations.length || sessionOpenTooLong || sessionOpenSaysINoticed || worthHedgeCount > 1 || flatVerdictCount >= 2 || colonLaunchCount > 1 || emDashCount > 2) {
     const wants = []
     if (flags.comparative) wants.push('do not compare me to "most people", or to "most"/"many"/"every"/"all"/"any" of a group (candidates, leaders, professionals, hiring managers, recruiters), or to anyone else — drop the comparison and state what is true about me directly')
     if (flags.sincerity) wants.push('do not announce your own honesty ("frankly", "candidly", "the honest answer", "to be honest", "being straight with you") — just say the thing')
@@ -3080,6 +3134,10 @@ export default async function handler(req, res) {
     if (flags.citedStat) wants.push('do not cite a statistic, percentage, or figure with a source you cannot defend ("a study found 70%", "according to LinkedIn…") — speak qualitatively or point me to where real data lives')
     if (sessionOpenTooLong) wants.push('cut this down to at most three sentences total — one greeting with a single mood question, at most one line of context, and one closing question — by combining or dropping sentences, not just shortening words')
     if (sessionOpenSaysINoticed) wants.push('do not say "I noticed" — state the pipeline fact plainly instead ("Your HOPE application moved to interviewing", not "I noticed your HOPE application moved to interviewing")')
+    if (worthHedgeCount > 1) wants.push(`stop reusing "worth ___" as your recommendation word (it did that job ${worthHedgeCount} times in this reply) — use direct verbs instead ("ask about", "check", "weigh", "flag") so the same hedge word is not doing every job`)
+    if (flatVerdictCount >= 2) wants.push(`stop reusing "that's real ___" as a pivot (it appeared ${flatVerdictCount} times, each with a different noun) — vary how you affirm or characterize different points instead of reaching for the same two-word construction`)
+    if (colonLaunchCount > 1) wants.push(`stop opening sentences with a short label and a colon (this reply did it ${colonLaunchCount} times) — write plain sentences instead of repeatedly setting up a label-then-content structure`)
+    if (emDashCount > 2) wants.push(`cut back on em dashes (this reply used ${emDashCount}) — use periods, commas, or "and"/"but" instead so the same mark is not doing every job in the sentence`)
     // Same corrective style callClaudeWithVoiceGate uses in src/App.jsx: name
     // the actual matched text, not a generic reminder, so the fix targets
     // exactly what fired. Capped at 3 so a reply with many small hits does
@@ -3098,9 +3156,13 @@ export default async function handler(req, res) {
       const hardViolations2 = detectVoiceViolations(cleaned2, { scope: 'runtime' })
       const sessionOpenTooLong2 = turnKind === 'session_open' && countSentences(cleaned2) > 3
       const sessionOpenSaysINoticed2 = turnKind === 'session_open' && /\bi noticed\b/i.test(cleaned2)
-      const score = (f, hv, tooLong, saysINoticed) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length + (tooLong ? 1 : 0) + (saysINoticed ? 1 : 0)
-      const useRetry = score(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2) < score(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed)
-      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name), sessionOpenTooLong, sessionOpenSaysINoticed }, after: { ...flags2, hard: hardViolations2.map(v => v.name), sessionOpenTooLong: sessionOpenTooLong2, sessionOpenSaysINoticed: sessionOpenSaysINoticed2 }, used: useRetry ? 'retry' : 'original', captures_locked_before_retry: true })
+      const worthHedgeCount2 = countWorthHedge(cleaned2)
+      const flatVerdictCount2 = countFlatVerdict(cleaned2)
+      const colonLaunchCount2 = countColonLaunch(cleaned2)
+      const emDashCount2 = countEmDash(cleaned2)
+      const score = (f, hv, tooLong, saysINoticed, worthHedge, flatVerdict, colonLaunch, emDash) => (f.comparative ? 1 : 0) + (f.sincerity ? 1 : 0) + (f.theMove ? 1 : 0) + (f.sitWith ? 1 : 0) + (f.citedStat ? 1 : 0) + hv.length + (tooLong ? 1 : 0) + (saysINoticed ? 1 : 0) + (worthHedge > 1 ? 1 : 0) + (flatVerdict >= 2 ? 1 : 0) + (colonLaunch > 1 ? 1 : 0) + (emDash > 2 ? 1 : 0)
+      const useRetry = score(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2, worthHedgeCount2, flatVerdictCount2, colonLaunchCount2, emDashCount2) < score(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed, worthHedgeCount, flatVerdictCount, colonLaunchCount, emDashCount)
+      console.log('coach voice-retry', { user_id: user.id, before: { ...flags, hard: hardViolations.map(v => v.name), sessionOpenTooLong, sessionOpenSaysINoticed, worthHedgeCount, flatVerdictCount, colonLaunchCount, emDashCount }, after: { ...flags2, hard: hardViolations2.map(v => v.name), sessionOpenTooLong: sessionOpenTooLong2, sessionOpenSaysINoticed: sessionOpenSaysINoticed2, worthHedgeCount: worthHedgeCount2, flatVerdictCount: flatVerdictCount2, colonLaunchCount: colonLaunchCount2, emDashCount: emDashCount2 }, used: useRetry ? 'retry' : 'original', captures_locked_before_retry: true })
       if (useRetry) strippedText = cleaned2
     } catch (err) {
       console.error('coach voice-retry failed (keeping original):', err)

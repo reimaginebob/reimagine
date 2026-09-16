@@ -31,7 +31,11 @@ check(extractionIdx !== -1 && retryIdx !== -1 && extractionIdx < retryIdx,
 // 2026-09-10): the session-open sentence-count/"I noticed" checks added to
 // this same block by that fix push the tail markers below past the old
 // 6000-char window -- see test-coach-session-open-cap.mjs for those checks.
-const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 8000) : ''
+// Widened again 8000 -> 11000 (2026-09-16) for the same reason: the four
+// repetition-cap checks (countWorthHedge and its neighbors) added to this
+// same block push the tail markers further still -- see
+// test-coach-voice-retry-repetition-caps.mjs for those checks.
+const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 11000) : ''
 check(retryBlock.includes('const flags = detectResidualVoice(strippedText)'),
   `${COACH}: the retry's first voice check still runs against \`cleaned\` instead of \`strippedText\` -- it would still see raw trailer JSON`)
 check(retryBlock.includes("const hardViolations = detectVoiceViolations(strippedText, { scope: 'runtime' })"),
