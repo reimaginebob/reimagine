@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react"
 import FeedbackDashboard from "./FeedbackDashboard"
 import EconomicsDashboard from "./EconomicsDashboard"
+import DonationsDashboard from "./DonationsDashboard"
 import GrowthDashboard from "./GrowthDashboard"
 import CorrectionsDashboard from "./CorrectionsDashboard"
 
@@ -359,7 +360,7 @@ export default function AdminDashboard() {
 
         {tab === "feedback" && <FeedbackDashboard range={range} refreshKey={refreshKey} />}
         {tab === "growth" && <GrowthDashboard refreshKey={refreshKey} />}
-        {tab === "economics" && <EconomicsDashboard />}
+        {tab === "economics" && <><EconomicsDashboard /><DonationsDashboard /></>}
         {tab === "corrections" && <CorrectionsDashboard refreshKey={refreshKey} />}
 
         {tab === "analytics" && <>

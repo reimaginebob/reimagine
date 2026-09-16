@@ -7131,7 +7131,19 @@ const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
 // new tab. "Give once" and "Give monthly" are two separate labeled groups, not
 // a shared tier row: there is no monthly equivalent for each one-time amount,
 // so the layout must not imply parity between them.
-function SupportPanel({onClose}){
+//
+// userId (signedInUser.id, when signed in) is appended to each link as
+// ?client_reference_id=<id> -- Stripe Payment Links support this URL
+// parameter and carry it through onto the resulting Checkout Session
+// (https://docs.stripe.com/payment-links/url-parameters), which is what
+// api/webhooks/stripe.js reads to tie a donation back to a Reimagine
+// account. Signed-out visitors and the demo still get a plain link with no
+// parameter -- Stripe silently drops an empty/invalid client_reference_id,
+// so nothing breaks, that donation just cannot be attributed.
+function withDonorRef(url,userId){
+  return userId?`${url}?client_reference_id=${encodeURIComponent(userId)}`:url
+}
+function SupportPanel({onClose,userId}){
   const K=SUPPORT_PANEL_COPY
   const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
@@ -7147,20 +7159,20 @@ function SupportPanel({onClose}){
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.onceOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
       <div style={{marginTop:20}}>
         <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
     </div>
   </div>
 }
 
-function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
+function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,userId=null,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -7214,7 +7226,7 @@ function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,cho
         <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>{SUPPORT_PANEL_COPY.navSubline}</div>
       </div>
     </div>
-    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
+    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)} userId={userId}/>}
   </>
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
@@ -19390,7 +19402,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} coachActive={false} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} userId={signedInUser?.id||null} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
