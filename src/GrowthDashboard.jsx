@@ -71,7 +71,7 @@ const OUTCOME_LABELS = {
   withdrew: "Withdrew", no_response: "No response",
 }
 const SOURCE_LABELS = {
-  referral: "Someone recommended it", outplacement: "Outplacement firm referral", employer: "Employer or outplacement (retired)", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
+  referral: "Someone recommended it", outplacement: "Outplacement firm referral", employer: "Employer or outplacement (retired)", group: "Job search group or alumni network", bob: "Bob Goodwin or Career Club", linkedin: "LinkedIn",
   media: "Newsletter, podcast, or article", search: "Web search", event: "Event or workshop",
   other: "Something else", "(not asked)": "Predates the question",
 }
@@ -130,6 +130,7 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
   const recDelivery = payload.recognition_delivery || {}
   const coach = payload.coach || {}
   const sources = payload.sources || []
+  const partnerLinks = payload.partner_links || []
   const defs = payload.definitions || {}
   const cfg = payload.settings || {}
 
@@ -544,6 +545,26 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
           <div style={S.calloutTight}>
             Shares are of accounts that were asked. Accounts created before the question shipped sit on their own line rather than inside an "unknown" bucket — folding them in would understate every real share. The line to watch is <strong style={{ color: NAVY }}>someone recommended it</strong>: it is the only direct measure of the growth engine.
           </div>
+        </Panel>
+
+        {/* Signups by partner link. Distinct from "Where people came from"
+            above: that panel is what the person SAYS when asked; this one is
+            which partner's link (?via=<tag>) actually sent them. */}
+        <Panel title="Signups by partner link" wide>
+          <table style={S.table}>
+            <thead><tr><Th>Tag</Th><Th right>Accounts</Th><Th>First signup</Th><Th>Most recent</Th></tr></thead>
+            <tbody>
+              {partnerLinks.map((p) => (
+                <tr key={p.tag}>
+                  <Td>{p.tag}</Td>
+                  <Td right>{fmtInt(p.accounts)}</Td>
+                  <Td muted>{p.first_signup ? new Date(p.first_signup).toISOString().slice(0, 10) : "—"}</Td>
+                  <Td muted>{p.most_recent_signup ? new Date(p.most_recent_signup).toISOString().slice(0, 10) : "—"}</Td>
+                </tr>
+              ))}
+              {partnerLinks.length === 0 && <tr><Td colSpan={4} muted>No account has arrived on a partner link yet.</Td></tr>}
+            </tbody>
+          </table>
         </Panel>
 
         {/* Lifecycle email. Two reads, deliberately in this order: the campaign

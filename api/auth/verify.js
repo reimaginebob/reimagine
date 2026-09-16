@@ -51,7 +51,7 @@ export default async function handler(req, res) {
   const rows = await sql`
     SELECT email, first_name, last_name, expires_at, used_at,
            privacy_accepted_at, privacy_version, terms_accepted_at, terms_version,
-           signup_source, signup_source_detail, track
+           signup_source, signup_source_detail, track, referral_partner
     FROM magic_link_tokens
     WHERE token_hash = ${tokenHash}
     LIMIT 1
@@ -92,14 +92,16 @@ export default async function handler(req, res) {
     // ON CONFLICT branch deliberately touches only last_login_at, so a racing
     // second redemption cannot overwrite it.
     // track (which product the account is on) rides the token for the same
-    // reason and is written under the same once-only rule.
+    // reason and is written under the same once-only rule. referral_partner
+    // (which partner link's tag the account arrived under) rides the same way
+    // for the same reason -- see migrations/2026-09-16_referral-partner.sql.
     const created = await sql`
       INSERT INTO users (email, first_name, last_name, last_login_at,
         privacy_accepted_at, privacy_version, terms_accepted_at, terms_version,
-        signup_source, signup_source_detail, track)
+        signup_source, signup_source_detail, track, referral_partner)
       VALUES (${row.email}, ${row.first_name}, ${row.last_name}, NOW(),
         ${row.privacy_accepted_at}, ${row.privacy_version}, ${row.terms_accepted_at}, ${row.terms_version},
-        ${row.signup_source || null}, ${row.signup_source_detail || null}, ${row.track || null})
+        ${row.signup_source || null}, ${row.signup_source_detail || null}, ${row.track || null}, ${row.referral_partner || null})
       ON CONFLICT (email) DO UPDATE SET last_login_at = NOW()
       RETURNING id
     `

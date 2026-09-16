@@ -116,6 +116,7 @@ async function loadPayload(adminEmails) {
     recognition,
     coach,
     sources,
+    partnerLinks,
     emailRollup,
     emailTrace,
   ] = await Promise.all([
@@ -577,6 +578,25 @@ async function loadPayload(adminEmails) {
       GROUP BY 1
       ORDER BY users DESC`,
 
+    // --- 11b. Signups by partner link ----------------------------------------
+    // Which partner's link (?via=<tag>, src/referral-partner.js) actually SENT
+    // each new account -- distinct from "Where signups came from" above, which
+    // is what the person SAYS when asked. NULL (no tag) is excluded rather than
+    // reported as its own row: unlike signup_source, most accounts were never
+    // going to carry a tag, so a "(not tagged)" row would just restate the
+    // total.
+    sql`
+      SELECT
+        referral_partner                AS tag,
+        COUNT(*)::int                   AS accounts,
+        MIN(created_at)                 AS first_signup,
+        MAX(created_at)                 AS most_recent_signup
+      FROM users
+      WHERE referral_partner IS NOT NULL
+        AND LOWER(email) <> ALL(${adminEmails}::text[])
+      GROUP BY 1
+      ORDER BY accounts DESC`,
+
     // --- 11. Lifecycle email: what each campaign did ------------------------
     // Counts are DISTINCT recipients, not events: Resend records an open every
     // time the image loads, so raw event counts overstate reach badly. Grouped
@@ -798,6 +818,12 @@ async function loadPayload(adminEmails) {
       median_turns: c.median_turns === null || c.median_turns === undefined ? null : num(c.median_turns),
     },
     sources: sources.map((x) => ({ source: x.source, users: num(x.users), with_detail: num(x.with_detail) })),
+    partner_links: partnerLinks.map((x) => ({
+      tag: x.tag,
+      accounts: num(x.accounts),
+      first_signup: x.first_signup || null,
+      most_recent_signup: x.most_recent_signup || null,
+    })),
   }
 }
 
