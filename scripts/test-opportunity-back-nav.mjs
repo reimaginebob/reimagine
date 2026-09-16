@@ -39,13 +39,14 @@ check(backLabelCount === 2, `${APP}: expected the origin-aware back-link label o
 // nav(hubStep) call -- a different, unrelated hub-entry button elsewhere
 // uses the same onClick target for a different purpose).
 //
-// Three sites, not two, since the Industry Insider ecosystem view
-// (2026-09-10, gated on industry_ecosystem_view) added a third: its own
-// back-link, reached the same way as p4's other two (pick a lane from the
-// hub, never a saved-record restore), so it correctly reads hubLabel
-// directly rather than opReturnStepRef.
+// Back to two (2026-09-16): the Industry Insider ecosystem hub briefly added
+// a third site here (2026-09-10) but the card-grid redesign replaced that
+// back-link with a breadcrumb ("Career Paths > Industry Insider > Your
+// Industry Ecosystem") instead, so the literal "Back to {hubLabel}" text no
+// longer appears there. The remaining two are p4's "Pick a direction first"
+// placeholder and the plain (non-ecosystem) lane role-list header.
 const p4BackLinkCount = (app.match(/Back to \{hubLabel\}/g) || []).length
-check(p4BackLinkCount === 3, `${APP}: expected exactly the three untouched p4-reachable back-links still reading "Back to {hubLabel}", found ${p4BackLinkCount} -- did a p4 site get changed, or did an opportunity/focus site not get fixed?`)
+check(p4BackLinkCount === 2, `${APP}: expected exactly the two untouched p4-reachable back-links still reading "Back to {hubLabel}", found ${p4BackLinkCount} -- did a p4 site get changed, or did an opportunity/focus site not get fixed?`)
 
 if (failures) {
   console.error(`test-opportunity-back-nav: ${failures} check(s) failed`)

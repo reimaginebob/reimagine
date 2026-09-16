@@ -329,6 +329,12 @@ const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
   border:'#E2E5EA',gold:'#C8924A',goldL:'#A06828',
   cream:'#1A2540',creamD:'#2D3748',gray:'#3D4A5C',grayL:'#2D3748',
+  // Three muted-gray tints (2026-09-16, ecosystem hub grid redesign) for
+  // description/sub-label text that sits between C.gray (body) and C.border
+  // (hairlines) on the scale -- distinct roles, not synonyms: grayMid is
+  // description prose, graySoft is secondary labels/breadcrumbs, grayLabel
+  // is small-caps eyebrows. crumbSep is the breadcrumb '>' glyph color only.
+  grayMid:'#4B5563',graySoft:'#6B7280',grayLabel:'#9CA3AF',crumbSep:'#C8CCD3',
   ok:'#2E7D52',err:'#C0392B'
 }
 
@@ -3599,7 +3605,7 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   // exactly (same pc fields, already proven against check-prompt-refs.mjs).
   iiEcosystem:(pr,o3,o3Structured,ecosystemRefine)=>{const _struct=buildSynthesisContext(o3Structured);const _catList=ECOSYSTEM_CATEGORIES.map(c=>`${c.key} (${c.label})`).join('; ');const _catKeys=ECOSYSTEM_CATEGORY_KEYS.map(k=>`"${k}"`).join(', ');return `Map the ecosystem around this person's industry into exactly these seven fixed categories: ${_catList}.
 
-FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders in a small circle on the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
+FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders as the headline in a hub panel at the top of the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
 
 For EACH of the seven categories, whether or not it turns out to be a real factor in this industry, produce:
 - description: one to two plain, brief sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label), plus, when it adds real information, the kind of organization or player that populates it. This describes the CATEGORY and the INDUSTRY -- never this person. Do not reference their resume, their background, their name, or how this category connects to them specifically; that bridge is made later, once a role is picked. Stay factual and generic to the industry itself, the way a reference guide would describe it to anyone in that industry. If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
@@ -5657,73 +5663,94 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
-// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view).
-// Category -> Role -> Company exploration that replaces p4's role list for the
-// Industry Insider lane only. Purely presentational -- all persistent state
-// (categories, expanded category, per-category role lists, refine text) lives
-// in the App component's `ecosystem` state and is passed in as props, the
-// same division of labor ReshapeBox and RefineBox already use.
-// Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
-// one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
-// clear both the center hub and each other at the node width below. Widened
-// again 2026-09-13 (Bob's second review: descriptions still truncated) --
-// radius 38 / node width 29% keeps roughly the same clearance margin the
-// 36/27% pairing had, while giving every card more room in both directions
-// (not just taller, which is what a wider clamp alone would have done).
-const ECOSYSTEM_NODE_POS=[
-  {x:50,y:12},{x:79.73,y:26.31},{x:87.06,y:58.46},{x:66.49,y:84.23},
-  {x:33.51,y:84.23},{x:12.94,y:58.46},{x:20.27,y:26.31},
-]
-function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view;
+// GA'd 2026-09-14, PR #929 -- hasIndustryEcosystemView now returns true for
+// every signed-in user). Category -> Role -> Company exploration that replaces
+// p4's role list for the Industry Insider lane only. Purely presentational --
+// all persistent state (categories, expanded category, per-category role
+// lists, refine text) lives in the App component's `ecosystem` state and is
+// passed in as props, the same division of labor ReshapeBox and RefineBox
+// already use.
+//
+// Redesigned 2026-09-16 from a radial hub-and-spoke diagram (Bob's Option A
+// pick after the first flat-grid version read as "a series of cards, not an
+// ecosystem") to a card grid with a rectangular hub panel -- a deliberate
+// second reversal, per Bob's own design spec, now that the feature is GA and
+// he wants the map to read as reference material rather than a diagram. The
+// h1 text below ("Your Industry Ecosystem") is quoted verbatim in
+// src/coach-screen.js's describeScreen -- keep the two in sync if either
+// changes again.
+function EcosystemCategoryCard({cat,data,onExplore,disabled}){
+  const[hover,setHover]=useState(false)
+  // isEmpty reads the description, not the count (2026-09-13 fix, carried
+  // forward through this redesign): a real, populated category can still come
+  // back with no count, or count:0, and that is NOT the same thing as "not a
+  // factor in this industry" -- that exact phrase (the prompt's own
+  // instruction for a real non-factor, and what the backstop below writes
+  // when the model skipped a key entirely) is the only reliable signal.
+  // Reading count instead grayed out a real category ("Customers &
+  // channels") that simply had no count number.
+  const isEmpty=/^not a factor in this industry/i.test((data.description||'').trim())
+  const clickable=!isEmpty&&!disabled
+  const hasExamples=!isEmpty&&Array.isArray(data.examples)&&data.examples.length>0
+  const Tag=clickable?'button':'div'
+  return <Tag
+    {...(clickable?{onClick:()=>onExplore(cat.key),onMouseEnter:()=>setHover(true),onMouseLeave:()=>setHover(false),disabled}:{})}
+    style={{width:'100%',textAlign:'left',display:'flex',flexDirection:'column',background:C.panel,border:`1px solid ${hover&&clickable?C.gold:C.border}`,borderRadius:12,padding:'22px 22px 20px',minHeight:224,boxSizing:'border-box',fontFamily:'inherit',cursor:clickable?'pointer':'default',boxShadow:hover&&clickable?'0 6px 22px rgba(26,37,64,0.08)':'none',transform:hover&&clickable?'translateY(-2px)':'none',transition:'border-color 0.15s ease,box-shadow 0.15s ease,transform 0.15s ease'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:10}}>
+      <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.cream,lineHeight:1.25}}>{cat.label}</div>
+      {!isEmpty&&data.count>0&&<div style={{flexShrink:0,fontSize:15,fontWeight:600,color:C.cream,background:C.input,borderRadius:999,padding:'3px 11px',whiteSpace:'nowrap'}}>{data.count} companies</div>}
+    </div>
+    <div style={{fontSize:16,color:C.grayMid,lineHeight:1.5,marginBottom:14}}>{data.description}</div>
+    {hasExamples&&<div style={{marginTop:'auto',borderTop:`1px dashed ${C.border}`,paddingTop:12}}>
+      <div style={{fontSize:15,fontWeight:700,color:C.grayLabel,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>For example</div>
+      <div style={{fontSize:15,color:C.grayMid,lineHeight:1.45}}>{data.examples.join(', ')}</div>
+    </div>}
+    {clickable&&<div style={{marginTop:hasExamples?12:'auto',fontSize:15,fontWeight:600,color:C.gold,display:'flex',alignItems:'center',gap:3,transform:hover?'translateX(2px)':'none',transition:'transform 0.15s ease'}}>Explore <ChevronRight size={13}/></div>}
+  </Tag>
+}
+const ECOSYSTEM_EMPTY_CAT={description:'Not a factor in this industry.',count:0,examples:[]}
+function IndustryEcosystemHub({isDemo,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+  const isMobile=useIsMobile()
+  const first4=ECOSYSTEM_CATEGORIES.slice(0,4)
+  const last3=ECOSYSTEM_CATEGORIES.slice(4)
   return <div>
-    {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
-    {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
-    <h1 id="section-p4" style={S.title}>Industry Insider</h1>
-    <p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>Map the ecosystem first, then pick a role from inside it.</p>
+    {!isDemo&&<div data-print="hide" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:15,color:C.graySoft,marginBottom:14}}>
+      <button onClick={onExploreAnother} style={{background:'none',border:'none',padding:0,margin:0,font:'inherit',color:'inherit',cursor:'pointer'}}>Career Paths</button>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span>Industry Insider</span>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span style={{color:C.cream,fontWeight:500}}>Your Industry Ecosystem</span>
+    </div>}
+    <h1 id="section-p4" style={S.title}>Your Industry Ecosystem</h1>
+    <p style={{fontSize:18,color:C.grayMid,lineHeight:1.55,maxWidth:760,margin:'0 0 20px'}}>The companies, partners, and adjacent players around your industry — explore the map, then pick a role from inside it.</p>
     <CoachingCallout><strong style={{color:'#1A2540'}}>How this works</strong><p style={{margin:'8px 0 0'}}>Seven categories make up any industry's ecosystem: the clients, vendors, consultants, and adjacent players around it. Click a category to see the specific roles inside it, each with a couple of real companies to ground it. Pick a role to open its full playbook, with a real, sourced company list built for that role specifically.</p></CoachingCallout>
     {!categories&&!busy&&<div style={S.row}><Btn onClick={onGenerate}><Sparkles size={14}/>Map My Industry</Btn></div>}
     {busy&&<Loading msg="Mapping your industry's ecosystem…" step="p4"/>}
     {err&&<ErrBox msg={err}/>}
     {categories&&!busy&&<>
-      <ReshapeBox
-        title="Want the map to lean a certain way?"
-        body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
-        label="What should the map focus on?"
-        placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
-        submitLabel="Rebuild the map"
-        busyLabel="Rebuilding the map…"
-        busy={busy}
-        onSubmit={onRefine}
-      />
-      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'40px auto 30px'}}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
-          {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
-        </svg>
-        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'24%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:12,boxSizing:'border-box'}}>
-          <Compass size={20} color="#FFFFFF"/>
-          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
-        </div>
-        {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
-          const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
-          // isEmpty reads the description, not the count (2026-09-13 fix): a
-          // real, populated category can still come back with no count, or
-          // count:0, and that is NOT the same thing as "not a factor in this
-          // industry" -- that exact phrase (the prompt's own instruction for
-          // a real non-factor, and what the backstop above writes when the
-          // model skipped a key entirely) is the only reliable signal.
-          // Reading count instead grayed out a real category ("Customers &
-          // channels") that simply had no count number.
-          const isEmpty=/^not a factor in this industry/i.test((c.description||'').trim())
-          const p=ECOSYSTEM_NODE_POS[i]
-          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'29%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
-              <div style={{fontSize:17,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
-              {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
-            </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:6,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
-            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:8,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
-          </button>
-        })}
+      <div style={{maxWidth:580,margin:'32px auto 44px',padding:'30px 40px 32px',textAlign:'center',background:`linear-gradient(180deg, ${C.panel} 0%, #FBF7EF 100%)`,border:`2px solid ${C.gold}`,borderRadius:14,boxShadow:'0 4px 22px rgba(200,146,74,0.12)',boxSizing:'border-box'}}>
+        <div style={{...S.tag(C.gold),marginBottom:16}}>Your target industry</div>
+        <div style={{fontFamily:'Georgia,serif',fontSize:36,fontWeight:600,color:C.cream,letterSpacing:'-0.01em',lineHeight:1.15,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
+        <div style={{fontSize:16,color:C.graySoft,marginTop:10}}>From your Career Paths — Industry Insider lane</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(4,1fr)',gap:isMobile?14:20}}>
+        {first4.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(3,1fr)',gap:isMobile?14:20,maxWidth:870,margin:'20px auto 0'}}>
+        {last3.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{maxWidth:870,margin:'32px auto 0'}}>
+        <ReshapeBox
+          title="Want the map to lean a certain way?"
+          body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
+          label="What should the map focus on?"
+          placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
+          submitLabel="Rebuild the map"
+          busyLabel="Rebuilding the map…"
+          busy={busy}
+          onSubmit={onRefine}
+        />
       </div>
     </>}
     <div style={S.row}>
@@ -17072,8 +17099,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         />
         return <IndustryEcosystemHub
           isDemo={isDemo}
-          onBack={()=>nav(hubStep)}
-          hubLabel={hubLabel}
           categories={ecosystem.categories}
           industry={ecosystem.industry}
           busy={ecosystemBusy}

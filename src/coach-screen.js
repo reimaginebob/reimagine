@@ -39,7 +39,7 @@ export function describeScreen({ step, lane, ecosystemView, ecosystemCategory, h
       const cat = ECOSYSTEM_CATEGORY_LABELS[ecosystemCategory]
       return cat
         ? `Career Paths > Industry Insider > ${cat}: the roles typically found in that part of the industry (the screen is headed "${cat}"; the sidebar calls this area Role Options)`
-        : `Career Paths > Industry Insider: the industry map, seven categories to explore (the screen is headed "Industry Insider"; the sidebar calls it Role Options)`
+        : `Career Paths > Industry Insider: the industry map, seven categories to explore (the screen is headed "Your Industry Ecosystem"; the sidebar calls it Role Options)`
     }
     return laneLabel
       ? `Career Paths > ${laneLabel}: the role options for that direction (the screen is headed "${laneLabel}"; the sidebar calls it Role Options)`
