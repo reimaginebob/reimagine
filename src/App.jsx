@@ -3416,6 +3416,59 @@ THE FIELD SHAPE, on any story where you suggest one:
 and "framework": null everywhere else.`
 }
 
+// Cover Letter length + register controls (cover-letter-length-register brief
+// 2026-09-16). 26 of the 128 "other" corrections were the same two asks --
+// shorter, less formal -- against a free-text box with no such knob. Length
+// is not a word-count swap: the three-paragraph shape is hard-coded in the
+// base prompt, so each length gets its own shape+paragraph spec rather than
+// asking the model to hit a shorter number inside the same shape. 'full' is
+// byte-identical to the pre-existing single-length prompt, and 'professional'
+// register is the pre-existing tone restated rather than a new instruction,
+// so a record that never touches either control generates exactly what it
+// generated before this brief -- the default-changing call is Bob's, not
+// assumed from the correction data alone. Choice lives on the record
+// (rec.coverPrefs), mirroring opLane, not on the user profile: resets per
+// letter rather than persisting across opportunities, since persistence-vs-
+// reset was the other open question in the brief.
+const OP_COVER_LENGTH_OPTIONS=[
+  {value:'brief',label:'Brief',hint:'~75 words'},
+  {value:'standard',label:'Standard',hint:'~120 words'},
+  {value:'full',label:'Full',hint:'~185 words'},
+]
+const OP_COVER_REGISTER_OPTIONS=[
+  {value:'conversational',label:'Conversational'},
+  {value:'professional',label:'Professional'},
+]
+const OP_COVER_LENGTH_SPECS={
+  full:{
+    aim:185,hardLimit:200,retryThreshold:210,
+    shape:'SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.',
+    outputParas:'three paragraphs',
+    paragraphs:`PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
+
+PARAGRAPH 2 (2-3 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for...").
+
+PARAGRAPH 3 (2-3 sentences), a close that expresses genuine interest in the role. Convey real, specific enthusiasm for THIS company and role and how their experience lines up with it, warmth rather than a list of questions. Draw on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, and tie it back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may close with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+  standard:{
+    aim:120,hardLimit:135,retryThreshold:145,
+    shape:'SHAPE: a greeting, then exactly TWO short paragraphs, then a sign-off.',
+    outputParas:'two paragraphs',
+    paragraphs:`PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
+
+PARAGRAPH 2 (3-4 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for..."). Then, in this same paragraph's final one or two sentences, fold in the close: real, specific enthusiasm for THIS company and role, drawing on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, tied back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may end with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+  brief:{
+    aim:75,hardLimit:90,retryThreshold:100,
+    shape:'SHAPE: a greeting, then exactly ONE short paragraph, then a sign-off.',
+    outputParas:'one paragraph',
+    paragraphs:`PARAGRAPH 1 (4-6 sentences), doing the combined work of a human opening and a genuine close in one paragraph. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career..."). Compress the relevance thread from the Personal Brand below -- the through-line across their background and why it fits THIS role -- into a SINGLE short clause inside this paragraph (for example, "and that same pattern is exactly what this role needs"); do not give it its own sentence and do not narrate a proof point. Close within this same paragraph with real, specific interest in the role and company, drawing on the WHERE THEY FIT framing below for why it matters to this person, tied to what the company is doing; never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may end with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+}
+const OP_COVER_REGISTER_TEXT={
+  professional:'\n\nREGISTER: keep the tone already set above -- peer-to-peer, warm, direct, first person -- with standard, grammatically complete sentences and conventional contractions ("I\'m," "it\'s") used where a person would naturally use them, not stripped out. This is the baseline register: measured but human, not stiff.',
+  conversational:'\n\nREGISTER: lean more conversational than the baseline above -- shorter sentences, more contractions, phrasing closer to how this person would actually say it out loud to a peer over coffee. Keep every substance rule above (the greeting rule, the five-company test, the anti-restate rule, the banned constructions) exactly as written; only sentence rhythm and formality shift.',
+}
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -4466,19 +4519,15 @@ ${(companyRead||'').slice(0,3000)||'(not built)'}
 PERSONAL BRAND (their voice and the through-line of their background):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
 `,
-  p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel)=>`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
+  p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel,length,register)=>{const spec=OP_COVER_LENGTH_SPECS[length]||OP_COVER_LENGTH_SPECS.full;const registerText=OP_COVER_REGISTER_TEXT[register]||OP_COVER_REGISTER_TEXT.professional;return`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
 
-HARD LIMIT: 200 words for the body (the greeting and sign-off do not count). Aim for about 185. If you go over 200, cut until you are under it.
+HARD LIMIT: ${spec.hardLimit} words for the body (the greeting and sign-off do not count). Aim for about ${spec.aim}. If you go over ${spec.hardLimit}, cut until you are under it.
 
-SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.
+${spec.shape}
 
 GREETING: Address the letter to the most relevant leader you can identify from the ABOUT THIS COMPANY text below, the executive whose remit actually covers this role (the head of the function or department this role sits in; for a senior or officer role, the relevant C-level leader). Use that person's FIRST NAME only, on its own line, with no "Dear" and no title: just "<First name>,". Only ever name a real person who appears in the ABOUT THIS COMPANY text or the posting; never invent or guess a name. Relevance matters more than seniority: if the only leaders named are not connected to this role's function (for example, only the CEO is named for a mid-level role), do NOT address them, use the team fallback instead. TEAM FALLBACK: when no leader whose area covers this role is named, open with the function drawn from the posting, as "Hi <Function> Team," (for example, "Hi Product Team,"). Never use "Dear", and never fall back to "Hiring Manager".
 
-PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
-
-PARAGRAPH 2 (2-3 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for...").
-
-PARAGRAPH 3 (2-3 sentences), a close that expresses genuine interest in the role. Convey real, specific enthusiasm for THIS company and role and how their experience lines up with it, warmth rather than a list of questions. Draw on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, and tie it back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may close with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.
+${spec.paragraphs}
 
 SIGN-OFF: "Best," on its own line, then the candidate's name: ${candidateName||'the name on the resume'}.
 
@@ -4486,7 +4535,7 @@ FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${compa
 
 ANTI-RESTATE: any concrete proof you reference must illustrate the through-line (what the pattern of their experience brings to this role), not restate a resume bullet. Do not turn the relevance paragraph into a narrated accomplishment.
 
-VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}
+VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}${registerText}
 Explicitly avoid consultant-register, thought-leader, and MBA-speak:
 - No spatial metaphors: "sits at the center of", "at the intersection of", "occupies the space between", "lives in the tension of", "at the nexus of", "in the room(s) where", "at the table", "at the crossroads of", "at the heart of".
 - No evaluative distance: "how it lands", "where it lives", "how it shows up", "how it plays", "what it looks like on the ground", "how it holds up", "signals that X".
@@ -4513,7 +4562,7 @@ ${brand||'(not built yet; work from the posting and resume)'}
 WHERE THEY FIT (how they fit and why it matters — draw on this for the closing expression of interest):
 ${roleFit||'(not built)'}
 
-OUTPUT: the greeting, three paragraphs, and sign-off, as prose only. No headers, no preamble, no code fences.`,
+OUTPUT: the greeting, ${spec.outputParas}, and sign-off, as prose only. No headers, no preamble, no code fences.`},
   p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p3)}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
   // Interview Panel web research (PR 4): one light, public-domain pass on a single
   // interviewer. Confirms identity, surfaces sourced public signal, stays a
@@ -13024,6 +13073,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!slotId)return
     setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
   }
+  // Cover Letter length/register prefs (cover-letter-length-register brief
+  // 2026-09-16): rec-level, same pattern as getOpPanel/updateOpPanel above.
+  // Defaults ('full'/'professional') reproduce the prompt's pre-existing
+  // single-length behavior exactly, so a record no one has touched this
+  // control on builds identically to before this brief.
+  const getOpCoverPrefs=(rec)=>{
+    const p=rec&&rec.coverPrefs&&typeof rec.coverPrefs==='object'?rec.coverPrefs:null
+    const length=(p&&OP_COVER_LENGTH_OPTIONS.some(o=>o.value===p.length))?p.length:'full'
+    const register=(p&&OP_COVER_REGISTER_OPTIONS.some(o=>o.value===p.register))?p.register:'professional'
+    return{length,register}
+  }
+  const updateOpCoverPrefs=(slotId,patch)=>{
+    if(!slotId)return
+    setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,coverPrefs:{...getOpCoverPrefs(rec),...patch},updatedAt:new Date().toISOString()}:rec))
+  }
   // Connector interview-team suggestions: remove a staged row (adopted or
   // dismissed), and adopt one into the real (blob) panel via the normal path.
   const dismissStagedInterviewer=(interviewerId)=>{
@@ -14967,17 +15031,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const candidateName=deriveDisplayName(profile.resume)
       const lv=opLaneValue(rec0)
       const laneLabel=opLaneLabel(lv)
+      const{length:coverLength,register:coverRegister}=getOpCoverPrefs(rec0)
+      const coverSpec=OP_COVER_LENGTH_SPECS[coverLength]||OP_COVER_LENGTH_SPECS.full
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
       const opts={maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'}
       const meta={step:'op-cover-letter',onEvent:logVoiceEvent}
       const _wc=s=>(String(s||'').trim().match(/\S+/g)||[]).length
-      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,laneLabel)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,laneLabel,coverLength,coverRegister)+corrTail
       let r=await callClaudeWithVoiceGate(fn,opts,meta)
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
-      // Firm ~200-word cap: one retry if the model overshoots (reshape 2026-06-29
-      // — the first ship ran long and essay-like against Bob's short mockup).
-      if(_wc(r)>210){
-        const fn2=()=>fn()+`\n\nThe previous draft ran ${_wc(r)} words, which is too long. Rewrite it under 200 words, keeping the greeting, three short paragraphs, and the sign-off.`
+      // Firm word cap (per length): one retry if the model overshoots (reshape
+      // 2026-06-29 — the first ship ran long and essay-like against Bob's short
+      // mockup; thresholds now scale with the length control, brief 2026-09-16).
+      if(_wc(r)>coverSpec.retryThreshold){
+        const fn2=()=>fn()+`\n\nThe previous draft ran ${_wc(r)} words, which is too long. Rewrite it under ${coverSpec.hardLimit} words, keeping the greeting, ${coverSpec.outputParas}, and the sign-off.`
         const r2=await callClaudeWithVoiceGate(fn2,opts,meta)
         if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
         if(typeof r2==='string'&&r2.trim())r=r2
@@ -14989,7 +15056,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _crHits=s=>{const out=[];for(const re of OP_COVER_CONSULTANT_RE){const m=String(s||'').match(re);if(m)out.push(m[0])}return out}
       const _cr=_crHits(r)
       if(_cr.length){
-        const fn3=()=>fn()+`\n\nThe previous draft used consultant-register phrasing: ${_cr.map(x=>`"${x}"`).join(', ')}. Rewrite those clauses in plain, direct language — say what happened and what it meant, one operator to another — and keep the whole letter under 200 words.`
+        const fn3=()=>fn()+`\n\nThe previous draft used consultant-register phrasing: ${_cr.map(x=>`"${x}"`).join(', ')}. Rewrite those clauses in plain, direct language — say what happened and what it meant, one operator to another — and keep the whole letter under ${coverSpec.hardLimit} words.`
         const r3=await callClaudeWithVoiceGate(fn3,opts,meta)
         if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
         if(typeof r3==='string'&&r3.trim()){
@@ -15002,7 +15069,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
         const sections={...(rec.sections||{})}
-        sections.p_cover={...(sections.p_cover||{}),content:cleaned,builtAt:new Date().toISOString(),builtLane:lv}
+        sections.p_cover={...(sections.p_cover||{}),content:cleaned,builtAt:new Date().toISOString(),builtLane:lv,builtLength:coverLength,builtRegister:coverRegister}
         return{...rec,sections,updatedAt:new Date().toISOString()}
       }))
       setCurrentRoleSaved(false)
@@ -18501,8 +18568,24 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _needBridge=!(_sec.p6&&bridgeStoryToProse(_sec.p6).trim())
                 const _needResume=!(_sec.p_res&&_sec.p_res.content&&_sec.p_res.content.trim())
                 const _needBrand=!(outputs.p3&&asText(outputs.p3).trim())
+                const _covPrefs=getOpCoverPrefs(_rec)
+                const _covPrefsLocked=_covBusy||_opAutoBuildPending
                 return _cardWrap(<>
                   {_head('Cover Letter','A short draft letter tuned to this posting: the same energy as your outreach, adapted for applying through a posting. Part of your application packet.',_covBuilt,()=>generateOpCoverLetter(),_covBusy?'Building…':_covBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  <div style={{marginTop:14}}>
+                    <div style={{marginBottom:10}} role="radiogroup" aria-label="Cover letter length">
+                      <span style={S.label}>Length</span>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {OP_COVER_LENGTH_OPTIONS.map(o=>{const on=_covPrefs.length===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs(_rec.id,{length:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label} <span style={{color:C.gray,fontWeight:400}}>({o.hint})</span></button>})}
+                      </div>
+                    </div>
+                    <div role="radiogroup" aria-label="Cover letter tone">
+                      <span style={S.label}>Tone</span>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {OP_COVER_REGISTER_OPTIONS.map(o=>{const on=_covPrefs.register===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs(_rec.id,{register:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label}</button>})}
+                      </div>
+                    </div>
+                  </div>
                   {!isDemo&&!_covBuilt&&(_needBridge||_needResume||_needBrand)&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>
                     Building these first makes this cover letter stronger. It will still generate without them.
                     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
