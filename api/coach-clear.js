@@ -16,8 +16,15 @@ import { requireAuth } from './_lib/session.js'
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   try {
-    await sql`UPDATE users SET chat_cleared_at = NOW() WHERE id = ${req.user.id}`
-    return res.status(200).json({ ok: true })
+    // RETURNING (2026-09-16 follow-up): the device that tapped Clear never
+    // recorded its own reimagine_chat_cleared_at_applied marker (Chat.jsx),
+    // so its NEXT load saw /api/me's chat_cleared_at as newer than the
+    // (missing) marker and reset the transcript again -- wiping any real
+    // conversation held after the clear. Handing the exact value the
+    // database just stamped back to the caller lets it record that same
+    // value as already-applied immediately, closing that gap.
+    const rows = await sql`UPDATE users SET chat_cleared_at = NOW() WHERE id = ${req.user.id} RETURNING chat_cleared_at`
+    return res.status(200).json({ ok: true, clearedAt: rows[0].chat_cleared_at })
   } catch (err) {
     console.error('coach-clear: update failed', err && err.message)
     return res.status(500).json({ error: 'Could not clear.' })
