@@ -2844,13 +2844,21 @@ function foldHighlightsIntoExperience(r){
   return {...r,experience,keyAccomplishments:remaining}
 }
 
-// renderResumeText(r) produces the human-reader text; renderResumeText(r, true)
+// renderResumeText(r) produces the human-reader text; renderResumeText(r, 'ats')
 // produces the ATS-reader arrangement of the SAME record: keyword bank up top,
-// wins folded into the roles where they happened, standard headings. No content
-// is invented or dropped — the two versions differ only in order and labels.
-function renderResumeText(r, ats=false){
+// wins folded into the roles where they happened, standard headings.
+// renderResumeText(r, 'traditional') produces a third arrangement: no Key
+// Accomplishments block, Summary then Skills then straight into experience --
+// the fold still runs so no highlight is silently dropped, and any highlight
+// that folds into no role falls back to the same Summary of Qualifications
+// heading ATS uses for the same reason. No content is invented or dropped
+// across any of the three — they differ only in order, headings, and (for ATS)
+// typography.
+function renderResumeText(r, format='human'){
   if(!r)return ''
-  if(ats)r=foldHighlightsIntoExperience(r)
+  const ats=format==='ats'
+  const traditional=format==='traditional'
+  if(ats||traditional)r=foldHighlightsIntoExperience(r)
 
   // Flatten structured bullets (matches buildResumeDoc's runsFromBullet and highlightParagraph)
   const bulletToText = (b) => {
@@ -2881,6 +2889,17 @@ function renderResumeText(r, ats=false){
     if(skillGroups.length){
       lines.push('')
       lines.push('CORE COMPETENCIES')
+      skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
+    }
+    if(ka.length){
+      lines.push('')
+      lines.push('SUMMARY OF QUALIFICATIONS')
+      ka.forEach(b=>lines.push('• '+bulletToText(b)))
+    }
+  } else if(traditional){
+    if(skillGroups.length){
+      lines.push('')
+      lines.push('SKILLS')
       skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
     }
     if(ka.length){
@@ -2933,7 +2952,7 @@ function renderResumeText(r, ats=false){
       lines.push(parts)
     })
   }
-  if(!ats&&skillGroups.length){
+  if(!ats&&!traditional&&skillGroups.length){
     lines.push('')
     lines.push('SKILLS')
     skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
@@ -2941,11 +2960,12 @@ function renderResumeText(r, ats=false){
   return lines.join('\n')
 }
 
-function resumeFilename(r, ats=false){
+function resumeFilename(r, format='human'){
   const name=(r&&r.header&&r.header.name)||'resume'
   const slug=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().split(/\s+/).join('_')
   const d=new Date().toISOString().slice(0,10)
-  return `${slug||'resume'}_resume${ats?'_ats':''}_${d}.docx`
+  const suffix=format==='ats'?'_ats':format==='traditional'?'_traditional':''
+  return `${slug||'resume'}_resume${suffix}_${d}.docx`
 }
 
 // Lazy-load the docx writer on first use so it is split into its own chunk
@@ -2964,8 +2984,12 @@ async function buildResumeDoc(r, opts = {}){
   // ATS mode re-arranges the same record for the machine reader: sans-serif font,
   // standard headings, skills as a Core Competencies bank up top, curated wins folded
   // into the roles where they happened, and bold stripped (a parser cannot see weight).
-  const ats = !!opts.ats
-  if (ats) r = foldHighlightsIntoExperience(r)
+  // Traditional mode folds the same wins into the roles (so none is silently dropped)
+  // but keeps ordinary human typography and headings -- no keyword bank, no bold-strip.
+  const format = opts.format || 'human'
+  const ats = format === 'ats'
+  const traditional = format === 'traditional'
+  if (ats || traditional) r = foldHighlightsIntoExperience(r)
   const h = r.header || {}
   const contact = [h.city, h.email, h.phone, h.linkedin].filter(Boolean).join(' | ')
   const FONT = ats ? 'Arial' : 'Garamond'
@@ -3097,6 +3121,14 @@ async function buildResumeDoc(r, opts = {}){
       children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
       ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
     }
+  } else if (traditional) {
+    // Traditional: no highlights block -- Skills instead, same fallback heading as
+    // ATS for any highlight the fold couldn't place, then straight into experience.
+    pushSkills('SKILLS')
+    if ((r.keyAccomplishments || []).length) {
+      children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
+      ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
+    }
   } else {
     // CAREER HIGHLIGHTS
     children.push(sectionHeader('CAREER HIGHLIGHTS'))
@@ -3180,9 +3212,9 @@ async function buildResumeDoc(r, opts = {}){
     }
   })
 
-  // SKILLS at the foot in human mode; in ATS mode skills were already emitted as
-  // CORE COMPETENCIES near the top.
-  if (!ats) pushSkills('SKILLS')
+  // SKILLS at the foot in human mode; ATS and Traditional already emitted skills
+  // near the top (as CORE COMPETENCIES or SKILLS respectively).
+  if (!ats && !traditional) pushSkills('SKILLS')
 
   return new Document({
     creator: 'Reimagine',
@@ -3201,7 +3233,7 @@ async function downloadResumeWord(r, opts={}){
   const url=URL.createObjectURL(blob)
   const a=document.createElement('a')
   a.href=url
-  a.download=resumeFilename(r, opts.ats)
+  a.download=resumeFilename(r, opts.format)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -5215,50 +5247,71 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,prominent,children,style={},...rest}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...(disabled?{cursor:'not-allowed'}:null),...style}} onClick={onClick} disabled={disabled} {...rest}>{children}</button>}
-// Shared Human / ATS segmented control. Both versions render from the SAME record;
-// the flag only changes arrangement (renderResumeText/buildResumeDoc take `ats`).
+// Shared Human / Traditional / ATS segmented control. All three render from the
+// SAME record; the format only changes arrangement (renderResumeText/buildResumeDoc
+// take `format`).
 function ResumeVersionSeg({variant,setVariant}){
   const tab=(mode,label,sub)=>{
     const active=variant===mode
     return <button onClick={()=>setVariant(mode)} aria-pressed={active} style={{flex:1,border:'none',cursor:'pointer',borderRadius:8,padding:'10px 12px',background:active?'#FFFFFF':'transparent',color:active?C.gold:C.gray,fontWeight:600,fontSize:16,lineHeight:1.25,textAlign:'center',boxShadow:active?`inset 0 0 0 1px ${C.gold},0 1px 2px rgba(20,30,45,.10)`:'none',transition:'background .15s,color .15s'}}>{label}<span style={{display:'block',fontSize:15,fontWeight:500,opacity:.85,marginTop:2}}>{sub}</span></button>
   }
-  return <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:460}}>
+  return <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:620}}>
     {tab('human','Human version','Recruiter & interview')}
+    {tab('traditional','Traditional version','Classic, familiar format')}
     {tab('ats','ATS version','Online applications')}
   </div>
 }
 
-// Resume Refresh view with a Human / ATS version toggle. Both versions render from
-// the SAME parsed record; the toggle only changes arrangement and the download
-// target. Self-contained state so it does not touch the parent's hooks.
+// Resume format preference persists per browser so it does not reset back to
+// Human every time one of these views remounts (switching sections, reloading
+// the page). Shared by both views below so the choice carries across them too.
+const RESUME_FORMAT_KEY='reimagine_resume_format_v1'
+function useResumeFormat(){
+  const [format,setFormatState]=useState(()=>{
+    try{const v=localStorage.getItem(RESUME_FORMAT_KEY);if(v==='human'||v==='ats'||v==='traditional')return v}catch{}
+    return 'human'
+  })
+  const setFormat=(f)=>{setFormatState(f);try{localStorage.setItem(RESUME_FORMAT_KEY,f)}catch{}}
+  return [format,setFormat]
+}
+
+// Resume Refresh view with a Human / Traditional / ATS toggle. All three render
+// from the SAME parsed record; the toggle only changes arrangement and the
+// download target. Self-contained state so it does not touch the parent's hooks.
 function ResumeRefreshView({resumeJson,isDemo,copy,copied,independent=false}){
-  const [variant,setVariant]=useState('human')
-  const ats=variant==='ats'
-  const resumeText=renderResumeText(resumeJson,ats)
+  const [format,setFormat]=useResumeFormat()
+  const ats=format==='ats'
+  const traditional=format==='traditional'
+  const resumeText=renderResumeText(resumeJson,format)
   const helper=ats
     ?'Tuned for the parser: a Core Competencies keyword bank up top, standard headings, and plain type. Best when you apply through a company portal like Workday, Greenhouse, or iCIMS.'
+    :traditional
+    ?'A classic, no-frills layout: summary, skills, then your work history in order, with no highlights block up front. Best when a reader expects the resume they already know how to read.'
     :'Tuned for a person: your strongest wins above the fold, with bold drawing the eye. Best for a recruiter hand-off, a referral, or walking into an interview.'
+  const downloadLabel=ats?'Download ATS version (Word)':traditional?'Download traditional version (Word)':'Download as Word'
   return <>
-    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{independent?'Below is your One-Sheet, ready to download and print as a Word document. Switch between the version a person reads and the plain-text version, which travels better when someone forwards it. Both are built from the same content.':'Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.'}</div>
-    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
+    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{independent?'Below is your One-Sheet, ready to download and print as a Word document. Switch between the version a person reads, the classic version most readers expect, and the plain-text version, which travels better when someone forwards it. All three are built from the same content.':'Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads, the classic version most readers expect, and the version an applicant tracking system reads. All three are built from the same content.'}</div>
+    <ResumeVersionSeg variant={format} setVariant={setFormat}/>
     <div style={{...S.footnote,marginTop:0,marginBottom:12,color:C.gray}}>{helper}</div>
     <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
-    <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download as Word'}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
+    <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{format})}><Download size={14}/>{downloadLabel}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
     {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
   </>
 }
 
-// Built-resume preview (Resume Builder) with the same Human / ATS toggle. The caller
-// passes its own workflow buttons (Regenerate, Continue) as children for the action row.
+// Built-resume preview (Resume Builder) with the same Human / Traditional / ATS
+// toggle. The caller passes its own workflow buttons (Regenerate, Continue) as
+// children for the action row.
 function BuiltResumeView({record,children}){
-  const [variant,setVariant]=useState('human')
-  const ats=variant==='ats'
+  const [format,setFormat]=useResumeFormat()
+  const ats=format==='ats'
+  const traditional=format==='traditional'
   return <>
-    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
-    <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(record,ats)}</pre></div>
+    <ResumeVersionSeg variant={format} setVariant={setFormat}/>
+    <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(record,format)}</pre></div>
     <div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
     <div style={S.row}>
-      <Btn onClick={()=>downloadResumeWord(record,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download (Word)'}</Btn>
+      <Btn onClick={()=>downloadResumeWord(record,{format})}><Download size={14}/>{ats?'Download ATS version (Word)':traditional?'Download traditional version (Word)':'Download (Word)'}</Btn>
       {children}
     </div>
   </>
@@ -16633,7 +16686,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <span style={{color:C.gold,fontWeight:600,fontSize:15,display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{profile.builder&&profile.builder.phase?'Continue':'Get started'}<ChevronRight size={15}/></span>
       </button>
-      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{ats:true})}>Download ATS version (Word)</a></div>}
+      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{format:'traditional'})}>Download traditional version (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{format:'ats'})}>Download ATS version (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
