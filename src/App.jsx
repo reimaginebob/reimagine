@@ -18,6 +18,7 @@ import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } fr
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from "./coach-moments.js"
 import { pickNextWidenSearchRow, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"
 import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
@@ -8170,8 +8171,8 @@ export default function PivotEngine(){
   // later calm message in the same session -- a hold that lifts the instant
   // the person sounds okay again would fire the very next silent turn on the
   // heels of what they just said.
-  const[coachDistressHold,setCoachDistressHold]=useState(false)
-  const[coachMoodHold,setCoachMoodHold]=useState(false)
+  const[coachDistressHold,setCoachDistressHold]=useState(()=>readCoachHolds().distress)
+  const[coachMoodHold,setCoachMoodHold]=useState(()=>readCoachHolds().mood)
   // Coach-as-Concierge Phase 3b (Stall, Output/handoff/2026-09-09_coach-
   // concierge-phase-3-build-nextmove-stall.md): the two new signals nothing
   // in the codebase tracked before this -- a per-identity visit count and an
@@ -11907,9 +11908,9 @@ export default function PivotEngine(){
   const handleCoachVoiceViolation=(violations)=>{
     logVoiceEvent({step:'coach-chat',attempt:1,recovered:false,violations})
   }
-  const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}
-  const handleCoachMoodLow=()=>{setCoachMoodHold(true)}
-  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}
+  const handleCoachDistressDetected=()=>{setCoachDistressHold(true);writeCoachHold('distress')}
+  const handleCoachMoodLow=()=>{setCoachMoodHold(true);writeCoachHold('mood')}
+  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false);clearCoachHolds()}
   // The Focus-section text a correction on that section is aimed at. Only for
   // Focus sections: the Opportunity Playbook cards and the opportunity Bridge
   // Story share these step ids but live on the saved record, so their call
@@ -12673,6 +12674,7 @@ export default function PivotEngine(){
     // widen-the-search offer already made under the old account would
     // silently suppress the first one the new account should get.
     try{sessionStorage.removeItem('pe_widen_search_offered_session')}catch{}
+    clearCoachHolds()
   }
   const signOut=async()=>{
     // Verify the server actually cleared the session BEFORE we wipe local state
