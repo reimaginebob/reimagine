@@ -17,7 +17,7 @@ import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence,
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from "./coach-moments.js"
-import { pickNextWidenSearchRow, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { pickNextWidenSearchRow, pickWidenSearchRowForPipeline, widenSearchCandidateKeys as widenSearchCandidateKeysFor, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
 import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"
 import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
@@ -45,7 +45,7 @@ import { recordLocalFailure, buildDiagnosticsPayload } from "./support-trail.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import Staircase from "./components/Staircase"
-import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
+import { STEPS, nextSteps as computeNextSteps, activeOpportunities, stepPosition } from "./step-position.js"
 import Chat, { INTRO_MSG } from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
@@ -8804,8 +8804,10 @@ export default function PivotEngine(){
         widenSearchDoIt:(rowKey)=>{
           const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
           if(code)logPromptEngagement(code,'topic_close_tap','do it now')
+          if(rowKey==='widen-go-to-market')return genSec('p7')
           if(rowKey==='widen-recruiters')return genSec('recruiters')
           if(rowKey==='widen-networking-groups')return genSec('groups')
+          if(rowKey==='widen-job-search-resources')return nav('resources')
           if(rowKey==='widen-income-now')return genSec('income')
           if(rowKey==='widen-career-club-corner'){try{window.open(CAREER_CLUB_CORNER.url,'_blank','noopener,noreferrer')}catch{};return}
           if(rowKey==='widen-linkedin-contacts'){
@@ -10541,20 +10543,39 @@ export default function PivotEngine(){
       const latestFired=coachMoments[latest]['_'].firedAt
       return new Date(fired)>new Date(latestFired)?k:latest
     },null)
-    // Career Club Corner and Load LinkedIn contacts don't need a direction;
-    // Recruiters/Networking Groups/Income Now build a Focus section via
-    // genSec and do (their own eligible() checks ctx.chosen too). Excluding
-    // the latter three from the candidate list itself, not just leaving it
-    // to their own eligible() to reject, matters for rotation: without a
-    // direction chosen yet, rotation with no lastOfferedKey always starts
-    // at index 0 (widen-recruiters) -- if that row's own eligible() were
-    // the only thing rejecting it, nothing would ever fire, and nothing
-    // would ever advance lastOfferedKey past null, so it would stay stuck
-    // offering (and rejecting) widen-recruiters forever, even for a Door-2-
-    // only account that never picks a direction and could still use the
-    // two rows that don't need one.
-    const widenSearchCandidateKeys=chosen?WIDEN_SEARCH_ROW_KEYS:WIDEN_SEARCH_ROW_KEYS.filter(k=>k==='widen-linkedin-contacts'||k==='widen-career-club-corner')
-    const widenSearchTarget=hasOnboardingConcierge?pickNextWidenSearchRow(widenSearchCandidateKeys,widenSearchState,{lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
+    // Pipeline-aware rotation (Bob, 2026-09-16): a thin pipeline -- fewer
+    // than two live opportunities, or nothing touched on any of them in
+    // fourteen-plus days -- leads with what widens the person's network
+    // instead of rotating the set in the healthy-pipeline order. Reuses
+    // step-position.js's own definitions (activeOpportunities/
+    // stepPosition) so the screen, Coach's next-step read, and this
+    // rotation never disagree about what "thin" means. Gated on
+    // pursuitStatusLoaded so a not-yet-loaded pipeline never reads as thin.
+    const widenOpen=activeOpportunities({savedPlaybooks},pursuitStatus)
+    const widenPos=stepPosition({outputs,chosen,savedPlaybooks,stepOverride},pursuitStatus)
+    const pipelineThin=pursuitStatusLoaded&&(widenOpen.length<2||widenPos.stalled)
+    // Career Club Corner, Load LinkedIn contacts, and Job Search Resources
+    // don't need a direction; Go-to-Market/Recruiters/Networking Groups/
+    // Income Now build a Focus section via genSec and do (their own
+    // eligible() checks ctx.chosen too). Excluding the latter four from
+    // the candidate list itself, not just leaving it to their own
+    // eligible() to reject, matters for rotation: without a direction
+    // chosen yet, a rotation that only ever saw a rejected row at its
+    // current position would never advance past it, staying stuck
+    // offering (and rejecting) the same row forever instead of ever
+    // reaching the direction-free ones.
+    //
+    // A row whose own Focus section is already built is also excluded --
+    // offering to build something that already exists reads as Coach not
+    // paying attention. Go-to-Market additionally needs the Bridge Story
+    // built (outputs.p6): the guide places Go-to-Market late in the Focus
+    // Playbook on purpose, since it runs live research and is the most
+    // expensive section to build, and the Bridge Story is the voice
+    // template its outreach draws on.
+    const widenBuilt=(sid)=>!!(outputs[sid]&&outputs[sid].length)
+    const widenBridgeBuilt=(typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null
+    const widenSearchCandidateKeys=widenSearchCandidateKeysFor(WIDEN_SEARCH_ROW_KEYS,{hasDirection:!!chosen,bridgeBuilt:widenBridgeBuilt,goToMarketBuilt:widenBuilt('p7'),recruitersBuilt:widenBuilt('recruiters'),groupsBuilt:widenBuilt('groups'),incomeBuilt:widenBuilt('income')})
+    const widenSearchTarget=hasOnboardingConcierge?pickWidenSearchRowForPipeline(widenSearchCandidateKeys,widenSearchState,{pipelineThin,lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
     // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
     // move row), shared by Opportunity Playbook arrival (offers the first
     // one that fits) and Next move (offers the one after whatever Delivery

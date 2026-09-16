@@ -1,10 +1,12 @@
 // Coach-as-Concierge Phase 4 Part 2, widen-the-search PR2 (Output/handoff/
-// 2026-09-09_concierge-batch-and-phase4-brief.md, §2.6): live verification
-// of the five rows on the flagged Focus Playbook fixture -- rotation starts
-// at the front of the set on a fresh account, a snoozed row is skipped in
-// favor of the next one, and each of the three taps does its real job
-// ([Not for me] persists a retirement, [Do it now] on Career Club Corner
-// opens the real corner.career.club link in a new tab).
+// 2026-09-09_concierge-batch-and-phase4-brief.md, §2.6), extended 2026-09-16
+// with pipeline-aware ordering: live verification of the seven rows on the
+// flagged Focus Playbook fixture -- rotation starts at the front of the
+// THIN order on a fresh account (the default fixture's one open
+// opportunity makes its pipeline thin), a snoozed row is skipped in favor
+// of the next one, and each of the three taps does its real job ([Not for
+// me] persists a retirement, [Do it now] on Career Club Corner opens the
+// real corner.career.club link in a new tab).
 import { chromium } from 'playwright'
 import { existsSync } from 'node:fs'
 import { newFlaggedFocusPage } from './browser-tests/page-helpers.mjs'
@@ -16,7 +18,7 @@ const EXECUTABLE_PATH = existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } else { console.log(`  ok   ${msg}`) } }
 
-const ALL_KEYS = ['widen-recruiters', 'widen-linkedin-contacts', 'widen-networking-groups', 'widen-career-club-corner', 'widen-income-now']
+const ALL_KEYS = ['widen-go-to-market', 'widen-recruiters', 'widen-linkedin-contacts', 'widen-networking-groups', 'widen-job-search-resources', 'widen-career-club-corner', 'widen-income-now']
 const snoozeAllExcept = (survivor) => {
   const future = new Date(Date.now() + 10 * 86400000).toISOString()
   const state = {}
@@ -27,16 +29,20 @@ const snoozeAllExcept = (survivor) => {
 async function run() {
   const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, args: ['--disable-features=Translate,AutofillServerCommunication'] })
   try {
-    // --- Scenario 1: fresh account, nothing fired or snoozed yet --
-    // rotation with no lastOfferedKey starts at the front of the set
-    // (widen-recruiters), and the default 'focus' fixture already has a
-    // chosen direction, so all five are in the candidate pool. ---
+    // --- Scenario 1: fresh account, nothing fired or snoozed yet -- the
+    // default fixture has one open opportunity, which is a thin pipeline
+    // (fewer than two), so the pick leads with WIDEN_ORDER_THIN, not
+    // WIDEN_ORDER_DEFAULT. Go-to-Market is excluded from the candidate
+    // pool (no Bridge Story built), so the front of the thin order that is
+    // actually a candidate is widen-networking-groups. The default 'focus'
+    // fixture already has a chosen direction, so every direction-needing
+    // row is still in the candidate pool. ---
     {
       const { context, page } = await newFlaggedFocusPage(browser, { onboardingConcierge: true })
       await page.waitForTimeout(2000)
       const bodyText = await page.evaluate(() => document.body.innerText)
-      check(bodyText.includes('Recruiters for This Path builds a list of the recruiters'),
-        'widen-recruiters fires first on a fresh account (rotation starts at the front of the set)')
+      check(bodyText.includes('I can put together a list of groups where people in roles like'),
+        'widen-networking-groups fires first on a fresh, thin-pipeline account (leads the thin order once Go-to-Market is excluded)')
       check(bodyText.includes('Do it now') && bodyText.includes('Remind me later') && bodyText.includes('Not for me'),
         'the three-tap hard rule (brief §2.6) is present, not the shared Remind-later/Minimize pair')
 
@@ -46,26 +52,27 @@ async function run() {
       await page.waitForTimeout(1500)
       const saved = await page.evaluate(() => localStorage.getItem('pe_v4'))
       const parsed = saved ? JSON.parse(saved) : null
-      check(!!(parsed && parsed.widenSearchState && parsed.widenSearchState['widen-recruiters'] && parsed.widenSearchState['widen-recruiters'].retiredUntil),
-        'tapping "Not for me" persists a retiredUntil date for widen-recruiters in the autosave blob')
+      check(!!(parsed && parsed.widenSearchState && parsed.widenSearchState['widen-networking-groups'] && parsed.widenSearchState['widen-networking-groups'].retiredUntil),
+        'tapping "Not for me" persists a retiredUntil date for widen-networking-groups in the autosave blob')
       await context.close()
     }
 
-    // --- Scenario 2: widen-recruiters is already snoozed -- rotation
-    // should skip it and land on the next eligible row in the set
-    // (widen-linkedin-contacts), same as PR1's own rotation-skip test but
-    // exercised end to end. ---
+    // --- Scenario 2: widen-networking-groups (the front of the thin
+    // order that is actually a candidate) is already snoozed -- the pick
+    // should skip it and land on the next eligible row in WIDEN_ORDER_THIN
+    // (widen-job-search-resources), same as the engine's own rotation-skip
+    // test but exercised end to end. ---
     {
       const future = new Date(Date.now() + 3 * 86400000).toISOString()
       const { context, page } = await newFlaggedFocusPage(browser, {
         onboardingConcierge: true,
-        widenSearchState: { 'widen-recruiters': { snoozedUntil: future } },
+        widenSearchState: { 'widen-networking-groups': { snoozedUntil: future } },
       })
       await page.waitForTimeout(2000)
       const bodyText = await page.evaluate(() => document.body.innerText)
-      check(bodyText.includes('Loading your LinkedIn contacts lets Who You Know Here'),
-        'rotation skips a snoozed widen-recruiters and offers widen-linkedin-contacts next')
-      check(!bodyText.includes('Recruiters for This Path builds a list'),
+      check(bodyText.includes('Job Search Resources finds free job-search groups where you live'),
+        'the thin-pipeline pick skips a snoozed widen-networking-groups and offers widen-job-search-resources next')
+      check(!bodyText.includes('I can put together a list of groups where people in roles like'),
         'the snoozed row does not also render')
       await context.close()
     }
