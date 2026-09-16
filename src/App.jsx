@@ -3423,13 +3423,12 @@ and "framework": null everywhere else.`
 // base prompt, so each length gets its own shape+paragraph spec rather than
 // asking the model to hit a shorter number inside the same shape. 'full' is
 // byte-identical to the pre-existing single-length prompt, and 'professional'
-// register is the pre-existing tone restated rather than a new instruction,
-// so a record that never touches either control generates exactly what it
-// generated before this brief -- the default-changing call is Bob's, not
-// assumed from the correction data alone. Choice lives on the record
-// (rec.coverPrefs), mirroring opLane, not on the user profile: resets per
-// letter rather than persisting across opportunities, since persistence-vs-
-// reset was the other open question in the brief.
+// register is empty ('' below) rather than a restated instruction, so an
+// account that never touches either control generates exactly what it
+// generated before this brief. Both are Bob's calls, confirmed 2026-09-16:
+// default stays current behavior, and the choice persists per user (profile.
+// coverPrefs, via getOpCoverPrefs/updateOpCoverPrefs) rather than resetting
+// per opportunity.
 const OP_COVER_LENGTH_OPTIONS=[
   {value:'brief',label:'Brief',hint:'~75 words'},
   {value:'standard',label:'Standard',hint:'~120 words'},
@@ -13080,19 +13079,21 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
   }
   // Cover Letter length/register prefs (cover-letter-length-register brief
-  // 2026-09-16): rec-level, same pattern as getOpPanel/updateOpPanel above.
-  // Defaults ('full'/'professional') reproduce the prompt's pre-existing
-  // single-length behavior exactly, so a record no one has touched this
-  // control on builds identically to before this brief.
-  const getOpCoverPrefs=(rec)=>{
-    const p=rec&&rec.coverPrefs&&typeof rec.coverPrefs==='object'?rec.coverPrefs:null
+  // 2026-09-16). Per-user, not per-record (Bob's call): rides in profile.
+  // coverPrefs, so it saves in the same debounced autosave blob as any other
+  // profile field via pr() and carries across every opportunity's letter, the
+  // same way a person's own writing voice would. Defaults ('full'/
+  // 'professional') reproduce the prompt's pre-existing single-length
+  // behavior exactly, so an account no one has touched this control on
+  // builds identically to before this brief.
+  const getOpCoverPrefs=()=>{
+    const p=profile.coverPrefs&&typeof profile.coverPrefs==='object'?profile.coverPrefs:null
     const length=(p&&OP_COVER_LENGTH_OPTIONS.some(o=>o.value===p.length))?p.length:'full'
     const register=(p&&OP_COVER_REGISTER_OPTIONS.some(o=>o.value===p.register))?p.register:'professional'
     return{length,register}
   }
-  const updateOpCoverPrefs=(slotId,patch)=>{
-    if(!slotId)return
-    setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,coverPrefs:{...getOpCoverPrefs(rec),...patch},updatedAt:new Date().toISOString()}:rec))
+  const updateOpCoverPrefs=(patch)=>{
+    pr('coverPrefs',{...getOpCoverPrefs(),...patch})
   }
   // Connector interview-team suggestions: remove a staged row (adopted or
   // dismissed), and adopt one into the real (blob) panel via the normal path.
@@ -15037,7 +15038,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const candidateName=deriveDisplayName(profile.resume)
       const lv=opLaneValue(rec0)
       const laneLabel=opLaneLabel(lv)
-      const{length:coverLength,register:coverRegister}=getOpCoverPrefs(rec0)
+      const{length:coverLength,register:coverRegister}=getOpCoverPrefs()
       const coverSpec=OP_COVER_LENGTH_SPECS[coverLength]||OP_COVER_LENGTH_SPECS.full
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
       const opts={maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'}
@@ -18574,7 +18575,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _needBridge=!(_sec.p6&&bridgeStoryToProse(_sec.p6).trim())
                 const _needResume=!(_sec.p_res&&_sec.p_res.content&&_sec.p_res.content.trim())
                 const _needBrand=!(outputs.p3&&asText(outputs.p3).trim())
-                const _covPrefs=getOpCoverPrefs(_rec)
+                const _covPrefs=getOpCoverPrefs()
                 const _covPrefsLocked=_covBusy||_opAutoBuildPending
                 return _cardWrap(<>
                   {_head('Cover Letter','A short draft letter tuned to this posting: the same energy as your outreach, adapted for applying through a posting. Part of your application packet.',_covBuilt,()=>generateOpCoverLetter(),_covBusy?'Building…':_covBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
@@ -18582,16 +18583,17 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     <div style={{marginBottom:10}} role="radiogroup" aria-label="Cover letter length">
                       <span style={S.label}>Length</span>
                       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                        {OP_COVER_LENGTH_OPTIONS.map(o=>{const on=_covPrefs.length===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs(_rec.id,{length:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label} <span style={{color:C.gray,fontWeight:400}}>({o.hint})</span></button>})}
+                        {OP_COVER_LENGTH_OPTIONS.map(o=>{const on=_covPrefs.length===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs({length:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label} <span style={{color:C.gray,fontWeight:400}}>({o.hint})</span></button>})}
                       </div>
                     </div>
                     <div role="radiogroup" aria-label="Cover letter tone">
                       <span style={S.label}>Tone</span>
                       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                        {OP_COVER_REGISTER_OPTIONS.map(o=>{const on=_covPrefs.register===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs(_rec.id,{register:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label}</button>})}
+                        {OP_COVER_REGISTER_OPTIONS.map(o=>{const on=_covPrefs.register===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs({register:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label}</button>})}
                       </div>
                     </div>
                   </div>
+                  <div style={S.helperText}>This applies to every cover letter you build, not just this one.</div>
                   {!isDemo&&!_covBuilt&&(_needBridge||_needResume||_needBrand)&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>
                     Building these first makes this cover letter stronger. It will still generate without them.
                     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
