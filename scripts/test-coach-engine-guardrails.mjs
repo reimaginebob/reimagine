@@ -83,16 +83,23 @@ check(/if \(Math\.random\(\) < 0\.05\) \{\s*console\.log\('coach situation-block
   `${COACH}: the sampled (1-in-20) Situation-block size log is missing or has drifted`)
 
 // --- Client: session-scoped hold state ---
-check(app.includes('const[coachDistressHold,setCoachDistressHold]=useState(false)'),
-  `${APP}: coachDistressHold state is missing`)
-check(app.includes('const[coachMoodHold,setCoachMoodHold]=useState(false)'),
-  `${APP}: coachMoodHold state is missing`)
-check(app.includes('const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}'),
-  `${APP}: handleCoachDistressDetected does not set the hold`)
-check(app.includes('const handleCoachMoodLow=()=>{setCoachMoodHold(true)}'),
-  `${APP}: handleCoachMoodLow does not set the hold`)
-check(app.includes('const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}'),
-  `${APP}: handleCoachSessionOpen does not clear both holds`)
+// 2026-09-16 (four-my-coach-breaks brief, item C): both holds now initialize
+// from sessionStorage (src/coach-holds.js) instead of a bare useState(false),
+// and the three handlers also read/write/clear that same sessionStorage
+// copy -- so a hold set moments before a reload is still there afterward,
+// which a React-state-only hold could never be.
+check(app.includes('const[coachDistressHold,setCoachDistressHold]=useState(()=>readCoachHolds().distress)'),
+  `${APP}: coachDistressHold state is missing, or no longer initializes from readCoachHolds()`)
+check(app.includes('const[coachMoodHold,setCoachMoodHold]=useState(()=>readCoachHolds().mood)'),
+  `${APP}: coachMoodHold state is missing, or no longer initializes from readCoachHolds()`)
+check(app.includes("const handleCoachDistressDetected=()=>{setCoachDistressHold(true);writeCoachHold('distress')}"),
+  `${APP}: handleCoachDistressDetected does not set the hold and persist it via writeCoachHold`)
+check(app.includes("const handleCoachMoodLow=()=>{setCoachMoodHold(true);writeCoachHold('mood')}"),
+  `${APP}: handleCoachMoodLow does not set the hold and persist it via writeCoachHold`)
+check(app.includes('const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false);clearCoachHolds()}'),
+  `${APP}: handleCoachSessionOpen does not clear both holds and their sessionStorage copies via clearCoachHolds`)
+check(app.includes('import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"'),
+  `${APP}: coach-holds.js is not imported`)
 
 // --- Client: the evaluator actually checks both holds ---
 check(app.includes('if(coachDistressHold)return'),
