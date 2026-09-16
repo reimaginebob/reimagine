@@ -48,6 +48,9 @@ No. Your inputs and outputs are not shared with third parties. The only places y
 **What if I clear my browser cache?**
 Once you are signed in, clearing cache does not affect your work. Sign in again on any device and your progress is there. If you declined the sign-in option and were using browser-local storage, clearing cache does clear your work.
 
+**How do I clear my conversation with My Coach?**
+Tap Clear at the top of the coach panel. It clears the conversation on every device where you are signed in, not only the one you tapped it on, and it cannot be undone. Nothing saved to your profile or a playbook is touched, and your coach still knows all of it; clearing only resets the back-and-forth itself.
+
 **Can I move my work to another device?**
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
 

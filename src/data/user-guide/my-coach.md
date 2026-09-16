@@ -26,6 +26,10 @@ Early on it may ask what's going well in your search and what you'd like to impr
 
 It won't change your work on its own. The only things it writes or builds are the ones you tap to accept — a profile update it offers to save, or the next Focus Playbook section it offers to build — and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
 
+## Starting a conversation over
+
+Tap Clear at the top of the coach panel to wipe the conversation and start fresh. It clears everywhere you're signed in, not just the device you tapped it on, and it can't be undone. Nothing you've saved to your profile or a playbook is touched, and your coach still knows all of that — clearing only resets what the two of you have said to each other, not what it's read about you.
+
 ## Getting the most from it
 
 It's sharpest once your profile is built. Ask real, specific questions. And bring the hard parts too — the mindset side of a search is part of what it's for.
