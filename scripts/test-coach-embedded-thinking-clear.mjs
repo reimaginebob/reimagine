@@ -46,9 +46,9 @@ check(embeddedBlock.includes("animation: 'pe-chat-thinking-dot 1.1s ease-in-out 
 // Fresh's window.confirm in src/App.jsx).
 check(embeddedBlock.includes("aria-label=\"Clear conversation\""),
   `${CHAT}: the Clear conversation button is missing from the embedded panel`)
-check(/onClick=\{\(\) => \{ if \(window\.confirm\('This clears your entire conversation with Coach/.test(embeddedBlock),
+check(/onClick=\{\(\) => \{ if \(window\.confirm\(CLEAR_CONFIRM_TEXT\)\) \{ clearChatServerSide\(\); setMessages/.test(embeddedBlock),
   `${CHAT}: Clear no longer confirms before wiping -- one stray tap during orientation would silently erase the whole conversation with no undo`)
-check(embeddedBlock.includes('This cannot be undone.') ,
+check(chat.includes("This can't be undone.") ,
   `${CHAT}: the Clear confirmation does not say the action is irreversible`)
 check(embeddedBlock.includes('setMessages([INTRO_MSG])'),
   `${CHAT}: Clear no longer actually resets messages to the seed intro`)
