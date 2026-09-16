@@ -11313,7 +11313,7 @@ export default function PivotEngine(){
       // server rather than being silently dropped.
       if(saveRerunPendingRef.current){saveRerunPendingRef.current=false;save()}
     }
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,widenSearchState,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
