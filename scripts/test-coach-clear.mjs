@@ -49,6 +49,21 @@ check(/UPDATE users\s+SET chat_cleared_at = NOW\(\)\s+WHERE id = \$\{req\.user\.
 check(!/DELETE\s+FROM\s+chat_messages/i.test(endpoint),
   `${ENDPOINT}: deletes from chat_messages -- Clear must never touch the stored rows, only the display boundary`)
 
+// Second follow-up (2026-09-16): the tapping device itself never recorded
+// its own reimagine_chat_cleared_at_applied marker, so its NEXT load (a
+// reload, or sign-out/sign-in) saw the real chat_cleared_at as newer than
+// the missing marker and reset the transcript again -- wiping a real
+// conversation held after the clear. RETURNING the exact value the UPDATE
+// just wrote lets the client record that value as already-applied the
+// moment the call succeeds, instead of waiting on a later /api/me round
+// trip to notice it.
+check(/UPDATE users\s+SET chat_cleared_at = NOW\(\)\s+WHERE id = \$\{req\.user\.id\}\s+RETURNING chat_cleared_at/.test(endpoint),
+  `${ENDPOINT}: the UPDATE no longer RETURNINGs chat_cleared_at -- the client has no way to know the exact value it just wrote`)
+check(/rows\[0\]\.chat_cleared_at/.test(endpoint),
+  `${ENDPOINT}: the RETURNING value is not read back out of the query result`)
+check(/res\.status\(200\)\.json\(\{\s*ok:\s*true,\s*clearedAt:/.test(endpoint),
+  `${ENDPOINT}: the success response no longer carries clearedAt`)
+
 // --- Chat.jsx: the approved copy, at both Clear buttons --------------------
 
 const CHAT = 'src/components/Chat.jsx'
@@ -78,9 +93,22 @@ check(clearSiteCount === 2,
 check(chat.includes("fetch('/api/coach-clear', { method: 'POST', credentials: 'include' })"),
   `${CHAT}: clearChatServerSide does not POST to /api/coach-clear with credentials`)
 
+// Second follow-up (2026-09-16): the tapping device's own local reset used
+// to throw away the /api/coach-clear response, so it never recorded its
+// own reimagine_chat_cleared_at_applied (src/App.jsx's cross-device
+// hydration effect) -- its NEXT load then saw the real, now-non-null
+// chat_cleared_at as newer than the missing marker and reset the
+// transcript all over again, wiping a real conversation started after the
+// clear. clearChatServerSide now has to await the response and record the
+// clearedAt it carries.
+check(/const data\s*=\s*await res\.json\(\)/.test(chat),
+  `${CHAT}: clearChatServerSide no longer reads the /api/coach-clear response body -- it has nothing to record`)
+check(/localStorage\.setItem\('reimagine_chat_cleared_at_applied',\s*data\.clearedAt\)/.test(chat),
+  `${CHAT}: clearChatServerSide does not write the server-returned clearedAt to reimagine_chat_cleared_at_applied -- this device's own next load will see the marker as still missing and reset the transcript again`)
+
 if (failures) {
   console.error(`test-coach-clear: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-clear: OK (Bob\'s approved copy is used verbatim at both Clear buttons, each pairs the local reset with a real server-side chat_cleared_at write so the clear holds on every signed-in device, and the underlying chat_messages rows are never deleted)')
+  console.log('test-coach-clear: OK (Bob\'s approved copy is used verbatim at both Clear buttons, each pairs the local reset with a real server-side chat_cleared_at write so the clear holds on every signed-in device, the underlying chat_messages rows are never deleted, and the endpoint\'s RETURNING value is read back by the client and recorded as this device\'s own applied marker)')
 }

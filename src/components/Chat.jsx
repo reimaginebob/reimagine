@@ -55,9 +55,29 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // rehydrate the full transcript again via GET /api/coach-history and undo
 // it. Fire-and-forget like logPromptEngagement above: the local reset is
 // what the person sees immediately, and this call is what makes it stick.
+//
+// Cross-device Clear follow-up (2026-09-16): this device's own
+// reimagine_chat_cleared_at_applied (src/App.jsx's sign-in hydration
+// effect) never got written by tapping Clear itself -- only by that later
+// effect noticing a newer server value. So THIS tab's next load (a reload,
+// or sign-out/sign-in) saw /api/me's chat_cleared_at as newer than its own
+// (missing) marker and reset the transcript all over again, wiping any
+// conversation held after the clear even though nothing was cleared since.
+// api/coach-clear.js now hands back the exact chat_cleared_at value it just
+// wrote; recording that here the moment the call succeeds closes the gap
+// without waiting on a future /api/me round trip to notice it.
 const CLEAR_CONFIRM_TEXT = "This clears your conversation with Coach on every device where you're signed in. Anything you've saved to your profile or playbooks stays, and Coach still knows it. This can't be undone. Continue?"
 const clearChatServerSide = () => {
-  try { fetch('/api/coach-clear', { method: 'POST', credentials: 'include' }).catch(() => {}) } catch {}
+  (async () => {
+    try {
+      const res = await fetch('/api/coach-clear', { method: 'POST', credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data && typeof data.clearedAt === 'string') {
+        try { localStorage.setItem('reimagine_chat_cleared_at_applied', data.clearedAt) } catch {}
+      }
+    } catch {}
+  })()
 }
 
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
