@@ -3465,8 +3465,14 @@ PARAGRAPH 2 (3-4 sentences), the overall relevance of their experience, drawn fr
     paragraphs:`PARAGRAPH 1 (4-6 sentences), doing the combined work of a human opening and a genuine close in one paragraph. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career..."). Compress the relevance thread from the Personal Brand below -- the through-line across their background and why it fits THIS role -- into a SINGLE short clause inside this paragraph (for example, "and that same pattern is exactly what this role needs"); do not give it its own sentence and do not narrate a proof point. Close within this same paragraph with real, specific interest in the role and company, drawing on the WHERE THEY FIT framing below for why it matters to this person, tied to what the company is doing; never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may end with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
   },
 }
+// professional is '' deliberately, not a restated instruction: the baseline
+// prompt (VOICE, above) already sets this register, and a Full+Professional
+// build (the default) must stay byte-identical to the pre-existing prompt --
+// verified live 2026-09-16 that appending even a restatement here measurably
+// affected paragraph-shape adherence on Full, which is exactly the drift the
+// no-default-change goal was written to avoid.
 const OP_COVER_REGISTER_TEXT={
-  professional:'\n\nREGISTER: keep the tone already set above -- peer-to-peer, warm, direct, first person -- with standard, grammatically complete sentences and conventional contractions ("I\'m," "it\'s") used where a person would naturally use them, not stripped out. This is the baseline register: measured but human, not stiff.',
+  professional:'',
   conversational:'\n\nREGISTER: lean more conversational than the baseline above -- shorter sentences, more contractions, phrasing closer to how this person would actually say it out loud to a peer over coffee. Keep every substance rule above (the greeting rule, the five-company test, the anti-restate rule, the banned constructions) exactly as written; only sentence rhythm and formality shift.',
 }
 const P={
