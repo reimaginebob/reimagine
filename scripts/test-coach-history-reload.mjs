@@ -28,10 +28,16 @@ check(endpoint.includes("import { sql } from './_lib/db.js'") && endpoint.includ
   `${ENDPOINT}: does not import sql/requireAuth from the same _lib modules api/profile/load.js uses`)
 check(endpoint.includes('export default requireAuth(handler)'),
   `${ENDPOINT}: handler is not wrapped in requireAuth -- would serve any user's chat history to anyone`)
-check(/FROM\s+chat_messages/.test(endpoint) && endpoint.includes('WHERE user_id = ${req.user.id}'),
+check(/FROM\s+chat_messages/.test(endpoint) && endpoint.includes('WHERE m.user_id = ${req.user.id}'),
   `${ENDPOINT}: query is missing or no longer scoped to req.user.id`)
-check(endpoint.includes("turn_kind = 'user' OR turn_kind IS NULL"),
+check(endpoint.includes("m.turn_kind = 'user' OR m.turn_kind IS NULL"),
   `${ENDPOINT}: no longer filters to real conversational turns (turn_kind='user'/null) -- would try to replay proactive-moment rows as plain exchanges`)
+// chat_cleared_at (2026-09-16, My Coach's Clear button): joined against
+// users so a person's own clear boundary is respected on rehydration --
+// see migrations/2026-09-16_coach-chat-clear.sql for why this is a display
+// filter, not a delete (chat_messages rows are untouched).
+check(endpoint.includes('JOIN users u ON u.id = m.user_id') && endpoint.includes('u.chat_cleared_at IS NULL OR m.created_at > u.chat_cleared_at'),
+  `${ENDPOINT}: no longer respects users.chat_cleared_at -- a cleared conversation would rehydrate on the next sign-in/reload`)
 check(/LIMIT\s+25/.test(endpoint), `${ENDPOINT}: the 25-turn cap is missing or has drifted`)
 check(endpoint.includes('rows.reverse()'),
   `${ENDPOINT}: rows are not reversed back to oldest-first after the DESC-ordered query`)

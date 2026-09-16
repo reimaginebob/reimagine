@@ -48,6 +48,38 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
   try { fetch('/api/coach-prompt-engagement', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ promptCode, triggerType, outcome }) }).catch(() => {}) } catch {}
 }
 
+// Clear conversation (2026-09-16): the confirm's own copy promises "on every
+// device where you're signed in", so the local setMessages reset below has
+// to be paired with a server-recorded chat_cleared_at (api/coach-clear.js) --
+// otherwise a second device, or this one after sign-out/sign-in, would just
+// rehydrate the full transcript again via GET /api/coach-history and undo
+// it. Fire-and-forget like logPromptEngagement above: the local reset is
+// what the person sees immediately, and this call is what makes it stick.
+//
+// Cross-device Clear follow-up (2026-09-16): this device's own
+// reimagine_chat_cleared_at_applied (src/App.jsx's sign-in hydration
+// effect) never got written by tapping Clear itself -- only by that later
+// effect noticing a newer server value. So THIS tab's next load (a reload,
+// or sign-out/sign-in) saw /api/me's chat_cleared_at as newer than its own
+// (missing) marker and reset the transcript all over again, wiping any
+// conversation held after the clear even though nothing was cleared since.
+// api/coach-clear.js now hands back the exact chat_cleared_at value it just
+// wrote; recording that here the moment the call succeeds closes the gap
+// without waiting on a future /api/me round trip to notice it.
+const CLEAR_CONFIRM_TEXT = "This clears your conversation with Coach on every device where you're signed in. Anything you've saved to your profile or playbooks stays, and Coach still knows it. This can't be undone. Continue?"
+const clearChatServerSide = () => {
+  (async () => {
+    try {
+      const res = await fetch('/api/coach-clear', { method: 'POST', credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data && typeof data.clearedAt === 'string') {
+        try { localStorage.setItem('reimagine_chat_cleared_at_applied', data.clearedAt) } catch {}
+      }
+    } catch {}
+  })()
+}
+
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
 // feature in prose ("you'll find this in Career Paths") and never renders a
 // clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
@@ -1655,7 +1687,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               </button>
             )}
             <button
-              onClick={() => { if (window.confirm('This clears your entire conversation with Coach, including everything it has noticed about you so far.\n\nThis cannot be undone.\n\nContinue?')) setMessages([INTRO_MSG]) }}
+              onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
               style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
               aria-label="Clear conversation"
             >
@@ -1819,7 +1851,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>My Coach</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
-            onClick={() => setMessages([INTRO_MSG])}
+            onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
             style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >

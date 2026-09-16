@@ -78,3 +78,55 @@ export function pickNextWidenSearchRow(rowKeys, state, { lastOfferedKey = null, 
   }
   return null
 }
+
+// Pipeline-aware ordering (Bob, 2026-09-16): a healthy pipeline still
+// rotates through the whole set, direct company contact first, because
+// that channel is the heart of Making Your Own Weather. A thin pipeline
+// (App.jsx's pipelineThin -- fewer than two live opportunities, or
+// fourteen-plus days quiet on every one of them, per step-position.js)
+// leads instead with what widens the person's network before circling
+// back to the rest.
+export const WIDEN_ORDER_DEFAULT = ['widen-go-to-market', 'widen-recruiters', 'widen-linkedin-contacts', 'widen-networking-groups', 'widen-job-search-resources', 'widen-career-club-corner', 'widen-income-now']
+export const WIDEN_ORDER_THIN = ['widen-go-to-market', 'widen-networking-groups', 'widen-job-search-resources', 'widen-recruiters', 'widen-linkedin-contacts', 'widen-career-club-corner', 'widen-income-now']
+
+// candidateKeys is the caller's already-filtered pool (direction needed,
+// section not already built -- App.jsx's job, not this module's). A
+// healthy pipeline still rotates through it in order; a thin one does not
+// rotate at all -- it is a priority list, so the first eligible row in the
+// thin order wins every time, even right after that same row was the one
+// just offered. Passing the candidate list's own last key as
+// lastOfferedKey is what buys that: pickNextWidenSearchRow's walk starts
+// one past lastOfferedKey, so starting one past the END of the thin-
+// ordered list lands back on its front.
+export function pickWidenSearchRowForPipeline(candidateKeys, state, { pipelineThin = false, lastOfferedKey = null, offeredThisSession = false, now = new Date() } = {}) {
+  const order = pipelineThin ? WIDEN_ORDER_THIN : WIDEN_ORDER_DEFAULT
+  const keys = order.filter(k => candidateKeys.includes(k))
+  if (!pipelineThin) return pickNextWidenSearchRow(keys, state, { lastOfferedKey, offeredThisSession, now })
+  return pickNextWidenSearchRow(keys, state, { lastOfferedKey: keys[keys.length - 1] || null, offeredThisSession, now })
+}
+
+const WIDEN_DIRECTION_KEYS = ['widen-go-to-market', 'widen-recruiters', 'widen-networking-groups', 'widen-income-now']
+
+// Which of the seven rows are even in play before snooze/retirement/
+// pacing/pipeline ever enter it: a direction-needing row is off the table
+// with no chosen direction yet, and a row whose own Focus section is
+// already built is off the table too -- offering to build something that
+// already exists reads as Coach not paying attention. Go-to-Market
+// additionally needs the Bridge Story built (the guide places it late in
+// the Focus Playbook on purpose, since it runs live research and is the
+// most expensive section, and the Bridge Story is the voice template its
+// outreach draws on).
+//
+// Pure and decoupled from App.jsx's `outputs` shape on purpose -- the
+// caller (App.jsx) reduces its own state to these plain booleans, so this
+// stays testable with a fixture rather than a live component instance.
+export function widenSearchCandidateKeys(rowKeys, { hasDirection = false, bridgeBuilt = false, goToMarketBuilt = false, recruitersBuilt = false, groupsBuilt = false, incomeBuilt = false } = {}) {
+  return rowKeys.filter(k => {
+    if (WIDEN_DIRECTION_KEYS.includes(k) && !hasDirection) return false
+    if (k === 'widen-go-to-market') return bridgeBuilt && !goToMarketBuilt
+    if (k === 'widen-recruiters') return !recruitersBuilt
+    if (k === 'widen-networking-groups') return !groupsBuilt
+    if (k === 'widen-income-now') return !incomeBuilt
+    return true
+  })
+}

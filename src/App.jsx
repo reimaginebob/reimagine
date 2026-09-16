@@ -17,7 +17,8 @@ import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence,
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from "./coach-moments.js"
-import { pickNextWidenSearchRow, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { pickNextWidenSearchRow, pickWidenSearchRowForPipeline, widenSearchCandidateKeys as widenSearchCandidateKeysFor, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"
 import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
@@ -44,7 +45,7 @@ import { recordLocalFailure, buildDiagnosticsPayload } from "./support-trail.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import Staircase from "./components/Staircase"
-import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
+import { STEPS, nextSteps as computeNextSteps, activeOpportunities, stepPosition } from "./step-position.js"
 import Chat, { INTRO_MSG } from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
@@ -329,6 +330,12 @@ const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
   border:'#E2E5EA',gold:'#C8924A',goldL:'#A06828',
   cream:'#1A2540',creamD:'#2D3748',gray:'#3D4A5C',grayL:'#2D3748',
+  // Three muted-gray tints (2026-09-16, ecosystem hub grid redesign) for
+  // description/sub-label text that sits between C.gray (body) and C.border
+  // (hairlines) on the scale -- distinct roles, not synonyms: grayMid is
+  // description prose, graySoft is secondary labels/breadcrumbs, grayLabel
+  // is small-caps eyebrows. crumbSep is the breadcrumb '>' glyph color only.
+  grayMid:'#4B5563',graySoft:'#6B7280',grayLabel:'#9CA3AF',crumbSep:'#C8CCD3',
   ok:'#2E7D52',err:'#C0392B'
 }
 
@@ -3599,7 +3606,7 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   // exactly (same pc fields, already proven against check-prompt-refs.mjs).
   iiEcosystem:(pr,o3,o3Structured,ecosystemRefine)=>{const _struct=buildSynthesisContext(o3Structured);const _catList=ECOSYSTEM_CATEGORIES.map(c=>`${c.key} (${c.label})`).join('; ');const _catKeys=ECOSYSTEM_CATEGORY_KEYS.map(k=>`"${k}"`).join(', ');return `Map the ecosystem around this person's industry into exactly these seven fixed categories: ${_catList}.
 
-FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders in a small circle on the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
+FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders as the headline in a hub panel at the top of the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
 
 For EACH of the seven categories, whether or not it turns out to be a real factor in this industry, produce:
 - description: one to two plain, brief sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label), plus, when it adds real information, the kind of organization or player that populates it. This describes the CATEGORY and the INDUSTRY -- never this person. Do not reference their resume, their background, their name, or how this category connects to them specifically; that bridge is made later, once a role is picked. Stay factual and generic to the industry itself, the way a reference guide would describe it to anyone in that industry. If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
@@ -5657,73 +5664,94 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
-// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view).
-// Category -> Role -> Company exploration that replaces p4's role list for the
-// Industry Insider lane only. Purely presentational -- all persistent state
-// (categories, expanded category, per-category role lists, refine text) lives
-// in the App component's `ecosystem` state and is passed in as props, the
-// same division of labor ReshapeBox and RefineBox already use.
-// Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
-// one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
-// clear both the center hub and each other at the node width below. Widened
-// again 2026-09-13 (Bob's second review: descriptions still truncated) --
-// radius 38 / node width 29% keeps roughly the same clearance margin the
-// 36/27% pairing had, while giving every card more room in both directions
-// (not just taller, which is what a wider clamp alone would have done).
-const ECOSYSTEM_NODE_POS=[
-  {x:50,y:12},{x:79.73,y:26.31},{x:87.06,y:58.46},{x:66.49,y:84.23},
-  {x:33.51,y:84.23},{x:12.94,y:58.46},{x:20.27,y:26.31},
-]
-function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view;
+// GA'd 2026-09-14, PR #929 -- hasIndustryEcosystemView now returns true for
+// every signed-in user). Category -> Role -> Company exploration that replaces
+// p4's role list for the Industry Insider lane only. Purely presentational --
+// all persistent state (categories, expanded category, per-category role
+// lists, refine text) lives in the App component's `ecosystem` state and is
+// passed in as props, the same division of labor ReshapeBox and RefineBox
+// already use.
+//
+// Redesigned 2026-09-16 from a radial hub-and-spoke diagram (Bob's Option A
+// pick after the first flat-grid version read as "a series of cards, not an
+// ecosystem") to a card grid with a rectangular hub panel -- a deliberate
+// second reversal, per Bob's own design spec, now that the feature is GA and
+// he wants the map to read as reference material rather than a diagram. The
+// h1 text below ("Your Industry Ecosystem") is quoted verbatim in
+// src/coach-screen.js's describeScreen -- keep the two in sync if either
+// changes again.
+function EcosystemCategoryCard({cat,data,onExplore,disabled}){
+  const[hover,setHover]=useState(false)
+  // isEmpty reads the description, not the count (2026-09-13 fix, carried
+  // forward through this redesign): a real, populated category can still come
+  // back with no count, or count:0, and that is NOT the same thing as "not a
+  // factor in this industry" -- that exact phrase (the prompt's own
+  // instruction for a real non-factor, and what the backstop below writes
+  // when the model skipped a key entirely) is the only reliable signal.
+  // Reading count instead grayed out a real category ("Customers &
+  // channels") that simply had no count number.
+  const isEmpty=/^not a factor in this industry/i.test((data.description||'').trim())
+  const clickable=!isEmpty&&!disabled
+  const hasExamples=!isEmpty&&Array.isArray(data.examples)&&data.examples.length>0
+  const Tag=clickable?'button':'div'
+  return <Tag
+    {...(clickable?{onClick:()=>onExplore(cat.key),onMouseEnter:()=>setHover(true),onMouseLeave:()=>setHover(false),disabled}:{})}
+    style={{width:'100%',textAlign:'left',display:'flex',flexDirection:'column',background:C.panel,border:`1px solid ${hover&&clickable?C.gold:C.border}`,borderRadius:12,padding:'22px 22px 20px',minHeight:224,boxSizing:'border-box',fontFamily:'inherit',cursor:clickable?'pointer':'default',boxShadow:hover&&clickable?'0 6px 22px rgba(26,37,64,0.08)':'none',transform:hover&&clickable?'translateY(-2px)':'none',transition:'border-color 0.15s ease,box-shadow 0.15s ease,transform 0.15s ease'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:10}}>
+      <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.cream,lineHeight:1.25}}>{cat.label}</div>
+      {!isEmpty&&data.count>0&&<div style={{flexShrink:0,fontSize:15,fontWeight:600,color:C.cream,background:C.input,borderRadius:999,padding:'3px 11px',whiteSpace:'nowrap'}}>{data.count} companies</div>}
+    </div>
+    <div style={{fontSize:16,color:C.grayMid,lineHeight:1.5,marginBottom:14}}>{data.description}</div>
+    {hasExamples&&<div style={{marginTop:'auto',borderTop:`1px dashed ${C.border}`,paddingTop:12}}>
+      <div style={{fontSize:15,fontWeight:700,color:C.grayLabel,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>For example</div>
+      <div style={{fontSize:15,color:C.grayMid,lineHeight:1.45}}>{data.examples.join(', ')}</div>
+    </div>}
+    {clickable&&<div style={{marginTop:hasExamples?12:'auto',fontSize:15,fontWeight:600,color:C.gold,display:'flex',alignItems:'center',gap:3,transform:hover?'translateX(2px)':'none',transition:'transform 0.15s ease'}}>Explore <ChevronRight size={13}/></div>}
+  </Tag>
+}
+const ECOSYSTEM_EMPTY_CAT={description:'Not a factor in this industry.',count:0,examples:[]}
+function IndustryEcosystemHub({isDemo,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+  const isMobile=useIsMobile()
+  const first4=ECOSYSTEM_CATEGORIES.slice(0,4)
+  const last3=ECOSYSTEM_CATEGORIES.slice(4)
   return <div>
-    {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
-    {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
-    <h1 id="section-p4" style={S.title}>Industry Insider</h1>
-    <p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>Map the ecosystem first, then pick a role from inside it.</p>
+    {!isDemo&&<div data-print="hide" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:15,color:C.graySoft,marginBottom:14}}>
+      <button onClick={onExploreAnother} style={{background:'none',border:'none',padding:0,margin:0,font:'inherit',color:'inherit',cursor:'pointer'}}>Career Paths</button>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span>Industry Insider</span>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span style={{color:C.cream,fontWeight:500}}>Your Industry Ecosystem</span>
+    </div>}
+    <h1 id="section-p4" style={S.title}>Your Industry Ecosystem</h1>
+    <p style={{fontSize:18,color:C.grayMid,lineHeight:1.55,maxWidth:760,margin:'0 0 20px'}}>The companies, partners, and adjacent players around your industry — explore the map, then pick a role from inside it.</p>
     <CoachingCallout><strong style={{color:'#1A2540'}}>How this works</strong><p style={{margin:'8px 0 0'}}>Seven categories make up any industry's ecosystem: the clients, vendors, consultants, and adjacent players around it. Click a category to see the specific roles inside it, each with a couple of real companies to ground it. Pick a role to open its full playbook, with a real, sourced company list built for that role specifically.</p></CoachingCallout>
     {!categories&&!busy&&<div style={S.row}><Btn onClick={onGenerate}><Sparkles size={14}/>Map My Industry</Btn></div>}
     {busy&&<Loading msg="Mapping your industry's ecosystem…" step="p4"/>}
     {err&&<ErrBox msg={err}/>}
     {categories&&!busy&&<>
-      <ReshapeBox
-        title="Want the map to lean a certain way?"
-        body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
-        label="What should the map focus on?"
-        placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
-        submitLabel="Rebuild the map"
-        busyLabel="Rebuilding the map…"
-        busy={busy}
-        onSubmit={onRefine}
-      />
-      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'40px auto 30px'}}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
-          {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
-        </svg>
-        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'24%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:12,boxSizing:'border-box'}}>
-          <Compass size={20} color="#FFFFFF"/>
-          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
-        </div>
-        {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
-          const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
-          // isEmpty reads the description, not the count (2026-09-13 fix): a
-          // real, populated category can still come back with no count, or
-          // count:0, and that is NOT the same thing as "not a factor in this
-          // industry" -- that exact phrase (the prompt's own instruction for
-          // a real non-factor, and what the backstop above writes when the
-          // model skipped a key entirely) is the only reliable signal.
-          // Reading count instead grayed out a real category ("Customers &
-          // channels") that simply had no count number.
-          const isEmpty=/^not a factor in this industry/i.test((c.description||'').trim())
-          const p=ECOSYSTEM_NODE_POS[i]
-          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'29%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
-              <div style={{fontSize:17,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
-              {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
-            </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:6,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
-            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:8,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
-          </button>
-        })}
+      <div style={{maxWidth:580,margin:'32px auto 44px',padding:'30px 40px 32px',textAlign:'center',background:`linear-gradient(180deg, ${C.panel} 0%, #FBF7EF 100%)`,border:`2px solid ${C.gold}`,borderRadius:14,boxShadow:'0 4px 22px rgba(200,146,74,0.12)',boxSizing:'border-box'}}>
+        <div style={{...S.tag(C.gold),marginBottom:16}}>Your target industry</div>
+        <div style={{fontFamily:'Georgia,serif',fontSize:36,fontWeight:600,color:C.cream,letterSpacing:'-0.01em',lineHeight:1.15,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
+        <div style={{fontSize:16,color:C.graySoft,marginTop:10}}>From your Career Paths — Industry Insider lane</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(4,1fr)',gap:isMobile?14:20}}>
+        {first4.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(3,1fr)',gap:isMobile?14:20,maxWidth:870,margin:'20px auto 0'}}>
+        {last3.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{maxWidth:870,margin:'32px auto 0'}}>
+        <ReshapeBox
+          title="Want the map to lean a certain way?"
+          body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
+          label="What should the map focus on?"
+          placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
+          submitLabel="Rebuild the map"
+          busyLabel="Rebuilding the map…"
+          busy={busy}
+          onSubmit={onRefine}
+        />
       </div>
     </>}
     <div style={S.row}>
@@ -7132,7 +7160,19 @@ const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
 // new tab. "Give once" and "Give monthly" are two separate labeled groups, not
 // a shared tier row: there is no monthly equivalent for each one-time amount,
 // so the layout must not imply parity between them.
-function SupportPanel({onClose}){
+//
+// userId (signedInUser.id, when signed in) is appended to each link as
+// ?client_reference_id=<id> -- Stripe Payment Links support this URL
+// parameter and carry it through onto the resulting Checkout Session
+// (https://docs.stripe.com/payment-links/url-parameters), which is what
+// api/webhooks/stripe.js reads to tie a donation back to a Reimagine
+// account. Signed-out visitors and the demo still get a plain link with no
+// parameter -- Stripe silently drops an empty/invalid client_reference_id,
+// so nothing breaks, that donation just cannot be attributed.
+function withDonorRef(url,userId){
+  return userId?`${url}?client_reference_id=${encodeURIComponent(userId)}`:url
+}
+function SupportPanel({onClose,userId}){
   const K=SUPPORT_PANEL_COPY
   const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
@@ -7148,20 +7188,20 @@ function SupportPanel({onClose}){
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.onceOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
       <div style={{marginTop:20}}>
         <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
     </div>
   </div>
 }
 
-function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
+function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,userId=null,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -7215,7 +7255,7 @@ function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,cho
         <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>{SUPPORT_PANEL_COPY.navSubline}</div>
       </div>
     </div>
-    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
+    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)} userId={userId}/>}
   </>
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
@@ -8165,8 +8205,8 @@ export default function PivotEngine(){
   // later calm message in the same session -- a hold that lifts the instant
   // the person sounds okay again would fire the very next silent turn on the
   // heels of what they just said.
-  const[coachDistressHold,setCoachDistressHold]=useState(false)
-  const[coachMoodHold,setCoachMoodHold]=useState(false)
+  const[coachDistressHold,setCoachDistressHold]=useState(()=>readCoachHolds().distress)
+  const[coachMoodHold,setCoachMoodHold]=useState(()=>readCoachHolds().mood)
   // Coach-as-Concierge Phase 3b (Stall, Output/handoff/2026-09-09_coach-
   // concierge-phase-3-build-nextmove-stall.md): the two new signals nothing
   // in the codebase tracked before this -- a per-identity visit count and an
@@ -8798,8 +8838,10 @@ export default function PivotEngine(){
         widenSearchDoIt:(rowKey)=>{
           const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
           if(code)logPromptEngagement(code,'topic_close_tap','do it now')
+          if(rowKey==='widen-go-to-market')return genSec('p7')
           if(rowKey==='widen-recruiters')return genSec('recruiters')
           if(rowKey==='widen-networking-groups')return genSec('groups')
+          if(rowKey==='widen-job-search-resources')return nav('resources')
           if(rowKey==='widen-income-now')return genSec('income')
           if(rowKey==='widen-career-club-corner'){try{window.open(CAREER_CLUB_CORNER.url,'_blank','noopener,noreferrer')}catch{};return}
           if(rowKey==='widen-linkedin-contacts'){
@@ -10047,7 +10089,20 @@ export default function PivotEngine(){
     return viaParam
   }
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>{if(r.ok)serverLoadOkRef.current=true;return r.ok?r.json():null})}return null}).then(serverProfile=>{if(!serverProfile)return;profileUpdatedAtRef.current=serverProfile.updatedAt||null;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenResumeBuilderDraftInvite)setSeenResumeBuilderDraftInvite(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  // Cross-device Clear (2026-09-16 follow-up to My Coach's Clear button,
+  // src/components/Chat.jsx / api/coach-clear.js): users.chat_cleared_at
+  // (returned here via /api/me -> getSessionUser's SELECT, api/_lib/
+  // session.js) only reached a device whose local transcript was ALREADY
+  // just the seed intro -- the coach-history rehydration effect right
+  // below this one only fires on that exact blank-slate shape. A device
+  // that still held an OLDER local transcript (this same tab before the
+  // clear, or a second device that was never cleared) never rechecked
+  // anything, so "on every device" did not actually hold for that shape.
+  // reimagine_chat_cleared_at_applied is the last chat_cleared_at value
+  // this device has already applied; a newer server value means a clear
+  // happened since, so the stale local transcript resets to the intro
+  // before anything else in this chain runs.
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}if(typeof data.user.chat_cleared_at==='string'&&data.user.chat_cleared_at){let appliedAt=null;try{appliedAt=localStorage.getItem('reimagine_chat_cleared_at_applied')}catch{}if(!appliedAt||new Date(data.user.chat_cleared_at).getTime()>new Date(appliedAt).getTime()){setChatMessages([INTRO_MSG]);try{localStorage.setItem('reimagine_chat_cleared_at_applied',data.user.chat_cleared_at)}catch{}}}return fetch('/api/profile/load',{credentials:'include'}).then(r=>{if(r.ok)serverLoadOkRef.current=true;return r.ok?r.json():null})}return null}).then(serverProfile=>{if(!serverProfile)return;profileUpdatedAtRef.current=serverProfile.updatedAt||null;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenResumeBuilderDraftInvite)setSeenResumeBuilderDraftInvite(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
@@ -10571,20 +10626,39 @@ export default function PivotEngine(){
       const latestFired=coachMoments[latest]['_'].firedAt
       return new Date(fired)>new Date(latestFired)?k:latest
     },null)
-    // Career Club Corner and Load LinkedIn contacts don't need a direction;
-    // Recruiters/Networking Groups/Income Now build a Focus section via
-    // genSec and do (their own eligible() checks ctx.chosen too). Excluding
-    // the latter three from the candidate list itself, not just leaving it
-    // to their own eligible() to reject, matters for rotation: without a
-    // direction chosen yet, rotation with no lastOfferedKey always starts
-    // at index 0 (widen-recruiters) -- if that row's own eligible() were
-    // the only thing rejecting it, nothing would ever fire, and nothing
-    // would ever advance lastOfferedKey past null, so it would stay stuck
-    // offering (and rejecting) widen-recruiters forever, even for a Door-2-
-    // only account that never picks a direction and could still use the
-    // two rows that don't need one.
-    const widenSearchCandidateKeys=chosen?WIDEN_SEARCH_ROW_KEYS:WIDEN_SEARCH_ROW_KEYS.filter(k=>k==='widen-linkedin-contacts'||k==='widen-career-club-corner')
-    const widenSearchTarget=hasOnboardingConcierge?pickNextWidenSearchRow(widenSearchCandidateKeys,widenSearchState,{lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
+    // Pipeline-aware rotation (Bob, 2026-09-16): a thin pipeline -- fewer
+    // than two live opportunities, or nothing touched on any of them in
+    // fourteen-plus days -- leads with what widens the person's network
+    // instead of rotating the set in the healthy-pipeline order. Reuses
+    // step-position.js's own definitions (activeOpportunities/
+    // stepPosition) so the screen, Coach's next-step read, and this
+    // rotation never disagree about what "thin" means. Gated on
+    // pursuitStatusLoaded so a not-yet-loaded pipeline never reads as thin.
+    const widenOpen=activeOpportunities({savedPlaybooks},pursuitStatus)
+    const widenPos=stepPosition({outputs,chosen,savedPlaybooks,stepOverride},pursuitStatus)
+    const pipelineThin=pursuitStatusLoaded&&(widenOpen.length<2||widenPos.stalled)
+    // Career Club Corner, Load LinkedIn contacts, and Job Search Resources
+    // don't need a direction; Go-to-Market/Recruiters/Networking Groups/
+    // Income Now build a Focus section via genSec and do (their own
+    // eligible() checks ctx.chosen too). Excluding the latter four from
+    // the candidate list itself, not just leaving it to their own
+    // eligible() to reject, matters for rotation: without a direction
+    // chosen yet, a rotation that only ever saw a rejected row at its
+    // current position would never advance past it, staying stuck
+    // offering (and rejecting) the same row forever instead of ever
+    // reaching the direction-free ones.
+    //
+    // A row whose own Focus section is already built is also excluded --
+    // offering to build something that already exists reads as Coach not
+    // paying attention. Go-to-Market additionally needs the Bridge Story
+    // built (outputs.p6): the guide places Go-to-Market late in the Focus
+    // Playbook on purpose, since it runs live research and is the most
+    // expensive section to build, and the Bridge Story is the voice
+    // template its outreach draws on.
+    const widenBuilt=(sid)=>!!(outputs[sid]&&outputs[sid].length)
+    const widenBridgeBuilt=(typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null
+    const widenSearchCandidateKeys=widenSearchCandidateKeysFor(WIDEN_SEARCH_ROW_KEYS,{hasDirection:!!chosen,bridgeBuilt:widenBridgeBuilt,goToMarketBuilt:widenBuilt('p7'),recruitersBuilt:widenBuilt('recruiters'),groupsBuilt:widenBuilt('groups'),incomeBuilt:widenBuilt('income')})
+    const widenSearchTarget=hasOnboardingConcierge?pickWidenSearchRowForPipeline(widenSearchCandidateKeys,widenSearchState,{pipelineThin,lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
     // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
     // move row), shared by Opportunity Playbook arrival (offers the first
     // one that fits) and Next move (offers the one after whatever Delivery
@@ -11344,7 +11418,7 @@ export default function PivotEngine(){
       // server rather than being silently dropped.
       if(saveRerunPendingRef.current){saveRerunPendingRef.current=false;save()}
     }
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,widenSearchState,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -11938,9 +12012,9 @@ export default function PivotEngine(){
   const handleCoachVoiceViolation=(violations)=>{
     logVoiceEvent({step:'coach-chat',attempt:1,recovered:false,violations})
   }
-  const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}
-  const handleCoachMoodLow=()=>{setCoachMoodHold(true)}
-  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}
+  const handleCoachDistressDetected=()=>{setCoachDistressHold(true);writeCoachHold('distress')}
+  const handleCoachMoodLow=()=>{setCoachMoodHold(true);writeCoachHold('mood')}
+  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false);clearCoachHolds()}
   // The Focus-section text a correction on that section is aimed at. Only for
   // Focus sections: the Opportunity Playbook cards and the opportunity Bridge
   // Story share these step ids but live on the saved record, so their call
@@ -12704,7 +12778,7 @@ export default function PivotEngine(){
   //                                     lose the tag the first one arrived on
   // Add a key here only if it holds the user's own content or session state.
   const clearAccountLocalState=()=>{
-    const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error']
+    const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error','reimagine_chat_cleared_at_applied']
     keys.forEach(k=>{try{localStorage.removeItem(k)}catch{}})
     // sessionStorage, not localStorage -- see widenSearchOfferedThisSessionRef's
     // own comment. Both Start Fresh and Sign Out navigate this same tab to a
@@ -12712,6 +12786,7 @@ export default function PivotEngine(){
     // widen-the-search offer already made under the old account would
     // silently suppress the first one the new account should get.
     try{sessionStorage.removeItem('pe_widen_search_offered_session')}catch{}
+    clearCoachHolds()
   }
   const signOut=async()=>{
     // Verify the server actually cleared the session BEFORE we wipe local state
@@ -17088,8 +17163,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         />
         return <IndustryEcosystemHub
           isDemo={isDemo}
-          onBack={()=>nav(hubStep)}
-          hubLabel={hubLabel}
           categories={ecosystem.categories}
           industry={ecosystem.industry}
           busy={ecosystemBusy}
@@ -19441,7 +19514,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} coachActive={false} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} userId={signedInUser?.id||null} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>

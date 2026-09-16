@@ -8,13 +8,19 @@
 // dashboard reflects real external usage; ?includeInternal=1 shows everyone.
 //
 // PRIVACY: user_id and email NEVER leave the server (email is used only in a WHERE
-// to exclude admins). All RAW CONTENT — question text, reply text, rating comments
-// — rides the COACH_CONTENT_REVIEW gate (default OFF): when off, the response is
-// counts / tags / dates / rating values only, with no raw text anywhere (including
-// the unmet-question text). Numeric tiers (totals, verdict, distributions, feature
-// breakdown, answer-quality counts) are always on. Requires the selfcheck columns
-// (2026-06-10), the insight columns/table (2026-06-12), and the rating columns
-// (2026-06-12 coach-reply-ratings) to be live.
+// to exclude admins, and internally to build the redaction list below). All RAW
+// CONTENT — question text, reply text, rating comments — rides the
+// COACH_CONTENT_REVIEW gate (default OFF): when off, the response is counts /
+// tags / dates / rating values only, with no raw text anywhere (including the
+// unmet-question text). When on, the text is run through redactPII
+// (api/_lib/redact-pii.js) before it leaves this endpoint, per the privacy
+// policy's de-identification promise (src/legalDocs.js) -- see loadIdentitySources
+// below for what that draws on. This is de-identification, not anonymization: a
+// name Coach invented, or a detail the user typed that appears nowhere in their
+// own records, is not caught. Numeric tiers (totals, verdict, distributions,
+// feature breakdown, answer-quality counts) are always on. Requires the selfcheck
+// columns (2026-06-10), the insight columns/table (2026-06-12), and the rating
+// columns (2026-06-12 coach-reply-ratings) to be live.
 //
 // Every query below excludes turn_kind values other than 'user' (NULL --
 // rows written before 2026-09-08 -- treated as 'user', no backfill): a
@@ -26,6 +32,7 @@
 import { sql } from '../_lib/db.js'
 import { TAXONOMY_VERSION, CATEGORIES, ATTRIBUTE_KEYS } from '../_lib/coach-taxonomy.js'
 import { checkAdminAuth, adminLoginEmailsMissing } from '../_lib/admin-auth.js'
+import { redactPII } from '../_lib/redact-pii.js'
 
 const DEFAULT_DAYS = 14
 const MAX_DAYS = 90
@@ -33,6 +40,54 @@ const UNMET_CAP = 200
 
 function parseAdminEmails(raw) {
   return (raw || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+}
+
+// De-identification (2026-09-16, production fix): batch-loads the name/email
+// sources for a set of user ids so rated-exchange and unmet-question text can
+// be redacted before it ever leaves this endpoint. Three sources, matching
+// what a person could plausibly have typed or Coach could have drafted for
+// them: their own account name/email, the interviewers they've named on a
+// saved opportunity's panel, and interviewers their connected assistant
+// staged (pursuit_interviewers). user_id itself is never returned to the
+// client -- it is looked up here, used to build the redaction lists, and
+// dropped before the response is built.
+async function loadIdentitySources(userIds) {
+  const map = new Map()
+  if (!userIds.length) return map
+  const ensure = (id) => {
+    if (!map.has(id)) map.set(id, { names: [], emails: [] })
+    return map.get(id)
+  }
+  const userRows = await sql`
+    SELECT id, first_name, last_name, email FROM users WHERE id = ANY(${userIds}::uuid[])
+  `
+  for (const r of userRows) {
+    const entry = ensure(r.id)
+    if (r.first_name && r.last_name) entry.names.push(`${r.first_name} ${r.last_name}`)
+    else {
+      if (r.first_name) entry.names.push(r.first_name)
+      if (r.last_name) entry.names.push(r.last_name)
+    }
+    if (r.email) entry.emails.push(r.email)
+  }
+  const interviewerRows = await sql`
+    SELECT DISTINCT user_id, name FROM pursuit_interviewers WHERE user_id = ANY(${userIds}::uuid[])
+  `
+  for (const r of interviewerRows) {
+    if (r.name) ensure(r.user_id).names.push(r.name)
+  }
+  const panelRows = await sql`
+    SELECT sp.user_id AS user_id, iv->>'name' AS name
+    FROM saved_playbooks sp
+    CROSS JOIN LATERAL jsonb_array_elements(
+      CASE WHEN jsonb_typeof(sp.data->'panel'->'interviewers') = 'array'
+           THEN sp.data->'panel'->'interviewers' ELSE '[]'::jsonb END) iv
+    WHERE sp.user_id = ANY(${userIds}::uuid[])
+  `
+  for (const r of panelRows) {
+    if (r.name) ensure(r.user_id).names.push(r.name)
+  }
+  return map
 }
 
 function tally(rows, key) {
@@ -196,14 +251,19 @@ export default async function handler(req, res) {
       downByRegister: tally(downTagRows, 'register'),
     }
 
-    // 5. Rated-exchange content — BEHIND THE GATE (default off). De-identified
-    //    question + reply + comment + tags + date, newest first. NEVER user_id /
-    //    email. Only queried when the gate is on, so raw reply text is not even
-    //    fetched when off.
+    // 5. Rated-exchange content — BEHIND THE GATE (default off). Question +
+    //    reply + comment + tags + date, newest first, with names/emails/phone
+    //    numbers/LinkedIn URLs redacted (redactPII, below) before the response
+    //    is built. user_id rides the query for the redaction lookup only and
+    //    is stripped from every object before this function returns; email is
+    //    never selected here at all. Only queried when the gate is on, so raw
+    //    reply text is not even fetched when off. This is de-identification,
+    //    not anonymization: a name Coach invented, or a detail typed by the
+    //    user that appears nowhere in their own records, is not caught.
     let ratedExchanges = null
     if (contentReview) {
       const reRows = await sql`
-        SELECT c.message AS message, c.reply AS reply, c.rating AS rating,
+        SELECT c.user_id AS user_id, c.message AS message, c.reply AS reply, c.rating AS rating,
                c.rating_comment AS comment, c.rated_at AS rated_at, t.attributes AS attributes
         FROM chat_messages c
         LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
@@ -221,16 +281,21 @@ export default async function handler(req, res) {
         ORDER BY c.rated_at DESC
         LIMIT ${UNMET_CAP}
       `
-      ratedExchanges = reRows.map(r => ({
-        message: r.message, reply: r.reply, rating: r.rating,
-        comment: r.comment, rated_at: r.rated_at, attributes: r.attributes || null,
-      }))
+      const identity = await loadIdentitySources([...new Set(reRows.map(r => r.user_id).filter(Boolean))])
+      ratedExchanges = reRows.map(r => {
+        const src = identity.get(r.user_id) || { names: [], emails: [] }
+        return {
+          message: redactPII(r.message, src), reply: redactPII(r.reply, src), rating: r.rating,
+          comment: redactPII(r.comment, src), rated_at: r.rated_at, attributes: r.attributes || null,
+        }
+      })
     }
 
-    // 6. Unmet-need questions: verdict='none'. step + date + tags always; the raw
-    //    question text rides the SAME content-review gate (omitted when off).
+    // 6. Unmet-need questions: verdict='none'. step + date + tags always; the
+    //    raw question text rides the SAME content-review gate (omitted when
+    //    off) and the same redaction as the rated exchanges above.
     const unmetRows = await sql`
-      SELECT c.message AS message, c.current_step AS current_step, c.created_at AS created_at, t.attributes AS attributes
+      SELECT c.user_id AS user_id, c.message AS message, c.current_step AS current_step, c.created_at AS created_at, t.attributes AS attributes
       FROM chat_messages c
       LEFT JOIN coach_message_tags t ON t.message_id = c.id AND t.taxonomy_version = ${V}
       WHERE c.created_at >= NOW() - (${days} * INTERVAL '1 day')
@@ -247,8 +312,11 @@ export default async function handler(req, res) {
       ORDER BY c.created_at DESC
       LIMIT ${UNMET_CAP}
     `
+    const unmetIdentity = contentReview
+      ? await loadIdentitySources([...new Set(unmetRows.map(r => r.user_id).filter(Boolean))])
+      : new Map()
     const unmetQuestions = unmetRows.map(r => ({
-      ...(contentReview ? { message: r.message } : {}),
+      ...(contentReview ? { message: redactPII(r.message, unmetIdentity.get(r.user_id) || { names: [], emails: [] }) } : {}),
       current_step: r.current_step,
       created_at: r.created_at,
       attributes: r.attributes || null,

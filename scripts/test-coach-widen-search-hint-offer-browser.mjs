@@ -38,7 +38,7 @@ let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } else { console.log(`  ok   ${msg}`) } }
 
 const HINT_REPLY_PROSE = "Loading your LinkedIn contacts is exactly the move here -- it lets Who You Know Here and Known Contacts start finding the people you already know at companies you're targeting."
-const ROW_MESSAGE = 'Loading your LinkedIn contacts lets Who You Know Here and Known Contacts find the people you already know at a company. Want to load them?'
+const ROW_MESSAGE = 'If you download your contacts from LinkedIn and load them here, I can show you who you already know at each company you\'re pursuing. Want to set that up?'
 
 async function sendHint(page, coachRequests, text) {
   const baseline = coachRequests.length
