@@ -99,7 +99,7 @@ inside its own `onTap` will get `undefined` — this split is why.
 
 ## 2. MOMENT_CATALOG entries
 
-42 entries, in file order. `screen` is the step id the evaluator must be on
+44 entries, in file order. `screen` is the step id the evaluator must be on
 (or, for `op-interview-close`, one of an array of steps). `dedupeKey`
 `'(none)'` means the default subkey `'_'` applies (fire once per account,
 ever). All `eligible` expressions below are the literal source from
@@ -108,8 +108,10 @@ weakest`), 21/22 (`weakness-question-coach`/`routed-question-coach`), 24/25
 (`op-pipeline-read`/`op-opportunity-read`), 33 (`op-practice-interview-
 team`), all added after this audit was taken by Phase 4 Part 2's Column 2
 batch (Output/handoff/2026-09-09_concierge-batch-and-phase4-brief.md §2.2),
-and rows 38-42 (the widen-the-search set), added by that same brief's §2.6
-(PR1 the engine, PR2 these five rows).
+and rows 38-44 (the widen-the-search set), added by that same brief's §2.6
+(PR1 the engine, PR2 the original five rows) and extended 2026-09-16 with
+pipeline-aware ordering and two more rows (`widen-go-to-market`,
+`widen-job-search-resources`).
 
 | # | key | screen | family / significance | priority | generated? | dedupeKey |
 |---|-----|--------|------------------------|----------|------------|-----------|
@@ -150,14 +152,16 @@ and rows 38-42 (the widen-the-search set), added by that same brief's §2.6
 | 35 | `op-next-move` | op | next_move / ordinary | 2 | **yes** | `ctx.opNextMoveTarget.recordId` |
 | 36 | `op-interview-close` | [pipeline, op] | check / open | 2 | no | `ctx.opInterviewCloseTarget.recordId` |
 | 37 | `op-resume-jump` | op | next_move / ordinary | 2 | no | `ctx.opResumeJumpTarget.lane` |
-| 38 | `widen-recruiters` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, but see 2.1 -- refires via a fresh timestamp, not a permanent dedupe) |
-| 39 | `widen-linkedin-contacts` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
-| 40 | `widen-networking-groups` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
-| 41 | `widen-career-club-corner` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
-| 42 | `widen-income-now` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 38 | `widen-go-to-market` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, but see 2.1 -- refires via a fresh timestamp, not a permanent dedupe) |
+| 39 | `widen-recruiters` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 40 | `widen-linkedin-contacts` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 41 | `widen-networking-groups` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 42 | `widen-job-search-resources` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 43 | `widen-career-club-corner` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
+| 44 | `widen-income-now` | [focus, pipeline, op, twoDoors, mylib] | check / ordinary | 1 | no | (none, same as above) |
 
-(Numbered 1-42 for reference in this doc, matching `MOMENT_CATALOG`'s own
-42 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
+(Numbered 1-44 for reference in this doc, matching `MOMENT_CATALOG`'s own
+44 array entries exactly. `scripts/check-concierge-moment-map.mjs` checks
 the machine-readable key list below against the live array, not this
 table's row numbering — a future entry added or removed here should keep
 that list in sync; the numbering above is free-standing prose, not
@@ -165,7 +169,7 @@ re-checked by the script.)
 
 <!-- moment-catalog-keys:START -->
 ```json
-["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","weakness-question-coach","routed-question-coach","op-pipeline-arrival","op-pipeline-read","op-opportunity-read","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","op-practice-interview-team","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump","widen-recruiters","widen-linkedin-contacts","widen-networking-groups","widen-career-club-corner","widen-income-now"]
+["coach-intro","coach-minimize-intro","coach-self-open-explained","ptw-arrival","career-paths-arrival","ecosystem-suggest","choice-lane","choice-role","delivery-p5","delivery-p6","delivery-p9","delivery-salaryRead","delivery-p11","practice-p11-weakest","delivery-p_res","delivery-p8","delivery-p7","delivery-income","next-move","stall","weakness-question-coach","routed-question-coach","op-pipeline-arrival","op-pipeline-read","op-opportunity-read","op-playbook-arrival","delivery-op-companyRead","delivery-op-salaryRead","delivery-op-p5","delivery-op-p_res","delivery-op-p_cover","delivery-op-p11","op-practice-interview-team","delivery-op-offerNegotiation","op-next-move","op-interview-close","op-resume-jump","widen-go-to-market","widen-recruiters","widen-linkedin-contacts","widen-networking-groups","widen-job-search-resources","widen-career-club-corner","widen-income-now"]
 ```
 <!-- moment-catalog-keys:END -->
 
@@ -332,47 +336,61 @@ this row specifically.
 Playbook with no Resume Refresh built yet.
 `eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.opResumeJumpTarget`
 
-**`widen-recruiters`** / **`widen-linkedin-contacts`** /
-**`widen-networking-groups`** / **`widen-career-club-corner`** /
+**`widen-go-to-market`** / **`widen-recruiters`** /
+**`widen-linkedin-contacts`** / **`widen-networking-groups`** /
+**`widen-job-search-resources`** / **`widen-career-club-corner`** /
 **`widen-income-now`** — The widen-the-search set (Phase 4 Part 2, brief
-§2.6). Unlike every entry above, eligibility here is **not** a condition on
+§2.6; pipeline-aware ordering and the two newest rows added 2026-09-16).
+Unlike every entry above, eligibility here is **not** a condition on
 profile state — per the brief, "the evaluator's job for this set is the
 pacing and the snooze dates only." Each row's `eligible` is just
-`ctx.widenSearchTarget === '<own key>'` (three also require `ctx.chosen`,
-since Recruiters/Networking Groups/Income Now build a Focus section via
-`genSec`; LinkedIn contacts and Career Club Corner don't need a direction).
+`ctx.widenSearchTarget === '<own key>'` (four also require `ctx.chosen`,
+since Go-to-Market/Recruiters/Networking Groups/Income Now build a Focus
+section via `genSec`; LinkedIn contacts, Job Search Resources, and Career
+Club Corner don't need a direction).
 `widenSearchTarget` (App.jsx, computed next to `opOpportunityReadTarget`)
-is the ONE thing that decides which of the five (if any) is eligible in a
-given pass — it calls `pickNextWidenSearchRow` (`src/widen-search.js`, PR1's
-pure engine) with `widenSearchCandidateKeys` (the full set when `chosen` is
-set, or just the two direction-free rows when it isn't -- excluding the
-three direction-needing rows from the candidate list itself, not leaving
-it to their own `eligible()` to reject, so rotation with no `chosen` yet
-doesn't get stuck forever re-offering and rejecting whichever
-direction-needing row sits first in rotation order), `widenSearchState`
-(the persisted per-row snooze/retire dates),
+is the ONE thing that decides which of the seven (if any) is eligible in a
+given pass — it calls `pickWidenSearchRowForPipeline`
+(`src/widen-search.js`) with `widenSearchCandidateKeys` (`WIDEN_SEARCH_ROW_KEYS`
+filtered down to: the direction-needing rows only when `chosen` is set;
+a row whose own Focus section is already built excluded outright; and
+Go-to-Market additionally excluded until the Bridge Story is built --
+excluding these at the candidate-list level, not leaving it to each row's
+own `eligible()` to reject, so rotation doesn't get stuck forever
+re-offering and rejecting the same ineligible row instead of ever reaching
+the others), `pipelineThin` (App.jsx, `pursuitStatusLoaded &&
+(activeOpportunities(...).length<2 || stepPosition(...).stalled)`, reusing
+`src/step-position.js`'s own definitions so the screen, Coach's next-step
+read, and this rotation never disagree about what "thin" means -- a thin
+pipeline leads with the network-widening rows via `WIDEN_ORDER_THIN`
+instead of rotating the healthy-pipeline order `WIDEN_ORDER_DEFAULT`),
+`widenSearchState` (the persisted per-row snooze/retire dates),
 `widenSearchOfferedThisSessionRef.current` (session-only pacing: at most
 one unprompted offer per session), and `lastOfferedKey` (derived from
-whichever of the five has the most recent `firedAt` in `coachMoments`, for
-rotation). This guarantees mutual exclusivity: at most one of the five
-rows is ever eligible in the same pass. Each carries `dismissible: false`
-(brief §2.6's own three taps — [Do it now] [Remind me later] [Not for me]
-— are a hard rule, not an addition to the shared Remind-me-later/Minimize
-pair every other dismissible entry gets) and `dedupeValue:
-widenSearchDedupeValue`, a fresh ISO timestamp on every fire rather than
-the default constant `'fired'` — the standard "fire once, ever" dedupe
-semantics would otherwise permanently block a row the very first time it
-fired, since these must be able to fire again once a snooze/retirement
-window passes or rotation comes back around. `widen-career-club-corner`'s
-message is Bob's own APPROVED verbatim paragraph (2026-09-10); the other
-four carry DRAFT copy pending Bob's live read. Taps route through the
-shared `widenSearchOnTap` dispatcher to `ctx.widenSearchDoIt`/
-`widenSearchRemindLater`/`widenSearchNotForMe` (tap-dispatch ctx, see
-Section 3's tap-only fields note) — Do it now's action differs per row
-(`genSec` for the three Focus-section rows, opening `corner.career.club`
-for Career Club Corner, and either scrolling to the open opportunity's own
-Who You Know Here card or guiding the person there via Coach for LinkedIn
-contacts, since that upload has no standalone screen).
+whichever of the seven has the most recent `firedAt` in `coachMoments`,
+for healthy-pipeline rotation only -- a thin pipeline is a priority list,
+not a rotation, so it always leads with the first eligible row in
+`WIDEN_ORDER_THIN` regardless of what fired last). This guarantees mutual
+exclusivity: at most one of the seven rows is ever eligible in the same
+pass. Each carries `dismissible: false` (brief §2.6's own three taps —
+[Do it now] [Remind me later] [Not for me] — are a hard rule, not an
+addition to the shared Remind-me-later/Minimize pair every other
+dismissible entry gets) and `dedupeValue: widenSearchDedupeValue`, a fresh
+ISO timestamp on every fire rather than the default constant `'fired'` —
+the standard "fire once, ever" dedupe semantics would otherwise
+permanently block a row the very first time it fired, since these must be
+able to fire again once a snooze/retirement window passes or rotation
+comes back around. All seven now carry Bob's own APPROVED verbatim
+copy -- `widen-career-club-corner`'s dates to 2026-09-10; the other six
+were approved 2026-09-16. Taps route through the shared `widenSearchOnTap`
+dispatcher to `ctx.widenSearchDoIt`/`widenSearchRemindLater`/
+`widenSearchNotForMe` (tap-dispatch ctx, see Section 3's tap-only fields
+note) — Do it now's action differs per row (`genSec` for the four
+Focus-section rows, `nav('resources')` for Job Search Resources, opening
+`corner.career.club` for Career Club Corner, and either scrolling to the
+open opportunity's own Who You Know Here card or guiding the person there
+via Coach for LinkedIn contacts, since that upload has no standalone
+screen).
 
 ---
 

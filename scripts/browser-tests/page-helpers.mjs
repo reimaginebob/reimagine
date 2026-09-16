@@ -59,11 +59,11 @@ export async function openEmbeddedCoach(page) {
   await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
 }
 
-async function newPage(browser, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState }) {
+async function newPage(browser, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride }) {
   const context = await browser.newContext({ viewport: VIEWPORT })
   const page = await context.newPage()
   await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
+  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride })
   await page.goto(DEV_URL)
   await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
   return { context, page, coachRequests }
@@ -83,9 +83,11 @@ export async function newFocusPage(browser, { step = 'focus', coachReplyBody, co
 // opportunity's stage/dates/built-cards for those without touching the
 // shared DOOR1_RECORD/DOOR2_RECORD fixtures. coachReplyHeaders (t01-19
 // follow-up) simulates a real /api/coach response header, e.g.
-// { 'X-Coach-Widen-Search': 'widen-linkedin-contacts' }.
-export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
+// { 'X-Coach-Widen-Search': 'widen-linkedin-contacts' }. outputsOverride
+// (2026-09-16) merges onto DOOR1_RECORD.outputs -- e.g. { p6: '...' } to
+// mark the Bridge Story built for a widen-go-to-market candidacy test.
+export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride })
   await openEmbeddedCoach(page)
   return { context, page, coachRequests }
 }

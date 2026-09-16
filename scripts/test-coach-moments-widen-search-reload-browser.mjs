@@ -9,8 +9,11 @@
 // page load instead of surviving the tab via sessionStorage. This is the
 // browser-level regression test the bug report itself required before
 // shipping the fix -- it reloads mid-session, twice, on the exact fixture
-// (a fresh flagged account, rotation starting at widen-recruiters) the
-// report's own repro used, and asserts neither symptom recurs.
+// (a fresh flagged account, rotation starting at widen-networking-groups
+// -- the default fixture's one open opportunity makes its pipeline thin,
+// per the 2026-09-16 pipeline-aware rotation update, so the network-
+// widening rows lead) the report's own repro used, and asserts neither
+// symptom recurs.
 import { chromium } from 'playwright'
 import { existsSync } from 'node:fs'
 import { newFlaggedFocusPage, openEmbeddedCoach, RAIL } from './browser-tests/page-helpers.mjs'
@@ -22,8 +25,8 @@ const EXECUTABLE_PATH = existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/
 let failures = 0
 const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}`) } else { console.log(`  ok   ${msg}`) } }
 
-const FIRST_OFFER = 'Recruiters for This Path builds a list of the recruiters'
-const SECOND_OFFER = 'Loading your LinkedIn contacts lets Who You Know Here'
+const FIRST_OFFER = 'I can put together a list of groups where people in roles like'
+const SECOND_OFFER = 'Job Search Resources finds free job-search groups where you live'
 const countOf = (text, needle) => (text.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
 
 async function reloadAndSettle(page) {
@@ -42,13 +45,13 @@ async function run() {
   try {
     // Fresh flagged account, nothing fired or snoozed yet -- the exact shape
     // of the report's own repro (bob+lindsey@career.club's My Pipeline):
-    // rotation with no lastOfferedKey starts at widen-recruiters.
+    // rotation with no lastOfferedKey starts at widen-networking-groups on this thin-pipeline fixture.
     const { context, page } = await newFlaggedFocusPage(browser, { onboardingConcierge: true })
 
     await page.waitForTimeout(2000)
     const initial = await page.evaluate(() => document.body.innerText)
     check(countOf(initial, FIRST_OFFER) === 1,
-      'widen-recruiters fires once on first load (baseline before any reload)')
+      'widen-networking-groups fires once on first load (baseline before any reload)')
 
     // Let the debounced autosave (App.jsx, 800ms) flush coachMoments'
     // dedupe write to localStorage's pe_v4 before reloading -- a reload
@@ -67,7 +70,7 @@ async function run() {
     check(!bodyText.includes(SECOND_OFFER),
       'reloading once does not fire a second, different widen-the-search offer (repro step 2)')
     check(countOf(bodyText, FIRST_OFFER) === 1,
-      'the original widen-recruiters offer still appears exactly once after one reload, not duplicated')
+      'the original widen-networking-groups offer still appears exactly once after one reload, not duplicated')
 
     // --- Repro step 3: reload again. Before the fix, this re-fired the
     // exact same second offer a third time, verbatim, as a new message --
@@ -77,7 +80,7 @@ async function run() {
     check(!bodyText.includes(SECOND_OFFER),
       'reloading a second time still does not fire (or duplicate) any widen-the-search offer (repro step 3)')
     check(countOf(bodyText, FIRST_OFFER) === 1,
-      'the original widen-recruiters offer still appears exactly once after two reloads, not duplicated')
+      'the original widen-networking-groups offer still appears exactly once after two reloads, not duplicated')
 
     // sessionStorage (not localStorage) is the pacing ref's whole point --
     // confirm it actually survived the reloads rather than the assertions
