@@ -192,7 +192,7 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPl
   }
 }
 
-export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false } = {}) {
+export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, chatClearedAt = null } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -219,6 +219,13 @@ export function buildMeResponse({ flagged = false, employmentStatus = 'employed'
       employment_status: employmentStatus,
       search_going_well: '',
       search_focus: '',
+      // Cross-device Clear (2026-09-16 follow-up): chatClearedAt stands in
+      // for users.chat_cleared_at (api/_lib/session.js's SELECT), which a
+      // caller sets to simulate "this account was cleared on another
+      // device" -- App.jsx compares it against reimagine_chat_cleared_at_
+      // applied in localStorage and resets a stale local transcript when
+      // it is newer. null (the default) means no clear has happened.
+      chat_cleared_at: chatClearedAt,
       // 'coach_presence' (COACH_PRESENCE_FLAG, api/_lib/feature-flags.js)
       // is what App.jsx's hasCoachPresence/conciergeEmbedded read -- see the
       // comment above. 'onboarding_concierge' (ONBOARDING_CONCIERGE_FLAG) is

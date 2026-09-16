@@ -70,7 +70,8 @@ export async function getSessionUser(req, res = null) {
            u.offer_disclaimer_accepted_at, u.offer_disclaimer_version,
            u.feature_flags, u.track,
            u.search_going_well, u.search_going_well_updated_at,
-           u.search_focus, u.search_focus_updated_at
+           u.search_focus, u.search_focus_updated_at,
+           u.chat_cleared_at
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.token = ${tokenHash} AND s.expires_at > NOW()
