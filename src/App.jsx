@@ -7064,6 +7064,10 @@ function DemoUnavailable(){
 // change is a one-line edit here, not a hunt through JSX. The links are plain
 // external donate.stripe.com checkout pages (each with its own thank-you
 // configured on Stripe's side) — no backend route, no success/return handling.
+// SupportPanel appends `?client_reference_id=<account id>` for a signed-in
+// user (withDonorRef, below) so api/stripe-webhook.js can join a completed
+// donation back to the account, in aggregate only -- see
+// migrations/2026-09-16_donations.sql.
 const SUPPORT_PANEL_COPY={
   navLabel:'Pay It Forward',
   navSubline:'Free to use, help keep it that way',
@@ -7124,6 +7128,15 @@ const MOVE_ANNOUNCEMENT_COPY={
 // built while the old arrangement was on screen, which is what the note explains.
 const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
 
+// Appends client_reference_id to a donate.stripe.com Payment Link so Stripe
+// carries the account id through checkout and returns it on the resulting
+// checkout.session.completed webhook event. A no-op for a signed-out visitor
+// (donorRef empty) or if the link already carries a query string.
+function withDonorRef(url,donorRef){
+  if(!donorRef)return url
+  return `${url}${url.includes('?')?'&':'?'}client_reference_id=${encodeURIComponent(donorRef)}`
+}
+
 // Support panel. Reuses the same overlay primitive as the feedback / migration
 // modals (fixed full-viewport scrim, dialog role, backdrop-click + × to close).
 // It is a pure overlay controlled by local Sidebar state, so opening it never
@@ -7131,7 +7144,7 @@ const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
 // new tab. "Give once" and "Give monthly" are two separate labeled groups, not
 // a shared tier row: there is no monthly equivalent for each one-time amount,
 // so the layout must not imply parity between them.
-function SupportPanel({onClose}){
+function SupportPanel({onClose,donorRef}){
   const K=SUPPORT_PANEL_COPY
   const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
@@ -7147,20 +7160,20 @@ function SupportPanel({onClose}){
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.onceOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,donorRef)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
       <div style={{marginTop:20}}>
         <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,donorRef)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
     </div>
   </div>
 }
 
-function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
+function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,donorRef='',hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -7214,7 +7227,7 @@ function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,cho
         <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>{SUPPORT_PANEL_COPY.navSubline}</div>
       </div>
     </div>
-    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
+    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)} donorRef={donorRef}/>}
   </>
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
@@ -19390,7 +19403,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
         {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} coachActive={false} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} donorRef={(signedInUser&&signedInUser.id)||''} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>

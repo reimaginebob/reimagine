@@ -502,6 +502,86 @@ export default function EconomicsDashboard() {
           {billMsg && <div style={{ fontSize: 14, color: NAVY, marginTop: 10 }}>{billMsg}</div>}
         </Panel>
       </div>
+
+      {/* Direct Career Club donations, from the career.club Stripe account.
+          Its own heading and its own fetch rather than a row in the P&L above
+          -- a different revenue stream, deliberately not blended into
+          NextPlacement's numbers. */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <h2 style={{ fontFamily: "Georgia, serif", fontSize: 20, fontWeight: 700, color: NAVY, margin: 0 }}>Direct donations</h2>
+          <span style={{ fontSize: 14, color: GRAYL }}>Career Club Stripe — separate from NextPlacement above</span>
+        </div>
+        <div style={S.calloutTight}>
+          Aggregate only, on purpose: no donor is named on this page. A donation joins to an account only when Stripe returns the id Reimagine attached at checkout; one that comes back without it is counted as unlinked rather than dropped or guessed at.
+        </div>
+        <div style={{ ...S.panelGrid, marginTop: 12 }}>
+          <DonationsPanel />
+        </div>
+      </div>
+    </>
+  )
+}
+
+// Self-fetching: this section's data has nothing to do with the P&L payload
+// above it, and giving it its own request keeps that true end to end rather
+// than just in the layout.
+function DonationsPanel() {
+  const [payload, setPayload] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/admin/donations", { credentials: "include" })
+        if (cancelled) return
+        if (res.status === 200) setPayload(await res.json())
+        else setError(`Request failed (HTTP ${res.status}).`)
+      } catch {
+        if (!cancelled) setError("Network error reaching the donations endpoint.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  if (loading) return <Panel title="Donor rate and timing" wide><div style={S.muted}>Loading…</div></Panel>
+  if (error) return <Panel title="Donor rate and timing" wide><div style={S.errorBanner}><span>{error}</span></div></Panel>
+  if (!payload) return null
+
+  const dist = payload.distribution || []
+  const maxCount = Math.max(...dist.map((d) => d.count), 1)
+  const anyLinked = dist.some((d) => d.count > 0)
+
+  return (
+    <>
+      <Panel title="Donor rate">
+        <div style={S.tileGrid}>
+          <Stat label="Have ever donated" value={`${(Number(payload.donor_rate_pct) || 0).toFixed(1)}%`} accent
+            sub={`${fmtInt(payload.donors_linked)} of ${fmtInt(payload.total_users)} accounts`} />
+          <Stat label="Median days to first gift" value={payload.median_days_to_first_donation === null ? "—" : fmtNum1(payload.median_days_to_first_donation)} />
+          <Stat label="Mean days to first gift" value={payload.mean_days_to_first_donation === null ? "—" : fmtNum1(payload.mean_days_to_first_donation)} />
+          <Stat label="Unlinked donations" value={fmtInt(payload.unlinked_donations)} sub="signed out, or no account" />
+        </div>
+      </Panel>
+      <Panel title="Time from signup to first gift" wide>
+        {!anyLinked
+          ? <div style={S.muted}>No linked donations yet.</div>
+          : <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+              {dist.map((b) => (
+                <div key={b.bucket} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 116, fontSize: 14, color: GRAYL, flexShrink: 0 }}>{b.label}</div>
+                  <div style={{ flex: 1, background: CREAM, borderRadius: 6, overflow: "hidden", height: 22 }}>
+                    <div style={{ width: `${(b.count / maxCount) * 100}%`, minWidth: b.count > 0 ? 4 : 0, height: "100%", background: GOLD, borderRadius: 6 }} />
+                  </div>
+                  <div style={{ width: 28, textAlign: "right", fontSize: 14, fontWeight: 700, color: NAVY, flexShrink: 0 }}>{b.count}</div>
+                </div>
+              ))}
+            </div>}
+      </Panel>
     </>
   )
 }
