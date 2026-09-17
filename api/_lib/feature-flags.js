@@ -273,6 +273,22 @@ export function hasCorrectionActions(user) {
   return flags.includes(CORRECTION_ACTIONS_FLAG) || isInternalAccount(user)
 }
 
+// PILOT -- Coach file upload, 2026-09-17. Gates the paperclip attach control
+// next to the My Coach message box: drop in a PDF, Word doc, or text file and
+// its extracted text is inserted into the next message -- the same
+// client-side extraction path (mammoth for Word, pdf.js for PDF, no
+// server-side storage) already used for resume, LinkedIn, and
+// job-description uploads elsewhere in the app. A separate flag from the
+// others on purpose: this changes what Coach's own system prompt tells the
+// model it can accept, which Bob QCs on its own before any outside account
+// sees it.
+export const COACH_FILE_UPLOAD_FLAG = 'coach_file_upload'
+
+export function hasCoachFileUpload(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_FILE_UPLOAD_FLAG) || isInternalAccount(user)
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -284,4 +300,5 @@ export function hasCorrectionActions(user) {
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
+  [COACH_FILE_UPLOAD_FLAG]: { label: 'My Coach: attach a document' },
 }

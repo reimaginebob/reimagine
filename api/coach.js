@@ -19,8 +19,9 @@ import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowled
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { INDUSTRY_ECOSYSTEM_KNOWLEDGE } from '../src/data/industry-ecosystem-knowledge.js'
 import { CORRECTION_ACTIONS_KNOWLEDGE } from '../src/data/correction-actions-knowledge.js'
+import { COACH_FILE_UPLOAD_KNOWLEDGE } from '../src/data/coach-file-upload-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachFileUpload, hasCoachSituation } from './_lib/feature-flags.js'
 import { hasCorrectionActions } from './_lib/feature-flags.js'
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
@@ -573,11 +574,18 @@ export function sanitizeHistoryForModel(history) {
 // Prelaunch audit, finding #2.2: a Coach message had no length limit at all.
 // Measured in bytes (not characters), since a multi-byte-heavy paste could be
 // well within a character-count cap while still being a multi-megabyte
-// payload. 8000 bytes is roughly 1300+ words -- generous for anything a
-// person would plausibly type or dictate in one turn, small next to the
-// abuse case (a scripted caller pasting megabytes to run the cost up).
+// payload. Originally set to 8000 bytes (~1300 words) as "generous for
+// anything a person would plausibly type" -- which undersold what people
+// actually paste in. A one-hour speaker-labeled transcript runs roughly
+// 50-150 KB of plain text (~9,000-12,000 words), and even that is a rounding
+// error against Claude's 200K-token context window: neither payload size nor
+// context capacity was ever the real constraint. Raised 2026-09-17 (Magnus's
+// reported failure pasting a call transcript) to 300,000 bytes -- comfortably
+// covers a multi-hour transcript or a long document with room to spare -- and
+// kept as a true outer bound against the actual abuse case: a scripted caller
+// pasting megabytes to run the cost up.
 // Exported as a pure function so the byte-cap logic can be tested directly.
-export const MAX_MESSAGE_BYTES = 8000
+export const MAX_MESSAGE_BYTES = 300000
 export function messageExceedsByteCap(message) {
   return typeof message === 'string' && Buffer.byteLength(message, 'utf8') > MAX_MESSAGE_BYTES
 }
@@ -1715,7 +1723,7 @@ ${COMP_KNOWLEDGE}
 - You can offer to build, rework, or capture things for them — but only ever through a tap they confirm, never by doing it yourself inside this conversation. When a build (a Personal Brand, a Resume Refresh, a playbook card, any generated section), a rework of something already built, or a capture (saving a fact to their profile or an opportunity) fits what you are discussing, offer it in plain language and let the app's tap start it. Never say you cannot build or edit something, and never call yourself read-only — for anything with a tap, that is no longer true. What is still true, and the one real limit: you do not write the actual content yourself inside this chat, and you never claim the work is already done before they tap — "I've built that," "I've added it," "one moment while I generate that" all describe an action only their tap performs. If there is genuinely no tap for what they want (editing something already built the way they are asking, or a screen-native action nothing here offers), say so plainly and point them to the step that does it — name it in prose by its feature-map name.
 - Speak as a partner, not a separate party with your own wants. Frame every ask around what the two of you build together, never around what you want, need, or are looking for from them — "give me an old review" serves you; "bring an old review — that's exactly the kind of detail this works from" keeps it joint. This applies most when you are asking them for something (a quote, a remembered result, a detail): the reason it matters is what it does for their case, never that it is something you want. "I want," "I need," "I'm looking for," and "give me" are the shapes to catch yourself using; "we," "together," and "let's" are usually the fix.
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
-- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, the sourced market range from their Compensation Read when built, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics, cite the market range that is already there, and do not ask them to paste the offer or go find data you already hold. If a section they need is not built yet, point them to build it in Reimagine.
+- You are talking with the person in a text chat. You cannot open attachments or see their screen, and unless a later note in this prompt says otherwise for this account, you cannot accept file uploads either — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, the sourced market range from their Compensation Read when built, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics, cite the market range that is already there, and do not ask them to paste the offer or go find data you already hold. If a section they need is not built yet, point them to build it in Reimagine.
 - When they ask a general question about their saved playbooks or opportunities — "my playbooks," "my opportunities," "my saved work," "can you help me with my opportunity playbooks" — and the INDEX shows saved playbooks, treat it as being about what they already have, not a request to make a new one: name the saved playbooks you see in the index and offer to dig into a specific one (they can name it for you to work from, or open it in Reimagine). Point them to Add an Opportunity only when they have nothing saved.
 - Teach the frameworks, do not hide them. Making Your Own Weather has named frameworks — KEEL, the 4 C's, the 5 P's, STAR, SCOPE — and your job is to teach the one that fits this person's situation, by name and in the book's own words (the exact definitions are in TEACH THE FRAMEWORKS below). Never drop a bare label assuming they have read the book; name it and explain it in the same breath. ATTRIBUTION — full name ONCE per conversation, short forms after that. The first time the book comes up, say it in full: "Making Your Own Weather, Bob Goodwin's book on the job search." Every reference after that is Bob, the book, Making Your Own Weather, Career Club, or at Career Club Corner. Repeating "Bob Goodwin" and the full title on every mention reads like a citation rather than a conversation, and it is the most common way this voice goes wrong. Once per reply is a ceiling, not a target — most turns need no attribution at all, because you are coaching someone, not quoting at them. Speak from inside Career Club rather than about it: we, our, at Career Club Corner. When an idea is Frankl's or Covey's, name and credit them once with a short attribution — channel the idea, do not quote at length.
 - ${PLAIN_ENGLISH}
@@ -1967,6 +1975,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
   if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
+  if (!generalMode && hasCoachFileUpload({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(COACH_FILE_UPLOAD_KNOWLEDGE)
   const knowledgeBlock = knowledgeParts.length ? knowledgeParts.join('\n\n---\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
   // The person's own local calendar date (My Coach review, finding #3.6), not
@@ -2242,7 +2251,7 @@ export default async function handler(req, res) {
   // unbounded too. Both checks run here, before the profile read, so an
   // abusive turn never gets that far.
   if (messageExceedsByteCap(rawMessage)) {
-    return res.status(400).json({ error: 'message too long' })
+    return res.status(400).json({ error: 'message too long', message: "That's too long for me to read in one message. Try sending it in a shorter chunk." })
   }
   // 60/hour is a generous, unmeasured starting point (no production Coach
   // data exists yet to tune it against, per the audit's own Section 9), not
