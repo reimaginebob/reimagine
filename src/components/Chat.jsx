@@ -14,7 +14,7 @@ import { isWidenSearchRowEligible } from '../widen-search.js'
 import { BUILD_SHA } from '../build-meta.js'
 
 // intro: true opts this one message into the same collapse-to-strip
-// treatment as banner:true narration (see isCollapsedBanner below) without
+// treatment as banner:true narration (see isCollapsedMessage below) without
 // also feeding the closed-bubble preview-card effect, which keys on
 // banner:true specifically -- this is the generic greeting, not a "here's
 // what's coming" line worth surfacing as a popup.
@@ -343,8 +343,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // on banner:true), but it deserves the same fate once anything follows it
   // -- it is exactly as superseded as a narration line the moment a real
   // exchange starts.
-  const [expandedBanners, setExpandedBanners] = useState(() => new Set())
-  const toggleBannerExpanded = i => setExpandedBanners(prev => {
+  //
+  // Extended 2026-09-17 to every message, not just banner/intro narration:
+  // a long My Coach session of ordinary questions and replies stacked full-
+  // height indefinitely with no way to shrink what was already read. Same
+  // rule for everyone now -- any message collapses once something has been
+  // said after it; the most recent message is never collapsed, whatever it
+  // is; a message with live, unresolved taps never collapses either (see
+  // hasLiveTaps below).
+  const [expandedMessages, setExpandedMessages] = useState(() => new Set())
+  const toggleMessageExpanded = i => setExpandedMessages(prev => {
     const next = new Set(prev)
     if (next.has(i)) next.delete(i)
     else next.add(i)
@@ -1418,18 +1426,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // person acts on it or a new offer of the same kind supersedes it,
         // neither of which "something else was said after it" is.
         const hasLiveTaps = Array.isArray(m.quickReplies) && m.quickReplies.length > 0
-        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i) && !hasLiveTaps
-        // Same eligibility as isCollapsedBanner, minus the expanded check --
+        const isCollapsedMessage = i < messages.length - 1 && !expandedMessages.has(i) && !hasLiveTaps
+        // Same eligibility as isCollapsedMessage, minus the expanded check --
         // true whether the strip is showing or the person tapped it open.
-        // Reported live (2026-09-05): the strip's tap toggled expandedBanners
+        // Reported live (2026-09-05): the strip's tap toggled expandedMessages
         // in both directions, but nothing on the EXPANDED bubble called
-        // toggleBannerExpanded back -- once opened, a superseded message had
+        // toggleMessageExpanded back -- once opened, a superseded message had
         // no way to return to its one-line strip.
-        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1 && !hasLiveTaps
+        const isExpandableMessage = i < messages.length - 1 && !hasLiveTaps
+        // Banner/intro narration keeps showing its own content verbatim in
+        // the strip (unchanged). A regular Q&A message gets a role-prefixed,
+        // truncated preview -- its full text is a whole Coach reply or
+        // question, not the short "here's what's coming" line the strip
+        // format was built for.
+        const stripPreview = (m.banner || m.intro)
+          ? m.content
+          : `${m.role === 'assistant' ? 'Coach' : 'You'}: ${m.content && m.content.length > 60 ? `${m.content.slice(0, 60)}…` : (m.content || '')}`
         return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
-          {isCollapsedBanner ? (
-            <button onClick={() => toggleBannerExpanded(i)} style={{
+          {isCollapsedMessage ? (
+            <button onClick={() => toggleMessageExpanded(i)} style={{
               display: 'flex', alignItems: 'center', gap: 6, maxWidth: 'min(100%, 74ch)',
               background: '#F4F6F9', border: 'none', borderRadius: 8,
               padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
@@ -1439,7 +1455,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 fontSize: 16, color: '#8A9BB8', lineHeight: 1.4,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {m.content}
+                {stripPreview}
               </span>
             </button>
           ) : (
@@ -1495,15 +1511,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           </div>
           )
           )}
-          {!isCollapsedBanner && isExpandableBanner && (
-            <button onClick={() => toggleBannerExpanded(i)} style={{
+          {!isCollapsedMessage && isExpandableMessage && (
+            <button onClick={() => toggleMessageExpanded(i)} style={{
               display: 'block', marginTop: 4, background: 'transparent', border: 'none',
               color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
             }}>
               ‹ Collapse
             </button>
           )}
-          {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
+          {!isCollapsedMessage && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {m.quickReplies.map((opt, qi) => {
                 // Tap hierarchy (2026-09-09 Coach styling pass, values updated
@@ -1525,7 +1541,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               })}
             </div>
           )}
-          {m.role === 'assistant' && m.id && (
+          {!isCollapsedMessage && m.role === 'assistant' && m.id && (
             <div data-print="hide" style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button onClick={() => rate(i, m.id, 1)} aria-pressed={m.rating === 1} aria-label="Helpful"

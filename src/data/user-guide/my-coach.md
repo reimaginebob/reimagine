@@ -10,6 +10,8 @@ A few ways in, one conversation: the chat button in the corner of every screen o
 
 **And it never takes you anywhere.** However you open it — the sidebar, the corner button, or an **Ask My Coach about this** button — the coach opens right on the screen you're already on, with your conversation exactly as you left it. You never step away from your work to talk to it, so there's nothing to come back from.
 
+As a conversation grows, earlier questions and replies collapse into a one-line summary once something newer has been said — nothing is deleted, and a tap reopens any of them.
+
 ## What it can do
 
 Answer questions about any part of your search, grounded in what it knows about you; reflect your real experience back to you; and point you to the right Reimagine step when one fits.
