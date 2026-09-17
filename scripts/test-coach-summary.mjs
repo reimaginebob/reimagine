@@ -574,10 +574,73 @@ check(/source === 'door2'/.test(scan), `${SCAN}: the scan does not restrict to o
 check(/< 2/.test(scan),
   `${SCAN}: the scan does not skip accounts with fewer than two opportunities -- one opportunity cannot cross-reference anything`)
 
+// --- 11a. ...and it reads the storage the notes are actually in -----------
+// The first version of this scan read state.savedPlaybooks off profile_state
+// and reported 0 notes on every account, including one whose opportunities
+// visibly had notes in the product. Playbooks left that blob at Phase 3 of the
+// saved_playbooks migration -- stateForSave in src/App.jsx no longer carries
+// them -- so the blob is legacy-only and a blob-only read finds almost nothing.
+const SP = 'api/_lib/saved-playbooks.js'
+check(/getSavedPlaybooks/.test(scan),
+  `${SCAN}: the scan does not go through getSavedPlaybooks -- playbooks live in the saved_playbooks table, and reading the profile_state blob alone is what made this report zero notes everywhere`)
+{
+  // Comments stripped first -- the file explains this mistake in prose, which
+  // must not be mistaken for the mistake.
+  const code = scan.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n')
+  const blobReads = code.match(/state\s*&&\s*state\.savedPlaybooks|state\.savedPlaybooks/g) || []
+  const asFallback = code.match(/getSavedPlaybooks\([^)]*state\s*&&\s*state\.savedPlaybooks\s*\)/g) || []
+  check(blobReads.length > 0 && blobReads.length === asFallback.length,
+    `${SCAN}: the scan reads state.savedPlaybooks somewhere other than as getSavedPlaybooks's union fallback -- the blob is the retired storage and is not the record list`)
+}
+check(!/savedPlaybooks/.test(fs.readFileSync('src/App.jsx', 'utf8').split('const stateForSave={')[1].split('}')[0]),
+  'src/App.jsx: stateForSave carries savedPlaybooks again -- if playbooks moved back into the blob, this scan and api/coach.js both need revisiting')
+// The read-only promise now spans two files, so it has to be checked in both.
+check(!/UPDATE |DELETE |INSERT /.test(fs.readFileSync(SP, 'utf8')),
+  `${SP}: the scan's new dependency writes to the database, so the scan is no longer read-only`)
+
+check(/candidates: rows\.length/.test(scan),
+  `${SCAN}: the response does not report how many accounts were candidates -- without it, "0 notes" reads the same whether the scan found nothing or looked in the wrong place, which is the exact failure this scan already had once`)
+
+// Behavioral, against records shaped as they come back from saved_playbooks
+// (the brief asked for this asserted rather than assumed): the source and
+// archivedAt filters have to hold on the table's shape, not just the blob's.
+{
+  const { findCrossScopedNotes } = await import('../api/admin/note-scope-scan.js')
+  const note = (text) => ({ id: 'n1', text, source: 'coach-summary', createdAt: '2026-09-17T17:00:00Z' })
+  const tableShaped = [
+    { id: 'r1', title: 'GoGuardian', company: 'GoGuardian', source: 'door2', archivedAt: null,
+      savedNotes: [note('Covered the travel requirement at Deloitte and what Susan said about it.')] },
+    { id: 'r2', title: 'Deloitte', company: 'Deloitte', source: 'door2', archivedAt: null, savedNotes: [] },
+  ]
+  const hit = findCrossScopedNotes(tableShaped)
+  check(hit.eligible && hit.notesScanned === 1, 'note-scope-scan: a table-shaped record\'s notes were not scanned')
+  check(hit.findings.length === 1 && hit.findings[0].names_instead === 'Deloitte' && hit.findings[0].filed_under === 'GoGuardian',
+    'note-scope-scan: the reported cross-scoped note was not found, or is attributed to the wrong opportunity')
+  check(!('email' in hit.findings[0]),
+    'note-scope-scan: the matcher invents an email -- that belongs to the account row the handler holds, not to the record')
+
+  // A note that only talks about its own opportunity is not a finding.
+  check(findCrossScopedNotes([
+    { ...tableShaped[0], savedNotes: [note('GoGuardian wants a second panel; prep the stability framing.')] },
+    tableShaped[1],
+  ]).findings.length === 0, 'note-scope-scan: a note about its own opportunity was flagged')
+
+  // archivedAt on the record (not the denormalized column) is what counts, and
+  // one live opportunity cannot cross-reference anything.
+  check(findCrossScopedNotes([
+    tableShaped[0], { ...tableShaped[1], archivedAt: '2026-09-16T12:00:00Z' },
+  ]).eligible === false, 'note-scope-scan: an archived opportunity still counted toward the two-opportunity floor')
+  check(findCrossScopedNotes([
+    tableShaped[0], { ...tableShaped[1], source: 'door1' },
+  ]).eligible === false, 'note-scope-scan: a Career Paths playbook counted as an opportunity')
+  check(findCrossScopedNotes([]).eligible === false && findCrossScopedNotes(null).eligible === false,
+    'note-scope-scan: an account with no records is not handled')
+}
+
 
 if (failures) {
   console.error(`test-coach-summary: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; the capability is documented in the GA user-guide chapter with the pilot knowledge file retired; and a conversation spanning two opportunities scopes the summary to one of them, floors the unprompted offer at three turns, and suppresses any summary that names another open opportunity; a reply naming a person from a different opportunity\'s interview team is measured without altering the reply; and the read-only scan for notes written before the fix reuses the same detector and never writes)')
+  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; the capability is documented in the GA user-guide chapter with the pilot knowledge file retired; and a conversation spanning two opportunities scopes the summary to one of them, floors the unprompted offer at three turns, and suppresses any summary that names another open opportunity; a reply naming a person from a different opportunity\'s interview team is measured without altering the reply; and the read-only scan for notes written before the fix reuses the same detector, reads the saved_playbooks table the way Coach does rather than the retired profile_state blob, and never writes)')
 }
