@@ -496,11 +496,128 @@ function clip(text, limit = 4000) {
 // never clears, which undercounts exactly the people with several
 // opportunities running over weeks.
 export const COACH_SUMMARY_OFFER_WINDOW_MS = 24 * 60 * 60 * 1000
-export function buildCoachSummaryCaptureNote({ opportunityTitle, proactiveAllowed, firstFire }) {
+
+// --- Summary scope (2026-09-18, live finding on bob+lindsey@career.club) ---
+// My Coach has no session boundary short of Clear, so one transcript routinely
+// spans several opportunities. The summary instruction used to open with "the
+// conversation you are having about ${title}", which is simply FALSE the moment
+// the transcript covers more than one -- and the model did what that framing
+// invites: it summarized the whole visible history. A GoGuardian summary landed
+// in GoGuardian's notes opening with a paragraph about Deloitte, naming
+// Deloitte contacts. Wrong facts filed on the wrong opportunity is the kind of
+// miss a person notices once and stops trusting the feature over.
+//
+// The boundary is computed HERE rather than described to the model, for the
+// same reason the 24-hour window is: a rule the model has to infer from free
+// text is a rule it will infer wrong. Real typed turns carry `rid` -- the
+// record that was in focus when they were sent, stamped client-side in
+// Chat.jsx from the same value that already rides the request as
+// focusRecordId, so the two can never disagree.
+//
+// Sparse by design: only typed user turns carry `rid` (moments, banners and
+// quick-reply taps do not), and transcripts from before this shipped carry
+// none at all. `attributable` says which case this is, and the caller treats
+// "cannot attribute" as a reason to be MORE conservative, never less.
+export function scopeHistoryToRecord(history, recordId) {
+  const list = Array.isArray(history) ? history : []
+  const want = typeof recordId === 'string' ? recordId : ''
+  let attributable = false
+  // Index of the last turn belonging to a DIFFERENT opportunity. Everything
+  // after it is this opportunity's part of the conversation. -1 means the whole
+  // retained history is in scope.
+  let boundary = -1
+  const otherRecordIds = []
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i]
+    const rid = (m && typeof m.rid === 'string' && m.rid) ? m.rid : ''
+    if (!rid) continue
+    attributable = true
+    if (rid !== want) {
+      boundary = i
+      if (!otherRecordIds.includes(rid)) otherRecordIds.push(rid)
+    }
+  }
+  let inScopeUserTurns = 0
+  let firstInScopeOpening = null
+  for (let i = boundary + 1; i < list.length; i++) {
+    const m = list[i]
+    if (!m || m.role !== 'user' || m.synthetic) continue
+    inScopeUserTurns += 1
+    if (firstInScopeOpening === null && typeof m.content === 'string' && m.content.trim()) {
+      firstInScopeOpening = m.content.trim().replace(/\s+/g, ' ').slice(0, 90)
+    }
+  }
+  return { attributable, boundary, inScopeUserTurns, otherRecordIds, firstInScopeOpening }
+}
+
+// How many of the person's own turns about ONE opportunity before Coach may
+// offer a summary of it unprompted. Counts the turn being answered, so 3 means
+// they have asked three things about this opportunity.
+//
+// A code-side floor, not a instruction: the shipped instruction already said "a
+// quick factual exchange, a single question answered... is not this", and the
+// model offered anyway on the very first question ever asked about GoGuardian.
+// An instruction the model demonstrably does not honor is not a gate. The
+// on-request path is deliberately NOT floored -- someone who wants a summary
+// after one turn can still ask for one and get it.
+export const COACH_SUMMARY_MIN_TURNS = 3
+
+// Names of the OTHER opportunities this account has open, for the negative
+// half of the scope instruction and for the post-hoc contamination check.
+// Company where there is one (that is what a summary actually names), title
+// otherwise. Short names are dropped: a two- or three-letter company would
+// match ordinary prose and suppress good summaries.
+export function otherOpportunityNames(activeSaved, inFocus) {
+  const out = []
+  const mine = `${(inFocus && inFocus.company) || ''} ${(inFocus && inFocus.title) || ''}`.toLowerCase()
+  for (const r of (Array.isArray(activeSaved) ? activeSaved : [])) {
+    if (!r || !r.id || (inFocus && r.id === inFocus.id) || r.source !== 'door2') continue
+    const name = (typeof r.company === 'string' && r.company.trim()) ? r.company.trim()
+      : (typeof r.title === 'string' && r.title.trim()) ? r.title.trim() : ''
+    if (name.length < 4) continue
+    // Never flag a name the in-focus opportunity itself contains -- two roles
+    // at the same company must not suppress each other's summaries.
+    if (mine.includes(name.toLowerCase())) continue
+    if (!out.includes(name)) out.push(name)
+  }
+  return out
+}
+
+// Does this reply name an opportunity it has no business naming? The last line
+// of defence behind the scope instruction: a summary is about to be written
+// into ONE opportunity's notes, so another opportunity's name appearing in it
+// means the scope instruction did not hold. Word-boundary matched so "HOPE"
+// does not fire on "hopefully".
+export function summaryNamesOtherOpportunity(text, names) {
+  const body = typeof text === 'string' ? text : ''
+  if (!body.trim()) return null
+  for (const name of (Array.isArray(names) ? names : [])) {
+    const re = new RegExp(`(^|[^A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9]|$)`, 'i')
+    if (re.test(body)) return name
+  }
+  return null
+}
+export function buildCoachSummaryCaptureNote({ opportunityTitle, proactiveAllowed, firstFire, otherNames = [], scope = null }) {
   const title = (typeof opportunityTitle === 'string' && opportunityTitle.trim()) ? opportunityTitle.trim() : 'this opportunity'
-  let note = `\n\nSAVE-SUMMARY CAPTURE: the conversation you are having about ${title} can be summarized into that opportunity's own notes. When this person asks you, in their own words, to summarize this conversation (or this opportunity's conversation) and keep it, write the summary AS your reply -- three to six short plain-English bullets covering what was decided and why, no more, and no preamble about what you are about to do -- and end your reply with a final line exactly like COACHSUMMARY: save.`
+  let note = `\n\nSAVE-SUMMARY CAPTURE: the part of this conversation that is about ${title} can be summarized into that opportunity's own notes. When this person asks you, in their own words, to summarize this conversation (or this opportunity's conversation) and keep it, write the summary AS your reply -- three to six short plain-English bullets covering what was decided and why, no more, and no preamble about what you are about to do -- and end your reply with a final line exactly like COACHSUMMARY: save.`
+  // SCOPE, stated before anything else this instruction asks for. This used to
+  // open "the conversation you are having about ${title}", which is false as
+  // soon as the transcript spans two opportunities -- and the model summarized
+  // the lot. What the boundary IS gets computed in code (scopeHistoryToRecord);
+  // all the model is told is where it falls and what is on the wrong side of it.
+  const others = (Array.isArray(otherNames) ? otherNames : []).filter(Boolean)
+  const sc = scope || {}
+  if (others.length) {
+    note += ` SCOPE -- read this before you summarize anything. This conversation is NOT only about ${title}. It also covers ${others.join(', ')}, and this person keeps a separate set of notes for each one.`
+    if (sc.inScopeUserTurns === 0) {
+      note += ` Nothing earlier in this conversation is about ${title}: the message you are answering right now is the first thing said about it. A summary could therefore draw on that one exchange and nothing else.`
+    } else if (sc.firstInScopeOpening) {
+      note += ` The ${title} part of the conversation begins at the message that starts "${sc.firstInScopeOpening}" and runs to the message you are answering now. Everything before that message is about a different opportunity.`
+    }
+    note += ` A summary of ${title} may use ONLY that part. Never carry a fact, a company name, a person's name, a number, or a concern from ${others.join(' or ')} into it -- those belong to other opportunities' notes, and a note filed against the wrong opportunity is worse than no note at all.`
+  }
   if (proactiveAllowed) {
-    note += ` You may also offer this yourself, without being asked, but ONLY when this conversation has genuinely covered ground on ${title} -- a decision reached, a concern worked through, an approach settled -- AND you are at a natural close rather than mid-thought. When that is true, finish your normal reply as you otherwise would, add ONE sentence offering the summary and naming the opportunity, and end with a final line exactly like COACHSUMMARY: offer. A quick factual exchange, a single question answered, or a thread still in motion is not this; when in doubt, say nothing and let them ask.`
+    note += ` You may also offer this yourself, without being asked, but ONLY when this conversation has genuinely covered ground on ${title} -- a decision reached, a concern worked through, an approach settled -- AND you are at a natural close rather than mid-thought. When that is true, finish your normal reply as you otherwise would, add ONE sentence offering the summary and naming the opportunity, and end with a final line exactly like COACHSUMMARY: offer. A quick factual exchange, a single question answered, or a thread still in motion is not this; when in doubt, say nothing and let them ask. What a natural close actually sounds like: they say they have what they need for now, that they will sit with it or come back to it, that they are done with this one for today, or they thank you and stop asking. Those are the moments to offer.`
   } else {
     note += ` Do not offer this yourself on this turn -- only emit the line if they ask for it.`
   }
@@ -2219,6 +2336,9 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   const situationEcosystemCategory = situation && typeof situation.ecosystemCategory === 'string' && Object.prototype.hasOwnProperty.call(ECOSYSTEM_CATEGORY_LABELS, situation.ecosystemCategory) ? situation.ecosystemCategory : ''
   const situationHasOpRecord = !!(situation && situation.record && situation.record.source === 'door2')
   let inFocusRecordId = null
+  // Other opportunities' names, for the post-hoc summary contamination check
+  // in the handler. Resolved here because this is where activeSaved lives.
+  let summaryOtherNames = []
   // Coach engine guardrails, rule 4: the Situation block's own footprint,
   // tracked separately from profileBlock's total (which also carries
   // capture notes and other content that is not Situation). Accumulates
@@ -2251,11 +2371,30 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
       // decline marker to also cover "already declined recently".
       if (hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) {
         const lastOfferMs = Date.parse(inFocus.lastCoachSummaryOfferAt || '')
-        const proactiveAllowed = !Number.isFinite(lastOfferMs) || ((nowMs || Date.now()) - lastOfferMs) >= COACH_SUMMARY_OFFER_WINDOW_MS
+        const withinWindow = !Number.isFinite(lastOfferMs) || ((nowMs || Date.now()) - lastOfferMs) >= COACH_SUMMARY_OFFER_WINDOW_MS
+        // Which part of the retained transcript is actually about THIS
+        // opportunity (2026-09-18). See scopeHistoryToRecord.
+        const scope = scopeHistoryToRecord(history, inFocus.id)
+        summaryOtherNames = otherOpportunityNames(activeSaved, inFocus)
+        // Three gates on the unprompted offer, all of which must hold:
+        //   1. the 24-hour per-opportunity cooldown (unchanged);
+        //   2. enough of the person's own turns about THIS opportunity -- the
+        //      shipped instruction already forbade offering on a single
+        //      question and the model did it anyway, so this is a floor in
+        //      code rather than a sentence in a prompt;
+        //   3. the transcript is attributable at all. An older transcript
+        //      carries no rid, so the boundary cannot be trusted, so the
+        //      offer is not made. On-request still works there, with the
+        //      negative instruction and the contamination check behind it.
+        // +1 counts the turn being answered, which is not yet in `history`.
+        const enoughTurns = (scope.inScopeUserTurns + 1) >= COACH_SUMMARY_MIN_TURNS
+        const scopeTrusted = scope.attributable || summaryOtherNames.length === 0
         profileBlock += buildCoachSummaryCaptureNote({
           opportunityTitle: inFocus.title,
-          proactiveAllowed,
+          proactiveAllowed: withinWindow && enoughTurns && scopeTrusted,
           firstFire: !(profileState && profileState.seenCoachSummaryMention),
+          otherNames: summaryOtherNames,
+          scope,
         })
       }
     }
@@ -2410,7 +2549,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
         { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
       ]
 
-  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }
+  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames }
 }
 
 export default async function handler(req, res) {
@@ -2741,7 +2880,7 @@ export default async function handler(req, res) {
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
   // known here at write-time — no classifier. Classified attributes are NOT
   // computed here; the nightly job (api/admin/classify-coach.js) fills those.
-  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId } = buildCoachRequest({
+  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames } = buildCoachRequest({
     message, history, currentStep, surface, returnSection,
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     situation: req.body && req.body.situation && typeof req.body.situation === 'object' ? req.body.situation : null,
@@ -2983,6 +3122,36 @@ export default async function handler(req, res) {
   if (csMatch) {
     strippedText = strippedText.replace(csMatch[0], '').trim()
     coachSummaryOffer = csMatch[1].toLowerCase()
+  }
+  // Contamination check (2026-09-18), the last thing standing between a
+  // cross-scoped summary and somebody's notes. The scope instruction above is
+  // the fix; this is what catches the case where it did not hold. A summary is
+  // about to be written into ONE opportunity's notes, so another open
+  // opportunity's name appearing in it means the scope did not stick --
+  // exactly the reported failure, where a GoGuardian summary opened on
+  // Deloitte and named Deloitte contacts.
+  //
+  // Suppressing the OFFER, not the reply: the reply itself may still be useful
+  // to read, and silently rewriting what the model wrote would be worse than
+  // declining to file it. The person can ask again, and nothing wrong gets
+  // saved in the meantime. Logged per account so the rate is visible -- if
+  // this fires often, the instruction needs work rather than the guard.
+  if (coachSummaryOffer && Array.isArray(summaryOtherNames) && summaryOtherNames.length) {
+    const bleed = summaryNamesOtherOpportunity(strippedText, summaryOtherNames)
+    if (bleed) {
+      coachSummaryOffer = null
+      try {
+        await recordSupportEvent(user.id, 'coach_summary_scope_bleed', {
+          step: currentStep || null,
+          build_sha: turnBuildSha,
+          // Content-free on purpose: the name that matched is a company from
+          // this person's own pipeline, which is user content and never goes
+          // in this table (CLAUDE.md section 8). That it happened is the
+          // signal; which opportunity is not needed to act on it.
+          detail: 'summary offer suppressed: reply named another open opportunity',
+        })
+      } catch { /* logging must never cost the reply */ }
+    }
   }
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it

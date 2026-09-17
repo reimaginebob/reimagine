@@ -214,8 +214,17 @@ check(/onActivity={reportCoachActivity}/.test(app) && (app.match(/canFireUnpromp
 
 // --- 3. Turn-addressed writes in Chat.jsx --------------------------------
 
-check(/const userMsg = \{ role: 'user', content: text, at: new Date\(\)\.toISOString\(\) \}/.test(chat),
+// Checked as fields OF the user turn rather than as the whole literal
+// (2026-09-18): the cross-opportunity scope fix added `rid` to this same
+// construction, and pinning the exact string meant a test about the
+// conversation hold broke on a change that had nothing to do with it.
+check(/const userMsg = \{ role: 'user', content: text, at: new Date\(\)\.toISOString\(\)/.test(chat),
   `${CHAT}: a real user turn no longer carries an 'at' stamp -- App's hold has no way to tell mid-conversation from walked-away`)
+// Same turn, the other stamp that rides it: which opportunity was in focus when
+// it was said. The hold and the summary scope both read this construction, so
+// losing either stamp here breaks a different feature silently.
+check(/rid: coachSaveTarget\.id/.test(chat),
+  `${CHAT}: a real user turn no longer carries 'rid' -- api/coach.js's scopeHistoryToRecord has nothing to find an opportunity boundary with, and a summary of one opportunity can be written from another's turns`)
 check(/const turnId = `t\$\{Date\.now\(\)\.toString\(36\)\}\$\{Math\.random\(\)\.toString\(36\)\.slice\(2, 6?8\)\}`/.test(chat),
   `${CHAT}: send() no longer mints a turnId`)
 check((chat.match(/turnId \}\)/g) || []).length >= 1 &&

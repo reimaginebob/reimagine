@@ -754,7 +754,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // model. Only real typed turns get one -- a quick-reply tap is pushed
     // elsewhere as synthetic, and is deliberately not a turn that buys
     // silence.
-    const userMsg = { role: 'user', content: text, at: new Date().toISOString() }
+    // `rid` (2026-09-18): which opportunity was in focus when this was said.
+    // Taken from the same value that already rides the request as
+    // focusRecordId, so the two can never disagree about what this turn was
+    // about. The server uses it to find where one opportunity's part of the
+    // conversation ends and the next begins (scopeHistoryToRecord in
+    // api/coach.js) -- without it, a summary of one opportunity could be
+    // written from turns about another, which is exactly what happened before
+    // this shipped. Absent when nothing is in focus, and absent on every turn
+    // recorded before this shipped; the server treats "cannot attribute" as a
+    // reason to be more careful, not less.
+    const userMsg = { role: 'user', content: text, at: new Date().toISOString(), ...(coachSaveTarget && coachSaveTarget.id ? { rid: coachSaveTarget.id } : {}) }
     // What the person typed around this turn's attachments, for the
     // crisis-safety scan only (see attachedBlocksRef). Sent ONLY when this
     // turn actually carries an attachment; otherwise the field is absent and
