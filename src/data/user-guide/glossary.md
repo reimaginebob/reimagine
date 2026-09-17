@@ -20,7 +20,7 @@ If a term you remember is not here, check **What's Changed**. It carries former 
 
 **Convictions, Clarity, Confidence, Contagious (the 4 C's).** The internal arc of the Reimagine experience. Convictions are what is true about you. Clarity follows from convictions and lets you see options clearly. Confidence comes from evidence. Contagious is the natural result. When you believe, others do too. The framework is part of the methodology, not exposed in the tool's outputs.
 
-**Cover Letter.** A section of the Opportunity Playbook. A short draft letter tuned to the posting, in your voice, built as the sibling of your Go-to-Market outreach. It addresses the most relevant leader by first name where the About This Company research names one, and the team by function otherwise.
+**Cover Letter.** A section of the Opportunity Playbook. A short draft letter tuned to the posting, in your voice, built as the sibling of your Go-to-Market outreach. It always opens "Dear Hiring Manager" — Reimagine never names a specific person to address it to.
 
 **Demo mode.** A guided walkthrough of the tool using a fictional executive, Sarah Chen. Reaching `?demo=true` runs the tour. The entry link is hidden from the interface while the tour is brought back in line with the current flow, so some of the steps it walks through carry older screen names.
 
