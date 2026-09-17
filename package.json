@@ -35,6 +35,11 @@
     "migrate": "node scripts/migrate.mjs up",
     "migrate:status": "node scripts/migrate.mjs status",
     "migrate:bootstrap": "node scripts/migrate.mjs bootstrap",
-    "check:track-leaks": "node scripts/check-track-leaks.mjs"
+    "check:track-leaks": "node scripts/check-track-leaks.mjs",
+    "backfill:donations": "node scripts/backfill-donation-user-ids.mjs",
+    "backfill:donations:apply": "node scripts/backfill-donation-user-ids.mjs --apply",
+    "import:historical-donations": "node scripts/import-historical-donations.mjs",
+    "import:historical-donations:apply": "node scripts/import-historical-donations.mjs --apply",
+    "backfill:donations:full": "node scripts/import-historical-donations.mjs --apply && node scripts/backfill-donation-user-ids.mjs --apply"
   }
 }
