@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import { Paperclip } from 'lucide-react'
 import MD from './MD'
 import CoachMark from './CoachMark'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
+import { extractText } from '../extract-text.js'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
 import { PURSUIT_STAGE_LABELS, PURSUIT_OUTCOME_LABELS } from '../pursuit-stages.js'
@@ -91,7 +93,7 @@ const clearChatServerSide = () => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -152,6 +154,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     return () => window.removeEventListener('keydown', onKey)
   }, [embedded, open])
   const [input, setInput] = useState('')
+  const [fileBusy, setFileBusy] = useState(false)
+  const [fileErr, setFileErr] = useState(null)
+  const fileInputRef = useRef()
   // Save-to-opportunity (PR-5, item I): transient per-reply UI state for the Copy
   // and "Save to this opportunity" actions. The save itself goes through the app
   // (onSaveNote -> setSavedPlaybooks); this component never writes.
@@ -807,9 +812,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // says the same thing every other surface says instead of a generic
         // shrug. Any other failure keeps the short fallback.
         let systemMsg = null
-        if (res.status === 503) {
+        if (res.status !== 401) {
           const body = await res.json().catch(() => null)
-          const m = body && body.error && body.error.message
+          const m = (body && body.error && body.error.message) || (body && typeof body.message === 'string' ? body.message : null)
           if (typeof m === 'string' && m.trim()) systemMsg = m.trim()
         }
         const fallback = res.status === 401
@@ -1591,6 +1596,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           General question — answer without my profile
         </label>
       )}
+      {fileBusy && <div style={{ fontSize: 15, color: '#8A9BB8', padding: '10px 12px 0' }}>Reading your file…</div>}
+      {fileErr && <div style={{ fontSize: 15, color: '#B23B3B', padding: '10px 12px 0' }}>{fileErr}</div>}
       <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
       <textarea
         ref={inputTaRef}
@@ -1608,6 +1615,32 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         }}
       />
       {hasSpeech && <SpeechBtn ref={speechBtnRef} onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
+      {hasCoachFileUpload && <>
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+          onChange={async e => {
+            const f = e.target.files[0]
+            e.target.value = ''
+            if (!f) return
+            setFileBusy(true); setFileErr(null)
+            try {
+              const t = await extractText(f)
+              setInput(prev => (prev ? prev.trim() + '\n\n' : '') + t)
+            } catch (err) {
+              setFileErr(`Could not read ${f.name}: ${err.message}`)
+            } finally {
+              setFileBusy(false)
+            }
+          }} />
+        <button type="button" title="Attach a document (PDF, Word, or text)" disabled={fileBusy || loading}
+          onClick={() => fileInputRef.current.click()}
+          style={{
+            background: '#fff', border: '1px solid #E2E5EA', borderRadius: 8, padding: '8px 10px',
+            cursor: (fileBusy || loading) ? 'default' : 'pointer', opacity: (fileBusy || loading) ? 0.5 : 1,
+            display: 'flex', alignItems: 'center',
+          }}>
+          <Paperclip size={17} color="#8A9BB8" />
+        </button>
+      </>}
       <button
         onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
         disabled={!loading && !input.trim()}
