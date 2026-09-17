@@ -1767,7 +1767,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       </button>
       </div>
       <div style={{ padding: '0 12px 10px', fontSize: 15, color: '#8A9BB8', lineHeight: 1.4 }}>
-        Your coach is AI. It works from what you've shared and can be wrong or incomplete. Decisions are yours; for legal, financial, or medical questions, talk to a professional.
+        Your coach is AI. It works from what you've shared and can be wrong or incomplete. Decisions are yours; for legal, financial, or medical questions, talk to a professional.{hasSpeech ? ' Voice works best in Chrome or Safari.' : ''}
       </div>
     </div>
   )

@@ -3217,6 +3217,50 @@ async function downloadResumeWord(r, opts={}){
   URL.revokeObjectURL(url)
 }
 
+// Cover Letter Word download (beta feedback, Scott Faucheux 2026-09-17): the
+// same download-as-Word affordance the Resume Refresh / One-Sheet has via
+// downloadResumeWord above, sized to a cover letter's plain prose instead of
+// a resume record. The letter is unstructured text (greeting, three
+// paragraphs, sign-off, each separated by a blank line), so the doc is just
+// one paragraph per blank-line-separated block -- no headings, no columns.
+function coverLetterFilename(candidateName, companyName){
+  const slugify=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().split(/\s+/).filter(Boolean).join('_')
+  const nameSlug=slugify(candidateName)||'candidate'
+  const compSlug=slugify(companyName)
+  const d=new Date().toISOString().slice(0,10)
+  return `${nameSlug}_cover_letter${compSlug?'_'+compSlug:''}_${d}.docx`
+}
+
+async function buildCoverLetterDoc(text){
+  const { Document, Paragraph, TextRun }=await getDocx()
+  const MARGIN=1152 // 0.8 inch in twips, matches buildResumeDoc
+  const blocks=String(text||'').split(/\n{2,}/).map(p=>p.trim()).filter(Boolean)
+  const children=(blocks.length?blocks:[String(text||'')]).map(p=>new Paragraph({
+    spacing:{after:240,line:280},
+    children:[new TextRun({text:p,size:24,font:'Garamond'})]
+  }))
+  return new Document({
+    sections:[{
+      properties:{page:{margin:{top:MARGIN,right:MARGIN,bottom:MARGIN,left:MARGIN}}},
+      children
+    }]
+  })
+}
+
+async function downloadCoverLetterWord(text, candidateName, companyName){
+  const { Packer }=await getDocx()
+  const doc=await buildCoverLetterDoc(text)
+  const blob=await Packer.toBlob(doc)
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a')
+  a.href=url
+  a.download=coverLetterFilename(candidateName, companyName)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 // Lightly tidy a stored job description for read-only display (jd-retrieve
 // 2026-08-07). Cosmetic ONLY — never changes words. Rejoins lines that a PDF
 // extraction wrapped mid-paragraph and de-hyphenates words split across a line
@@ -4476,7 +4520,7 @@ HARD LIMIT: ${spec.hardLimit} words for the body (the greeting and sign-off do n
 
 ${spec.shape}
 
-GREETING: Address the letter to the most relevant leader you can identify from the ABOUT THIS COMPANY text below, the executive whose remit actually covers this role (the head of the function or department this role sits in; for a senior or officer role, the relevant C-level leader). Use that person's FIRST NAME only, on its own line, with no "Dear" and no title: just "<First name>,". Only ever name a real person who appears in the ABOUT THIS COMPANY text or the posting; never invent or guess a name. Relevance matters more than seniority: if the only leaders named are not connected to this role's function (for example, only the CEO is named for a mid-level role), do NOT address them, use the team fallback instead. TEAM FALLBACK: when no leader whose area covers this role is named, open with the function drawn from the posting, as "Hi <Function> Team," (for example, "Hi Product Team,"). Never use "Dear", and never fall back to "Hiring Manager".
+GREETING: Open with "Dear Hiring Manager," on its own line. Never address the letter to a specific person by name, even when a name is identifiable from the ABOUT THIS COMPANY text or the posting — this candidate does not know that person, and a letter addressed to them by name assumes a familiarity that is not real.
 
 ${spec.paragraphs}
 
@@ -4501,7 +4545,7 @@ COMPANY: ${companyName||'(unspecified)'}
 JOB POSTING:
 ${(jd||'').slice(0,4000)||'(none)'}
 
-ABOUT THIS COMPANY (a source for a specific company fact to weave into the genuine interest, and for the greeting recipient):
+ABOUT THIS COMPANY (a source for a specific company fact to weave into the genuine interest):
 ${companyReadText||'(not built; use the posting for the specific fact)'}
 
 RESUME REFRESH / RESUME (background and one concrete proof to draw on lightly, and contact details):
@@ -6865,7 +6909,7 @@ function PracticeAnswerBox({questionText,onPracticeAnswer,who}){
         <textarea autoFocus style={{...S.ta,minHeight:110,flex:1}} value={answer} onChange={e=>setAnswer(e.target.value)} placeholder="Say it or type it here, the way you would say it out loud."/>
         {hasSpeech&&<SpeechBtn onResult={t=>setAnswer(answer+t)} style={{marginTop:2}}/>}
       </div>
-      <div style={S.helperText}>{hasSpeech?'Tap the microphone to speak your answer, or type it. ':''}My Coach reads what you wrote and tells you what is working and what to sharpen.</div>
+      <div style={S.helperText}>{hasSpeech?'Tap the microphone to speak your answer, or type it. Voice works best in Chrome or Safari. ':''}My Coach reads what you wrote and tells you what is working and what to sharpen.</div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
         <Btn small prominent disabled={!answer.trim()} onClick={()=>onPracticeAnswer(questionText,answer,who)}><MessageCircle size={13}/>Get My Coach's feedback</Btn>
         <Btn small secondary onClick={()=>setOpen(false)}>Close</Btn>
@@ -7053,7 +7097,7 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
         <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>{onChange(e.target.value);if(submittingRef.current)clearSubmit()}} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
         {hasSpeech&&<SpeechBtn onResult={t=>onChange(t)} style={{marginTop:2}}/>}
       </div>
-      <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
+      <div style={S.helperText}>{hasSpeech?'Tip: Tap the microphone to speak, or type. Voice works best in Chrome or Safari. ':''}This is for factual corrections too. If we got something wrong about your experience, your role, or how we read it, tell us. Corrections will apply to future regenerations of other sections as well.</div>
       <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
         <Btn disabled={submitting} onClick={()=>submit(false)}><RotateCcw size={13}/>{submitting?'Working on it…':(updateLabel||'Update with my changes')}</Btn>
         {/* This button discards what the person typed and regenerates; it does
@@ -16841,9 +16885,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             person. Keep them in this order and keep them adjacent. */}
         <div style={S.field}><label style={S.label}>What&apos;s going well in your search right now?<InfoTooltip label="Why we ask">Your coach reads this so it can start where you actually are, instead of asking you to re-explain your search every time you open it. Come back and change it whenever you like.</InfoTooltip> <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
           <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={searchGoingWell} onChange={e=>setSearchGoingWell(e.target.value)} onBlur={()=>saveSearchIntake({goingWell:searchGoingWell})} placeholder="e.g. I'm getting first conversations from my network, my resume is finally saying what I do, I know the two industries I'm aiming at…"/>{hasSpeech&&<SpeechBtn onResult={t=>setSearchGoingWell(searchGoingWell+t)}/>}</div>
+          {hasSpeech&&<div style={{fontSize:15,color:C.gray,marginTop:6}}>Voice works best in Chrome or Safari.</div>}
         </div>
         <div style={S.field}><label style={S.label}>What would you like to improve? <span style={{color:C.gray,fontWeight:400,textTransform:'none',letterSpacing:0}}>(optional)</span></label>
           <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,flex:1}} value={searchFocus} onChange={e=>setSearchFocus(e.target.value)} onBlur={()=>saveSearchIntake({focus:searchFocus})} placeholder="e.g. applications go quiet after I send them, I want more warm introductions, I get to final rounds and stop there…"/>{hasSpeech&&<SpeechBtn onResult={t=>setSearchFocus(searchFocus+t)}/>}</div>
+          {hasSpeech&&<div style={{fontSize:15,color:C.gray,marginTop:6}}>Voice works best in Chrome or Safari.</div>}
         </div>
         </>}
       </div>
@@ -16901,7 +16947,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <textarea style={{...S.ta,minHeight:80,paddingRight:hasSpeech?44:15}} value={profile.resumeDelta||''} onChange={e=>pr('resumeDelta',e.target.value)} placeholder="e.g. Promoted to VP of Operations in March; led the ERP migration that came in under budget…"/>
             {hasSpeech&&<SpeechBtn onResult={t=>pr('resumeDelta',(profile.resumeDelta||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
           </div>
-          <MicReminder text="Prefer to talk? Tap the mic and say what's new."/>
+          <MicReminder text="Prefer to talk? Tap the mic and say what's new. Voice works best in Chrome or Safari."/>
         </div>}
       </div>
       <button type="button" onClick={()=>{if(!(profile.builder&&profile.builder.phase)){setBuilder({phase:'intro',source:'',header:{name:'',email:'',phone:'',linkedin:''},employers:[],skills:[],education:[],certs:'',extras:'',proudest:''})}nav('resume-builder')}} style={{width:'100%',textAlign:'left',background:'#FCFAF3',border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:14,fontFamily:'inherit'}}>
@@ -17081,6 +17127,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <div style={S.helperText}>If you leave all blank, we'll generate a reputation hypothesis from your other data and ask you to validate it.</div>
       </div>
       {wc([profile.rep&&profile.rep.memory,profile.rep&&profile.rep.emergency,profile.rep&&profile.rep.twoWords,profile.rep&&profile.rep.other].filter(Boolean).join(' '))<THIN_MIN.rep&&<ThinNudge text="The more you add here, the more Reimagine can reflect how others actually see you, which is some of the strongest signal it has." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing."/>}
+      {hasSpeech&&<div style={{fontSize:15,color:C.gray,margin:'8px 0 0'}}>Voice works best in Chrome or Safari.</div>}
       {coachNudge(ASK_COACH_ORIENT.reputation,'Not sure what to write? Ask your coach',{margin:'0 0 16px'})}
       <div style={S.row}><Btn secondary onClick={()=>nav('priorities')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('reputation',isIndependent?'fit':'life-events')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
@@ -17151,7 +17198,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           </div>
         </div>)}
       </div>
-      <ThinNudge text="Your answer here is not a commitment. It is a starting hypothesis, and it shapes three things later: the read we write about you, the companies we go looking for, and how your pricing plan describes what you sell." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing."/>
+      <ThinNudge text="Your answer here is not a commitment. It is a starting hypothesis, and it shapes three things later: the read we write about you, the companies we go looking for, and how your pricing plan describes what you sell." mic="Prefer to talk? Tap a field's mic and say it out loud; it's often easier than typing. Voice works best in Chrome or Safari."/>
       {coachNudge(ASK_COACH_ORIENT.fit,'Not sure how to narrow it? Ask your coach',{margin:'0 0 16px'})}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('reputation')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>advance('fit','life-events')}>{(profile.fitNeed||'').trim()||(profile.fitBuyer||'').trim()?'Continue':'Continue without answering'} <ChevronRight size={14}/></Btn></div>
@@ -17173,6 +17220,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <textarea style={{...S.ta,minHeight:180,paddingRight:hasSpeech?44:15}} value={profile.lifeEvents||''} onChange={e=>pr('lifeEvents',e.target.value)}/>
             {hasSpeech&&<SpeechBtn onResult={t=>pr('lifeEvents',(profile.lifeEvents||'')+t)} style={{position:'absolute',right:8,bottom:8}}/>}
           </div>
+          {hasSpeech&&<div style={{fontSize:15,color:C.gray,marginTop:6}}>Voice works best in Chrome or Safari.</div>}
         </div>
       </div>
       {wc(profile.lifeEvents)<THIN_MIN.life&&<ThinNudge text="Say as much as you want here. The more of what shaped you that you share, the more of the real you comes through, and finding the connection to your work is our job." mic="Prefer to talk? Tap the mic and say as much as you like; it's often easier than typing it all out."/>}
@@ -18756,6 +18804,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   {opSectionErrors.p_cover&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.p_cover}/></div>}
                   {_covBusy&&<div style={{marginTop:14}}><Loading msg="Building Cover Letter…" step="p_cover"/></div>}
                   {_covBuilt&&<div style={{marginTop:14}}>{_renderSection('p_cover',_sec.p_cover.content)}</div>}
+                  {_covBuilt&&<div style={S.row}><Btn onClick={()=>downloadCoverLetterWord(_sec.p_cover.content,deriveDisplayName(profile.resume),_rec.company)}><Download size={14}/>Download as Word</Btn><Btn secondary onClick={()=>copy(_sec.p_cover.content)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>}
                   {_covBuilt&&!isDemo&&<RefineBox value={feedback.p_cover||''} onChange={v=>setFb('p_cover',v)} hint="Tell us what to refine on this card. Your existing card stays as-is until you submit." onRegenerate={v=>refineOpCard('p_cover',v)} onlyUpdateButton={true}/>}
                 </>,'section-p_cover')
               })()}
@@ -18780,6 +18829,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                   <div style={S.field}>
                     <label style={S.label}>How did you come across this role, and what do you already know about it?</label>
                     <div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:80,fontSize:16,flex:1}} value={_panel.opportunity_context} onChange={e=>_setCtx(e.target.value)} placeholder="Anything you know about this opportunity: how you came across it, any insider intel, what the team has said."/>{hasSpeech&&<SpeechBtn onResult={t=>_setCtx((_panel.opportunity_context||'')+t)}/>}</div>
+                    {hasSpeech&&<div style={{fontSize:15,color:C.gray,marginTop:6}}>Voice works best in Chrome or Safari.</div>}
                   </div>
                   <div style={{fontSize:16,fontWeight:700,color:'#1A2540',margin:'6px 0 2px'}}>Do you know who you will be meeting with?</div>
                   <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:10}}>Add each person and what you have learned about them. Even one name sharpens the prep.</div>
@@ -18819,7 +18869,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                       <div style={{flex:2,minWidth:160}}><label style={S.label}>Function <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.function||''} onChange={e=>_updIv(iv.id,{function:e.target.value})} placeholder="e.g. Product"/></div>
                     </div>
                     <div style={S.field}><label style={S.label}>LinkedIn URL <span style={_optTag}>(optional)</span></label><input style={_inp} value={iv.linkedin_url||''} onChange={e=>_updIv(iv.id,{linkedin_url:e.target.value})} placeholder="https://www.linkedin.com/in/…"/></div>
-                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,fontSize:16,flex:1}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/>{hasSpeech&&<SpeechBtn onResult={t=>_updIv(iv.id,{learned_note:(iv.learned_note||'')+t})}/>}</div><div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.</div></div>
+                    <div style={{...S.field,marginBottom:0}}><label style={S.label}>What you have learned <span style={_optTag}>(optional)</span></label><div style={{display:'flex',gap:10,alignItems:'flex-start'}}><textarea style={{...S.ta,minHeight:70,fontSize:16,flex:1}} value={iv.learned_note||''} onChange={e=>_updIv(iv.id,{learned_note:e.target.value})} placeholder="What you know about this person and what they care about, in your own words."/>{hasSpeech&&<SpeechBtn onResult={t=>_updIv(iv.id,{learned_note:(iv.learned_note||'')+t})}/>}</div><div style={{fontSize:15,color:C.gray,marginTop:6,lineHeight:1.5}}>This is what most shapes this person's Interview Prep. A sentence on what they care about does more than their title.{hasSpeech?' Voice works best in Chrome or Safari.':''}</div></div>
                     {(()=>{
                       // Per-interviewer web research (PR 4): explicit, user-initiated; nothing
                       // is sent until the button is clicked. Result is shown as an unconfirmed
@@ -19282,13 +19332,15 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
               {_rec.source==='door2'&&(()=>{const _notes=getOpSavedNotes(_rec);const _draft=noteDraft.trim();return _cardWrap(<>
                 <div style={{fontSize:20,fontWeight:700,color:'#1A2540',marginBottom:10}}>Notes</div>
                 <CoachingCallout>Anything worth remembering about this opportunity — what you did, what you heard, a reply you saved from My Coach. It's yours alone; nothing here feeds what Reimagine writes for you.</CoachingCallout>
-                <div style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:_notes.length?18:0}}>
+                <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
                   <div style={{flex:1,minWidth:0}}>
                     <textarea style={{...S.ta,minHeight:80,fontSize:16}} value={noteDraft} onChange={e=>setNoteDraft(e.target.value)} placeholder="What happened, or anything you want to remember"/>
                     <Btn small prominent disabled={!_draft} onClick={()=>{addOpNote(_rec.id,{text:noteDraft,source:'user'});setNoteDraft('')}} style={{marginTop:8}}><Plus size={15}/>Add note</Btn>
                   </div>
                   {hasSpeech&&<SpeechBtn onResult={t=>setNoteDraft(x=>x+t)}/>}
                 </div>
+                {hasSpeech&&<div style={{fontSize:15,color:C.gray,marginTop:6}}>Voice works best in Chrome or Safari.</div>}
+                <div style={{marginBottom:_notes.length?18:0}}/>
                 {_notes.map(n=>{const _stamp=n.source==='coach'?`From My Coach${n.personName?` · ${n.personName}`:''}`:`${n.source==='step'?'Completed':n.source==='win'?'What worked':'Your note'}${noteStampDate(n.createdAt)?` · ${noteStampDate(n.createdAt)}`:''}`;return <div key={n.id} style={{border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px',marginBottom:10,background:C.bg}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:6,flexWrap:'wrap'}}>
                     <span style={{fontSize:15,fontWeight:700,color:C.goldL,textTransform:'uppercase',letterSpacing:0.5}}>{_stamp}</span>
@@ -19375,7 +19427,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 write down badly. */}
             {isIndependent&&hasSpeech&&<div style={{display:'flex',alignItems:'center',gap:12,marginTop:16}}>
               <SpeechBtn C={{border:C.gold,gray:C.goldL}} title="Speak instead of typing" onResult={t=>pr('jd',(profile.jd||'')+t)} style={{width:48,height:48,background:`${C.gold}14`}}/>
-              <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through — most people say more out loud than they type.</span>
+              <span style={{fontSize:16,fontWeight:600,color:C.goldL,lineHeight:1.4}}>Talk it through — most people say more out loud than they type. Voice works best in Chrome or Safari.</span>
             </div>}
             <div style={{textAlign:'center',color:C.gray,fontSize:16,margin:'14px 0',fontStyle:'italic'}}>or</div>
             <div style={S.field}>
