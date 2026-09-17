@@ -10665,7 +10665,7 @@ export default function PivotEngine(){
       const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice'&&pick!=='tradeoff')?{key:pick,label:cardLabel(pick)}:null
       const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
-        :pick==='practice'?'Interview Prep is built — want to practice the weakest answer?'
+        :pick==='practice'?'Interview Prep is built — want to practice one of your answers?'
         :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
@@ -10734,7 +10734,7 @@ export default function PivotEngine(){
       if(!anchorKey)return null
       const pick=opPickByStage(opRecord.stage,opRecord.cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       if(!pick||pick===anchorKey)return null
-      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
+      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your interview answers':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
       const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':pick==='tradeoff'?'Trade-off considerations':`Build ${nextLabel}`
       // actionPhrase (F1 twenty-minute session, item 4): only p_cover/p11/
       // offerNegotiation are something to BUILD -- knownContacts is already
@@ -10743,7 +10743,7 @@ export default function PivotEngine(){
       // already built (the tap itself was Practice it/Trade-off
       // considerations, never Build). This is what makes the closing
       // question match the tap it is actually attached to.
-      const actionPhrase=pick==='knownContacts'?'open Who You Know Here':pick==='practice'?'practice the weakest answer':pick==='tradeoff'?'walk through the trade-offs':`build ${opRecord.cardLabel(pick)}`
+      const actionPhrase=pick==='knownContacts'?'open Who You Know Here':pick==='practice'?'practice your interview answers':pick==='tradeoff'?'walk through the trade-offs':`build ${opRecord.cardLabel(pick)}`
       return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel,actionPhrase}
     })()
     // Interview is close (Check family): scans every active opportunity, not
@@ -10770,7 +10770,7 @@ export default function PivotEngine(){
       const days=Math.round((ms-now)/86400000)
       const when=days<=0?'today':days===1?'tomorrow':'in two days'
       const copy=prepBuilt
-        ?`${company} is ${when}. Interview Prep is built. Want to practice the weakest answer?`
+        ?`${company} is ${when}. Interview Prep is built. Want to practice one of your answers?`
         :`${company} is ${when}. Interview Prep isn't built for it yet. Want me to build it now?`
       return{recordId:rec.id,dateIso,copy,tapLabel:prepBuilt?'Practice it':'Build Interview Prep',prepBuilt}
     })()
