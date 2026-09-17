@@ -1,10 +1,11 @@
-// Direct donations — Stripe (career.club account). A distinct block within
-// the Economics tab, deliberately NOT merged into EconomicsDashboard's
-// paying-customer numbers: donations and NextPlacement / paying-customer
-// revenue are two different things (CLAUDE.md; Output/handoff/2026-09-16_
-// direct-donation-tracking.md). Own endpoint (/api/admin/donations), own
-// fetch, own render — the only thing it shares with EconomicsDashboard is
-// the tab it renders inside of.
+// Direct donations — Stripe + PayPal (career.club account; PayPal added
+// 2026-09-17, Output/handoff/2026-09-17_paypal-commerce-integration.md). A
+// distinct block within the Economics tab, deliberately NOT merged into
+// EconomicsDashboard's paying-customer numbers: donations and NextPlacement
+// / paying-customer revenue are two different things (CLAUDE.md;
+// Output/handoff/2026-09-16_direct-donation-tracking.md). Own endpoint
+// (/api/admin/donations), own fetch, own render — the only thing it shares
+// with EconomicsDashboard is the tab it renders inside of.
 //
 // Same house style as EconomicsDashboard.jsx: hand-drawn inline SVG bar
 // chart, no charting library (a dependency would add weight to a bundle
@@ -63,13 +64,13 @@ export default function DonationsDashboard() {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={S.headerRow}>
-        <h2 style={S.sectionTitle}>Direct donations (Stripe)</h2>
+        <h2 style={S.sectionTitle}>Direct donations</h2>
         <button onClick={() => fetchData()} disabled={loading} style={S.refreshBtn}>{loading ? "…" : "Refresh"}</button>
       </div>
 
       <div style={S.callout}>
-        Career Club donations taken through the career.club Stripe account, kept separate from the paying-customer numbers above — a different revenue stream, not a second way of counting the same one.
-        {" "}A donation counts toward a person below only if they were signed in to Reimagine at the moment they gave; Stripe carries no other way to connect a payment to an account.
+        Career Club donations taken through Stripe or PayPal, kept separate from the paying-customer numbers above — a different revenue stream, not a second way of counting the same one.
+        {" "}A donation counts toward a person below only if they were signed in to Reimagine at the moment they gave; neither provider carries any other way to connect a payment to an account.
         {payload.unattributed.count > 0 && <> {payload.unattributed.count} donation{payload.unattributed.count === 1 ? "" : "s"} totaling {fmtUsd(payload.unattributed.cents)} could not be matched to a signed-in account and are not in the numbers below.</>}
       </div>
 
@@ -103,11 +104,12 @@ export default function DonationsDashboard() {
           <h3 style={S.panelTitle}>Donors</h3>
           <div style={{ overflowX: "auto" }}>
             <table style={S.table}>
-              <thead><tr><Th>Email</Th><Th>Registered</Th><Th>First gift</Th><Th right>Gap</Th><Th right>Lifetime</Th><Th right>Gifts</Th></tr></thead>
+              <thead><tr><Th>Email</Th><Th>Provider</Th><Th>Registered</Th><Th>First gift</Th><Th right>Gap</Th><Th right>Lifetime</Th><Th right>Gifts</Th></tr></thead>
               <tbody>
                 {donors.map(d => (
                   <tr key={d.email} style={{ borderTop: `1px solid ${BORDER}` }}>
                     <td style={S.td}>{d.email}</td>
+                    <td style={S.td}>{(d.providers || []).join(", ") || "—"}</td>
                     <td style={S.td}>{fmtDate(d.registered_at)}</td>
                     <td style={S.td}>{fmtDate(d.first_donated_at)}</td>
                     <td style={{ ...S.td, textAlign: "right" }}>{fmtDays(d.gap_days)}</td>
