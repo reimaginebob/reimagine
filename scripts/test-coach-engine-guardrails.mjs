@@ -146,7 +146,7 @@ const mountCount = (app.match(/onDistressDetected=\{handleCoachDistressDetected\
 check(mountCount === 2, `${APP}: expected both remaining Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
 
 // --- Chat.jsx: reads the headers, calls the callbacks, fires onSessionOpen ---
-check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {'),
+check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null,'),
   `${CHAT}: the three new props are missing from Chat's signature`)
 check(chat.includes("const distressHeader = res.headers.get('X-Coach-Distress') || null"),
   `${CHAT}: distressHeader is not read from the response`)
@@ -162,7 +162,11 @@ check(chat.includes('if (onSessionOpen) onSessionOpen()'),
 // sessionStorage check), not on every mount -- otherwise a hold would clear
 // mid-session on a re-render.
 const sessionOpenIdx = chat.indexOf('if (onSessionOpen) onSessionOpen()')
-const alreadyGuardIdx = chat.indexOf('if (already) return', sessionOpenIdx - 450)
+// Searched from the enclosing effect rather than a fixed backward offset
+// (2026-09-17): the conversation hold added its own gate and comment between
+// the guard and this call, which a byte window could not absorb.
+const recapEffectIdx = sessionOpenIdx === -1 ? -1 : chat.lastIndexOf('useEffect(() => {', sessionOpenIdx)
+const alreadyGuardIdx = recapEffectIdx === -1 ? -1 : chat.indexOf('if (already) return', recapEffectIdx)
 check(sessionOpenIdx !== -1 && alreadyGuardIdx !== -1 && alreadyGuardIdx < sessionOpenIdx,
   `${CHAT}: onSessionOpen is not gated behind the existing once-per-session guard`)
 
