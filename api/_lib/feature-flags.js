@@ -309,7 +309,21 @@ export function hasCoachSummary(user) {
   return !!user
 }
 
+// PILOT -- PayPal Commerce Platform on Pay It Forward, 2026-09-17. Gates the
+// second payment section in SupportPanel (PayPal / Venmo / card, via the
+// PayPal JS SDK) that sits below the existing Stripe amount buttons. The
+// Stripe options are unaffected and ungated either way -- this only decides
+// whether the PayPal section renders. Bob QCs the Sandbox flow on Preview
+// before any named tester sees it, same as every other pilot in this file.
+export const PAYPAL_DONATE_FLAG = 'paypal_donate'
+
+export function hasPaypalDonate(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PAYPAL_DONATE_FLAG) || isInternalAccount(user)
+}
+
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
+  [PAYPAL_DONATE_FLAG]: { label: 'Pay It Forward: PayPal & Venmo' },
 }
