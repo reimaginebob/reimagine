@@ -6065,6 +6065,12 @@ const normalizeWork = (p) => {
 const V1_STEPS = new Set(ALL)
 const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','salaryRead','income']
 const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
+// Content-viewed beacon (2026-09-17 brief, part 1) -- generated-content
+// destinations nav() and restoreFromSavedSlot may fire a view for. Mirrors
+// api/_lib/view-events.js's VIEWABLE_SECTION_IDS; kept as its own list for
+// the same reason ROLE_SUBMODULES is its own list rather than derived from
+// NAV_LABELS, which also carries non-generated structural step ids.
+const VIEWABLE_SECTION_IDS = ['p3','p4','p5','p6','p7','p8','p9','p11','p_res','income','op','focus']
 // Cap on the user's saved playbooks set. One shared limit across Door 1 (auto-save
 // past The Role) and Door 2 (auto-save on JD upload). Future paid-tier work becomes
 // a per-user value loaded from the user record (V2 launch bundle); the accessor is
@@ -7778,6 +7784,11 @@ export default function PivotEngine(){
   const[upstreamCheck,setUpstreamCheck]=useState(null)
   const correctionConflictRef=useRef(null)
   const currentSavedSlotIdRef=useRef(null)
+  // Set true immediately before a nav() call that is itself about to trigger
+  // a regenerate (navToUpstream, "Update Personal Brand now"), so nav()'s own
+  // view-fire below is skipped for that one call -- a regenerate must not
+  // double-count as a view.
+  const skipNextViewRef=useRef(false)
   // Where "Back to X" on an opportunity/role playbook actually goes (2026-09-05,
   // reported live: opening an opportunity from My Pipeline showed "Back to Put
   // It to Work" -- the hub link was hardcoded to hubStep/hubLabel regardless of
@@ -11935,7 +11946,13 @@ export default function PivotEngine(){
   // opportunity-update/opportunity-context/coach-note-save all fell back to
   // writing to that stale record when the model's own title did not
   // resolve.
-  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);const _navSlot=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current);if(_navSlot&&_navSlot.source==='door2'&&to!=='op'&&to!=='myCoach')currentSavedSlotIdRef.current=null;if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  // Content-viewed beacon (2026-09-17 brief, part 1). Fires only when nav()
+  // lands on a section that already has generated content -- the read, not
+  // the generation. The two call sites that pair a nav('p3') with an
+  // immediate generateChain() (navToUpstream, "Update Personal Brand now")
+  // set skipNextViewRef first so a regenerate never double-counts as a view.
+  const recordSectionView=(section)=>{if(isDemo||!signedInUser)return;try{fetch('/api/view-events',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({section}),keepalive:true}).catch(()=>{})}catch{}}
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);const _navSlot=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current);if(_navSlot&&_navSlot.source==='door2'&&to!=='op'&&to!=='myCoach')currentSavedSlotIdRef.current=null;if(skipNextViewRef.current)skipNextViewRef.current=false;else if(VIEWABLE_SECTION_IDS.includes(to)&&done.includes(to))recordSectionView(to);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -12105,7 +12122,7 @@ export default function PivotEngine(){
   // leaving them to re-correct it by hand (the whack-a-mole). Other upstreams
   // (Bridge Story, LinkedIn Remix) scroll into view on the focus surface for a
   // manual rebuild; the global correction still reaches them when they rebuild.
-  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){nav('p3');generateChain()}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
+  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){skipNextViewRef.current=true;nav('p3');generateChain()}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
   const applyConflictAnyway=()=>{const m=conflictModal;if(!m)return;correctionConflictRef.current=m.phrase;m.proceed();maybeShowUpstreamCheck(m.sectionId,m.text);setConflictModal(null)}
   const rephraseConflict=()=>{const m=conflictModal;if(!m)return;setConflictModal(null);setToast(`Try: ${m.rephrase}`);setTimeout(()=>setToast(t=>t===`Try: ${m.rephrase}`?null:t),6000)}
   const offlineConflict=()=>{const m=conflictModal;if(!m)return;setFb(m.sectionId,'');setConflictModal(null);const msg='Got it — we will write this section the way Reimagine writes. What you generate is yours to edit afterward.';setToast(msg);setTimeout(()=>setToast(t=>t===msg?null:t),5000)}
@@ -15671,6 +15688,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setCurrentRoleSaved(true)
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=rec.id
+    // This IS the reread moment nav()'s own view-fire can't see: restoring a
+    // saved slot sets step directly rather than going through nav(), and it
+    // is always reopening EXISTING content (never a first generation), so no
+    // done-gate is needed here the way nav() needs one.
+    recordSectionView(rec.source==='door2'?'op':'focus')
     setStep(rec.source==='door2'?'op':'focus')
     // Scroll-to-top is handled by the step-change useEffect that resets
     // contentColumnRef.current.scrollTop on every step change. No per-call
@@ -19327,7 +19349,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>You changed your {INPUT_STEP_LABEL[inputStaleModal.from]||'inputs'}. Your Personal Brand won't reflect this until you refresh it. When you do, your current version is saved automatically, so you can restore it if you prefer it.</p>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
           <Btn secondary onClick={()=>setInputStaleModal(null)}>Later</Btn>
-          <Btn onClick={()=>{setInputStaleModal(null);nav('p3');generateChain()}}>Update Personal Brand now</Btn>
+          <Btn onClick={()=>{setInputStaleModal(null);skipNextViewRef.current=true;nav('p3');generateChain()}}>Update Personal Brand now</Btn>
         </div>
       </div>
     </div>}
