@@ -291,7 +291,31 @@ export function hasCoachFileUpload(user) {
 // Adding an entry here is how a pilot becomes grantable, and it is deliberately
 // an edit to this file — see the header above for why a flag whose meaning
 // lives only in the database is the failure mode this file exists to prevent.
+// PILOT -- Summary to notes (COACHSUMMARY), 2026-09-17. Coach can write a
+// short plain-English summary of a substantive conversation about one
+// opportunity into that opportunity's notes: on request at any time, and --
+// this is the genuinely new part -- on its own read that a thread has reached
+// a natural close, at most once per opportunity per 24 hours.
+//
+// Its own flag rather than riding coach_note_agency, deliberately, and this is
+// the whole reason it exists: coach_note_agency went GA on 2026-09-13
+// (hasCoachNoteAgency is now `!!user`), so gating this on it would have handed
+// every signed-in account a capability nobody has QC'd, the moment it merged.
+// The proactive half is also a narrow reversal of #734's blanket "never offer
+// to save because YOU judged the reply worth keeping" -- exactly the kind of
+// change Bob should see on production first. coach_note_agency's own
+// on-request-only restriction is untouched.
+//
+// What does NOT change: the person's tap is still the only thing that writes.
+export const COACH_SUMMARY_FLAG = 'coach_summary'
+
+export function hasCoachSummary(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(COACH_SUMMARY_FLAG) || isInternalAccount(user)
+}
+
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
+  [COACH_SUMMARY_FLAG]: { label: 'My Coach: summary to notes' },
 }

@@ -97,7 +97,11 @@ check(chat.includes("situation: typeof getSituation === 'function' ? getSituatio
 // sending the (now-undefined) prop instead of the getter's live read.
 check(!chat.includes('\n          situation,\n'), `${CHAT}: the old bare "situation," request-body shorthand survives somewhere -- it must be fully replaced, not left alongside the fix`)
 
-check(coach.includes("hasCoachSituation } from './_lib/feature-flags.js'"), `${COACH}: hasCoachSituation import is missing`)
+// Matched against the import list rather than requiring hasCoachSituation to
+// be the LAST name in it (2026-09-17): the old check pinned "hasCoachSituation
+// }", so any flag added after it broke a test about a different flag entirely.
+check(/import \{[^}]*\bhasCoachSituation\b[^}]*\} from '\.\/_lib\/feature-flags\.js'/.test(coach),
+  `${COACH}: hasCoachSituation import is missing`)
 // Live-side brief PR 1, item 3 (2026-09-10, test log finding D2): a moment
 // (turnKind==='moment') carries no typed message for findInFocusRecord to
 // scan, so gating it behind coach_situation the same as an ordinary typed

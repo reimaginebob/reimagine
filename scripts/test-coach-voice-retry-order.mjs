@@ -63,8 +63,17 @@ check(!retryBlock.includes('if (useRetry) cleaned = cleaned2'),
 // reasoning as MOOD's own 2026-09-09 fix -- a voice-retry rewrite that
 // reproduces a WIDENSEARCH: <key> line would otherwise leak it to the
 // visible reply.
-check(coach.includes('const TRAILER_NAME_SWEEP = /^\\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim'),
-  `${COACH}: TRAILER_NAME_SWEEP is missing or missing MOOD/WIDENSEARCH -- a voice-retry rewrite that reproduces one of those lines would leak it to the visible reply`)
+// Checked name by name rather than as one pinned literal (2026-09-17): every
+// new protocol added to the sweep broke the byte-equality version, which made
+// the fix "paste the new list in" rather than "check the guarantee still
+// holds". The guarantee is that every trailer name the model can emit is swept
+// -- so the list below is what must be IN it, and a new name is free to join.
+const sweepLine = coach.match(/^const TRAILER_NAME_SWEEP = .*$/m)
+check(!!sweepLine, `${COACH}: TRAILER_NAME_SWEEP is missing entirely`)
+for (const name of ['SELFCHECK', 'MOOD', 'WIDENSEARCH', 'MILESTONEMENTIONED', 'ACTIVITY', 'COACHNOTE', 'COACHSUMMARY', 'VALUESCAPTURE', 'REPUTATIONCAPTURE', 'SKILLSCAPTURE', 'SKILLSREMOVE', 'PRIORITIESCAPTURE', 'LIFESTORYCAPTURE', 'ASSESSMENTCAPTURE', 'OPPORTUNITYUPDATE', 'OPPORTUNITYCONTEXT', 'OPPORTUNITYARCHIVE', 'CLOSEREASON', 'OPCARDREWORK', 'SEARCHINTAKE', 'BRANDREWORK', 'SECTIONREWORK']) {
+  check(!!sweepLine && sweepLine[0].includes(`|${name}|`) || (!!sweepLine && sweepLine[0].includes(`(?:${name}|`)) || (!!sweepLine && sweepLine[0].includes(`|${name}):`)),
+    `${COACH}: TRAILER_NAME_SWEEP no longer sweeps ${name} -- a voice-retry rewrite that reproduces one of those lines would leak it to the visible reply`)
+}
 check(retryBlock.includes("applyOutputStrippers(raw2).replace(TRAILER_NAME_SWEEP, '').trim()"),
   `${COACH}: the retry's regenerated text is not swept for stray trailer syntax before being adopted as the new strippedText`)
 check(coach.indexOf('const TRAILER_NAME_SWEEP') < extractionIdx,

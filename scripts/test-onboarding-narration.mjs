@@ -61,7 +61,15 @@ const saveBlobIdx = app.indexOf('const stateForSave={')
 check(app.slice(saveBlobIdx, saveBlobIdx + 700).includes('narratedOrientationSteps'),
   `${APP}: narratedOrientationSteps is missing from the autosave blob's JSON.stringify -- the dedupe would never actually persist`)
 const saveDepsIdx = app.indexOf('saveRef.current=save')
-check(app.slice(saveDepsIdx, saveDepsIdx + 500).includes('narratedOrientationSteps'),
+// Bounded by the dependency array's own end rather than a byte count
+// (2026-09-17): the array grows every time a slice adds a persisted field, so
+// a fixed window fails on the next one regardless of whether this field is
+// still in it. (scripts/test-autosave-deps-cover-state.mjs is the general
+// guard that no persisted state is missing from these deps; this check is the
+// narration-specific belt to its braces.)
+const saveDepsEnd = saveDepsIdx === -1 ? -1 : app.indexOf('isDemo,isTest])', saveDepsIdx)
+check(saveDepsIdx !== -1 && saveDepsEnd > saveDepsIdx, `${APP}: could not bound the autosave effect's dependency array`)
+check(app.slice(saveDepsIdx, saveDepsEnd).includes('narratedOrientationSteps'),
   `${APP}: narratedOrientationSteps is missing from the autosave effect's dependency array`)
 
 // The "this is optional" apology framing: Coach should lead with why an

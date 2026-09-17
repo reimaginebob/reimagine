@@ -19,8 +19,9 @@ import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowled
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { INDUSTRY_ECOSYSTEM_KNOWLEDGE } from '../src/data/industry-ecosystem-knowledge.js'
 import { CORRECTION_ACTIONS_KNOWLEDGE } from '../src/data/correction-actions-knowledge.js'
+import { COACH_SUMMARY_KNOWLEDGE } from '../src/data/coach-summary-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation, hasCoachSummary } from './_lib/feature-flags.js'
 import { hasCorrectionActions } from './_lib/feature-flags.js'
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
@@ -472,7 +473,46 @@ function clip(text, limit = 4000) {
 // the ONLY place that text is ever cleaned, since it replaces `strippedText`
 // outright rather than being re-run through parseMood. Missing MOOD here
 // let that line ship to the client as the last line of the visible reply.
-const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+// Summary to notes (COACHSUMMARY, 2026-09-17). Sibling of
+// COACH_NOTE_CAPTURE_NOTE above, and deliberately NOT a second copy of it:
+// COACHNOTE keeps ONE reply, only when asked; this keeps the CONCLUSIONS of a
+// whole thread about one opportunity, and may be offered on Coach's own read
+// that the thread has closed.
+//
+// Built per turn rather than being a constant, because what Coach is allowed
+// to do varies with state the model cannot see: whether this opportunity has
+// already been offered a summary inside the 24-hour window, and whether this
+// account has heard the one-time "you can just ask for this" line yet.
+//
+// Two things are deliberately NOT asked of the model. It is never asked to
+// count 24 hours (it has no clock, and a rule it cannot evaluate is a rule it
+// will guess at) -- the proactive half is simply absent from the prompt when
+// the window is closed. And it is never asked to scan history for a previous
+// decline: the client stamps lastCoachSummaryOfferAt when an offer RENDERS,
+// accepted or not, so an ignored offer and a declined one close the window
+// identically and no separate decline marker has to exist.
+// One offer per opportunity per rolling 24 hours. Rolling rather than
+// per-conversation on purpose: My Coach has no session boundary short of
+// Clear, so "once per conversation" would mean once ever for anyone who
+// never clears, which undercounts exactly the people with several
+// opportunities running over weeks.
+export const COACH_SUMMARY_OFFER_WINDOW_MS = 24 * 60 * 60 * 1000
+export function buildCoachSummaryCaptureNote({ opportunityTitle, proactiveAllowed, firstFire }) {
+  const title = (typeof opportunityTitle === 'string' && opportunityTitle.trim()) ? opportunityTitle.trim() : 'this opportunity'
+  let note = `\n\nSAVE-SUMMARY CAPTURE: the conversation you are having about ${title} can be summarized into that opportunity's own notes. When this person asks you, in their own words, to summarize this conversation (or this opportunity's conversation) and keep it, write the summary AS your reply -- three to six short plain-English bullets covering what was decided and why, no more, and no preamble about what you are about to do -- and end your reply with a final line exactly like COACHSUMMARY: save.`
+  if (proactiveAllowed) {
+    note += ` You may also offer this yourself, without being asked, but ONLY when this conversation has genuinely covered ground on ${title} -- a decision reached, a concern worked through, an approach settled -- AND you are at a natural close rather than mid-thought. When that is true, finish your normal reply as you otherwise would, add ONE sentence offering the summary and naming the opportunity, and end with a final line exactly like COACHSUMMARY: offer. A quick factual exchange, a single question answered, or a thread still in motion is not this; when in doubt, say nothing and let them ask.`
+  } else {
+    note += ` Do not offer this yourself on this turn -- only emit the line if they ask for it.`
+  }
+  note += ` The app turns either line into a one-tap offer showing exactly what will be saved, and never shows the line itself, so do not mention it, do not ask them to type anything, and NEVER say you have saved, added, or written it -- their tap is the only thing that writes, on the asked-for version exactly as much as on the offered one. At most once per reply.`
+  if (firstFire) {
+    note += ` This is the first time this has come up for this person, so end that same reply -- after the summary or the offer, not as a separate message -- with one sentence letting them know they can ask for this any time, in their own words, rather than waiting for you to offer.`
+  }
+  return note
+}
+
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|COACHSUMMARY|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
 // Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
 // original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
@@ -755,7 +795,7 @@ export function computeTurnKind(rawMessage, { orientationCheckRequested, postCap
 // the three rework variants (brand/section/op-card) share one tier since
 // the brief did not rank them against each other.
 export const OFFER_ARBITRATION_ORDER = [
-  'opportunityUpdateB64', 'opportunityContextB64', 'coachNoteOffer',
+  'opportunityUpdateB64', 'opportunityContextB64', 'coachNoteOffer', 'coachSummaryOffer',
   'closeReasonB64',
   'opportunityArchiveB64',
   'brandReworkB64', 'sectionReworkB64', 'opCardReworkB64',
@@ -2110,6 +2150,7 @@ On money, tax, entity structure, insurance, and retirement accounts specifically
 ${GO_INDEPENDENT_KNOWLEDGE}`)
   }
   if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(PIPELINE_CAPTURE_KNOWLEDGE)
+  if (!generalMode && hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(COACH_SUMMARY_KNOWLEDGE)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
   if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
@@ -2197,6 +2238,28 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
       if (expansion) { profileBlock += '\n\n' + expansion; situationBlockChars += expansion.length }
       profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
       profileBlock += buildCloseReasonAlreadyLoggedBlock(inFocus.id, closeReasons)
+      // Summary to notes (COACHSUMMARY, 2026-09-17). Lives here rather than
+      // beside the other capture notes in buildCoachProfileSlice for one
+      // reason: it only makes sense with a specific opportunity resolved, and
+      // this is where that happens. A summary has to land in SOME
+      // opportunity's notes, so with nothing in focus there is no instruction
+      // to give.
+      //
+      // The 24-hour window is computed HERE, from the record, rather than
+      // asked of the model: it has no clock, and the one thing worse than no
+      // cap is a cap it approximates. lastCoachSummaryOfferAt is stamped
+      // client-side the moment an offer renders (accepted, declined or
+      // ignored alike), so "already offered recently" needs no separate
+      // decline marker to also cover "already declined recently".
+      if (hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) {
+        const lastOfferMs = Date.parse(inFocus.lastCoachSummaryOfferAt || '')
+        const proactiveAllowed = !Number.isFinite(lastOfferMs) || ((nowMs || Date.now()) - lastOfferMs) >= COACH_SUMMARY_OFFER_WINDOW_MS
+        profileBlock += buildCoachSummaryCaptureNote({
+          opportunityTitle: inFocus.title,
+          proactiveAllowed,
+          firstFire: !(profileState && profileState.seenCoachSummaryMention),
+        })
+      }
     }
   } catch (err) {
     console.error('coach in-focus expansion failed:', err)
@@ -2911,6 +2974,18 @@ export default async function handler(req, res) {
     strippedText = strippedText.replace(cnMatch[0], '').trim()
     coachNoteOffer = true
   }
+  // Summary to notes (COACHSUMMARY, 2026-09-17). Two kinds on one trailer:
+  // 'save' is the person's own request answered, 'offer' is Coach's own read
+  // that the thread closed. Both ship the same way and both end in a tap --
+  // the kind only decides the copy on the offer, never whether a write needs
+  // confirming. Like COACHNOTE there is no payload: what gets saved is this
+  // reply's own visible text, which the client already holds.
+  let coachSummaryOffer = null
+  const csMatch = strippedText.match(/^\s*COACHSUMMARY:\s*(save|offer)\s*$/im)
+  if (csMatch) {
+    strippedText = strippedText.replace(csMatch[0], '').trim()
+    coachSummaryOffer = csMatch[1].toLowerCase()
+  }
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
   // and ship it on a response header; the client offers a one-tap save that
@@ -3419,8 +3494,8 @@ export default async function handler(req, res) {
   // nothing is lost, since the model's own reply text already reflects
   // whatever it settled, and a dropped field's capture note fires again on
   // a later turn if it is still unresolved.
-  ;({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 } =
-    arbitrateOffers({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 }, OFFER_ARBITRATION_ORDER))
+  ;({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, coachSummaryOffer, activityB64, searchIntakeB64 } =
+    arbitrateOffers({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, coachSummaryOffer, activityB64, searchIntakeB64 }, OFFER_ARBITRATION_ORDER))
 
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
@@ -3438,6 +3513,10 @@ export default async function handler(req, res) {
   if (closeReasonB64) res.setHeader('X-Coach-Close-Reason', closeReasonB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
+  // 'save' (they asked) or 'offer' (Coach's own read). The client needs the
+  // kind because the two get different copy on the confirm; both still
+  // require the tap.
+  if (coachSummaryOffer) res.setHeader('X-Coach-Summary', coachSummaryOffer)
   if (distressDetected) res.setHeader('X-Coach-Distress', '1')
   if (mood === 'low') res.setHeader('X-Coach-Mood', 'low')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)
