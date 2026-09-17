@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
+import { Paperclip } from 'lucide-react'
 import MD from './MD'
 import CoachMark from './CoachMark'
 import SpeechBtn, { hasSpeech } from './SpeechBtn'
+import { extractText } from '../extract-text.js'
 import { useIsMobile } from '../use-is-mobile.js'
 import { detectVoiceViolations } from '../voice-patterns.js'
-import { PURSUIT_STAGE_LABELS } from '../pursuit-stages.js'
+import { PURSUIT_STAGE_LABELS, PURSUIT_OUTCOME_LABELS } from '../pursuit-stages.js'
 import { OP_COUNTED_SECTIONS } from '../playbook-sections.js'
 import { CLOSE_REASON_LABEL } from '../pursuit-close-reasons.js'
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from '../coach-moments.js'
 import { isWidenSearchRowEligible } from '../widen-search.js'
+import { BUILD_SHA } from '../build-meta.js'
 
 // intro: true opts this one message into the same collapse-to-strip
-// treatment as banner:true narration (see isCollapsedBanner below) without
+// treatment as banner:true narration (see isCollapsedMessage below) without
 // also feeding the closed-bubble preview-card effect, which keys on
 // banner:true specifically -- this is the generic greeting, not a "here's
 // what's coming" line worth surfacing as a popup.
@@ -47,6 +50,38 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
   try { fetch('/api/coach-prompt-engagement', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ promptCode, triggerType, outcome }) }).catch(() => {}) } catch {}
 }
 
+// Clear conversation (2026-09-16): the confirm's own copy promises "on every
+// device where you're signed in", so the local setMessages reset below has
+// to be paired with a server-recorded chat_cleared_at (api/coach-clear.js) --
+// otherwise a second device, or this one after sign-out/sign-in, would just
+// rehydrate the full transcript again via GET /api/coach-history and undo
+// it. Fire-and-forget like logPromptEngagement above: the local reset is
+// what the person sees immediately, and this call is what makes it stick.
+//
+// Cross-device Clear follow-up (2026-09-16): this device's own
+// reimagine_chat_cleared_at_applied (src/App.jsx's sign-in hydration
+// effect) never got written by tapping Clear itself -- only by that later
+// effect noticing a newer server value. So THIS tab's next load (a reload,
+// or sign-out/sign-in) saw /api/me's chat_cleared_at as newer than its own
+// (missing) marker and reset the transcript all over again, wiping any
+// conversation held after the clear even though nothing was cleared since.
+// api/coach-clear.js now hands back the exact chat_cleared_at value it just
+// wrote; recording that here the moment the call succeeds closes the gap
+// without waiting on a future /api/me round trip to notice it.
+const CLEAR_CONFIRM_TEXT = "This clears your conversation with Coach on every device where you're signed in. Anything you've saved to your profile or playbooks stays, and Coach still knows it. This can't be undone. Continue?"
+const clearChatServerSide = () => {
+  (async () => {
+    try {
+      const res = await fetch('/api/coach-clear', { method: 'POST', credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data && typeof data.clearedAt === 'string') {
+        try { localStorage.setItem('reimagine_chat_cleared_at_applied', data.clearedAt) } catch {}
+      }
+    } catch {}
+  })()
+}
+
 // My Coach. PROSE-ONLY on feature references (2026-06-11): the coach names a
 // feature in prose ("you'll find this in Career Paths") and never renders a
 // clickable navigation button. Render-true labels come from COACH_NAV_MAP in the
@@ -58,7 +93,7 @@ const logPromptEngagement = (promptCode, triggerType, outcome) => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -119,6 +154,22 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     return () => window.removeEventListener('keydown', onKey)
   }, [embedded, open])
   const [input, setInput] = useState('')
+  const [fileBusy, setFileBusy] = useState(false)
+  const [fileErr, setFileErr] = useState(null)
+  const fileInputRef = useRef()
+  // The exact text blocks this turn's attachments contributed to the input
+  // box, so send() can subtract them and tell the server which part of the
+  // message the PERSON actually typed. That distinction only matters for one
+  // thing, and it matters a lot: the crisis-safety scan. The trigger list is
+  // narrow, but a document can carry it in someone else's words -- the
+  // clearest real case being a job posting for a crisis line or a
+  // mental-health nonprofit, where "suicide prevention" is the employer's
+  // own copy. Someone attaching that and typing "can you summarize this"
+  // should not get a mental-health pointer plus a session-long hold on
+  // Coach's own offers. Pasted text is deliberately NOT tracked here -- it is
+  // indistinguishable from typing, so it keeps being scanned exactly as it
+  // is today. Over-reacting to a paste is the safer error.
+  const attachedBlocksRef = useRef([])
   // Save-to-opportunity (PR-5, item I): transient per-reply UI state for the Copy
   // and "Save to this opportunity" actions. The save itself goes through the app
   // (onSaveNote -> setSavedPlaybooks); this component never writes.
@@ -305,8 +356,16 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // on banner:true), but it deserves the same fate once anything follows it
   // -- it is exactly as superseded as a narration line the moment a real
   // exchange starts.
-  const [expandedBanners, setExpandedBanners] = useState(() => new Set())
-  const toggleBannerExpanded = i => setExpandedBanners(prev => {
+  //
+  // Extended 2026-09-17 to every message, not just banner/intro narration:
+  // a long My Coach session of ordinary questions and replies stacked full-
+  // height indefinitely with no way to shrink what was already read. Same
+  // rule for everyone now -- any message collapses once something has been
+  // said after it; the most recent message is never collapsed, whatever it
+  // is; a message with live, unresolved taps never collapses either (see
+  // hasLiveTaps below).
+  const [expandedMessages, setExpandedMessages] = useState(() => new Set())
+  const toggleMessageExpanded = i => setExpandedMessages(prev => {
     const next = new Set(prev)
     if (next.has(i)) next.delete(i)
     else next.add(i)
@@ -660,6 +719,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     if (isSilentTurn) { if (loading || sendLockRef.current) return } else if (!text || loading || sendLockRef.current) return
     sendLockRef.current = true
     const userMsg = { role: 'user', content: text }
+    // What the person typed around this turn's attachments, for the
+    // crisis-safety scan only (see attachedBlocksRef). Sent ONLY when this
+    // turn actually carries an attachment; otherwise the field is absent and
+    // the server scans the whole message exactly as it does today. An empty
+    // string is meaningful and must still be sent: it says they attached a
+    // file and typed nothing, which is not the same as not attaching at all.
+    const attachedBlocks = attachedBlocksRef.current
+    const typedText = attachedBlocks.length
+      ? attachedBlocks.reduce((acc, b) => acc.split(b).join(''), text).trim()
+      : null
+    attachedBlocksRef.current = []
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
     if (isSilentTurn) {
@@ -679,10 +749,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       const res = await fetch('/api/coach', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        // x-reimagine-build: the bundle this browser is running, so a coach_failed
+        // row in support_events can say which build produced the failure. An
+        // older cached bundle omits it, which answers the same question.
+        headers: { 'Content-Type': 'application/json', 'x-reimagine-build': BUILD_SHA || '' },
         signal: controller.signal,
         body: JSON.stringify({
           ...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? { sessionOpen: true } : { message: userMsg.content })),
+          ...(typedText === null || isSilentTurn ? {} : { typedText }),
           history: historyAtSend,
           currentStep,
           // The person's own local timezone offset (My Coach review, finding
@@ -771,9 +845,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // says the same thing every other surface says instead of a generic
         // shrug. Any other failure keeps the short fallback.
         let systemMsg = null
-        if (res.status === 503) {
+        if (res.status !== 401) {
           const body = await res.json().catch(() => null)
-          const m = body && body.error && body.error.message
+          const m = (body && body.error && body.error.message) || (body && typeof body.message === 'string' ? body.message : null)
           if (typeof m === 'string' && m.trim()) systemMsg = m.trim()
         }
         const fallback = res.status === 401
@@ -957,6 +1031,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           try {
             const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(ouHeader), c => c.charCodeAt(0))))
             const stage = data && typeof data.stage === 'string' ? data.stage : ''
+            const outcome = data && typeof data.outcome === 'string' && PURSUIT_OUTCOME_LABELS[data.outcome] ? data.outcome : ''
             const move = data && typeof data.move === 'string' ? data.move.trim() : ''
             const meeting = data && typeof data.meeting === 'string' ? data.meeting.trim() : ''
             const people = (data && Array.isArray(data.people) ? data.people : []).filter(p => p && p.name)
@@ -966,7 +1041,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               // local rendering can show the day before.
               const fmt = d => new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
               const heard = []
-              if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}`)
+              if (stage) heard.push(`Stage: ${PURSUIT_STAGE_LABELS[stage] || stage}${outcome ? `, ${PURSUIT_OUTCOME_LABELS[outcome]}` : ''}`)
               if (move) heard.push(`Next move: ${move}${data.date ? ` — ${fmt(data.date)}` : ' — no date set'}`)
               if (meeting) heard.push(`Next scheduled meeting: ${fmt(meeting)}`)
               // Batch item 17: the title the model captured (already carried
@@ -1376,18 +1451,26 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // person acts on it or a new offer of the same kind supersedes it,
         // neither of which "something else was said after it" is.
         const hasLiveTaps = Array.isArray(m.quickReplies) && m.quickReplies.length > 0
-        const isCollapsedBanner = (m.banner || m.intro) && i < messages.length - 1 && !expandedBanners.has(i) && !hasLiveTaps
-        // Same eligibility as isCollapsedBanner, minus the expanded check --
+        const isCollapsedMessage = i < messages.length - 1 && !expandedMessages.has(i) && !hasLiveTaps
+        // Same eligibility as isCollapsedMessage, minus the expanded check --
         // true whether the strip is showing or the person tapped it open.
-        // Reported live (2026-09-05): the strip's tap toggled expandedBanners
+        // Reported live (2026-09-05): the strip's tap toggled expandedMessages
         // in both directions, but nothing on the EXPANDED bubble called
-        // toggleBannerExpanded back -- once opened, a superseded message had
+        // toggleMessageExpanded back -- once opened, a superseded message had
         // no way to return to its one-line strip.
-        const isExpandableBanner = (m.banner || m.intro) && i < messages.length - 1 && !hasLiveTaps
+        const isExpandableMessage = i < messages.length - 1 && !hasLiveTaps
+        // Banner/intro narration keeps showing its own content verbatim in
+        // the strip (unchanged). A regular Q&A message gets a role-prefixed,
+        // truncated preview -- its full text is a whole Coach reply or
+        // question, not the short "here's what's coming" line the strip
+        // format was built for.
+        const stripPreview = (m.banner || m.intro)
+          ? m.content
+          : `${m.role === 'assistant' ? 'Coach' : 'You'}: ${m.content && m.content.length > 60 ? `${m.content.slice(0, 60)}…` : (m.content || '')}`
         return (
         <div key={i} ref={el => { messageRefs.current[i] = el }} data-message-role={m.role} style={{ marginBottom: 12, textAlign: m.role === 'user' ? 'right' : 'left' }}>
-          {isCollapsedBanner ? (
-            <button onClick={() => toggleBannerExpanded(i)} style={{
+          {isCollapsedMessage ? (
+            <button onClick={() => toggleMessageExpanded(i)} style={{
               display: 'flex', alignItems: 'center', gap: 6, maxWidth: 'min(100%, 74ch)',
               background: '#F4F6F9', border: 'none', borderRadius: 8,
               padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
@@ -1397,7 +1480,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 fontSize: 16, color: '#8A9BB8', lineHeight: 1.4,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {m.content}
+                {stripPreview}
               </span>
             </button>
           ) : (
@@ -1453,15 +1536,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           </div>
           )
           )}
-          {!isCollapsedBanner && isExpandableBanner && (
-            <button onClick={() => toggleBannerExpanded(i)} style={{
+          {!isCollapsedMessage && isExpandableMessage && (
+            <button onClick={() => toggleMessageExpanded(i)} style={{
               display: 'block', marginTop: 4, background: 'transparent', border: 'none',
               color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
             }}>
               ‹ Collapse
             </button>
           )}
-          {!isCollapsedBanner && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
+          {!isCollapsedMessage && m.role === 'assistant' && Array.isArray(m.quickReplies) && m.quickReplies.length > 0 && (
             <div data-print="hide" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {m.quickReplies.map((opt, qi) => {
                 // Tap hierarchy (2026-09-09 Coach styling pass, values updated
@@ -1483,7 +1566,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               })}
             </div>
           )}
-          {m.role === 'assistant' && m.id && (
+          {!isCollapsedMessage && m.role === 'assistant' && m.id && (
             <div data-print="hide" style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button onClick={() => rate(i, m.id, 1)} aria-pressed={m.rating === 1} aria-label="Helpful"
@@ -1554,6 +1637,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           General question — answer without my profile
         </label>
       )}
+      {fileBusy && <div style={{ fontSize: 15, color: '#8A9BB8', padding: '10px 12px 0' }}>Reading your file…</div>}
+      {fileErr && <div style={{ fontSize: 15, color: '#B23B3B', padding: '10px 12px 0' }}>{fileErr}</div>}
       <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
       <textarea
         ref={inputTaRef}
@@ -1571,6 +1656,37 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         }}
       />
       {hasSpeech && <SpeechBtn ref={speechBtnRef} onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
+      {hasCoachFileUpload && <>
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+          onChange={async e => {
+            const f = e.target.files[0]
+            e.target.value = ''
+            if (!f) return
+            setFileBusy(true); setFileErr(null)
+            try {
+              const t = await extractText(f)
+              // "Attached: <filename>" leads the block so the person's own
+              // words for it ("my Deloitte notes") are in the text Coach
+              // reads, rather than a wall of transcript with no title.
+              const block = `Attached: ${f.name}\n${t}`
+              attachedBlocksRef.current = [...attachedBlocksRef.current, block]
+              setInput(prev => (prev ? prev.trim() + '\n\n' : '') + block)
+            } catch (err) {
+              setFileErr(`Could not read ${f.name}: ${err.message}`)
+            } finally {
+              setFileBusy(false)
+            }
+          }} />
+        <button type="button" title="Attach a document (PDF, Word, or text)" disabled={fileBusy || loading}
+          onClick={() => fileInputRef.current.click()}
+          style={{
+            background: '#fff', border: '1px solid #E2E5EA', borderRadius: 8, padding: '8px 10px',
+            cursor: (fileBusy || loading) ? 'default' : 'pointer', opacity: (fileBusy || loading) ? 0.5 : 1,
+            display: 'flex', alignItems: 'center',
+          }}>
+          <Paperclip size={17} color="#8A9BB8" />
+        </button>
+      </>}
       <button
         onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
         disabled={!loading && !input.trim()}
@@ -1650,7 +1766,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               </button>
             )}
             <button
-              onClick={() => { if (window.confirm('This clears your entire conversation with Coach, including everything it has noticed about you so far.\n\nThis cannot be undone.\n\nContinue?')) setMessages([INTRO_MSG]) }}
+              onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
               style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
               aria-label="Clear conversation"
             >
@@ -1814,7 +1930,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ fontFamily: 'Georgia,serif', fontSize: 19, fontWeight: 600, color: C.gold }}>My Coach</div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
-            onClick={() => setMessages([INTRO_MSG])}
+            onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
             style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >

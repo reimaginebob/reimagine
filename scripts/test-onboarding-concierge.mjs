@@ -28,16 +28,22 @@ const flags = fs.readFileSync(FLAGS, 'utf8')
 
 check(/export const ONBOARDING_CONCIERGE_FLAG = 'onboarding_concierge'/.test(flags),
   `${FLAGS}: ONBOARDING_CONCIERGE_FLAG is missing or its value changed`)
-check(/export function hasOnboardingConcierge\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasOnboardingConcierge does not auto-grant internal accounts`)
-check(!/ONBOARDING_CONCIERGE_FLAG\]:/.test(flags.slice(flags.indexOf('GRANTABLE_FLAGS'))),
-  `${FLAGS}: onboarding_concierge was added to GRANTABLE_FLAGS -- the brief says @career.club only while this is built and reviewed, not yet open to named outside testers from the dashboard`)
+// GA 2026-09-13 (Coach as Concierge): onboarding_concierge is one of the ten
+// flags that moved from a per-account grant to on for every signed-in
+// account -- isInternalAccount/feature_flags are no longer consulted at all.
+check(/export function hasOnboardingConcierge\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasOnboardingConcierge no longer has GA's plain signed-in body -- did isInternalAccount/feature_flags creep back in?`)
+// GA removed this from GRANTABLE_FLAGS: there is no longer a stored value
+// that changes behavior for a signed-in account, so a live dashboard toggle
+// for it would be exactly the failure mode this file's own header warns about.
+check(!/\[ONBOARDING_CONCIERGE_FLAG\]: \{ label: 'Coach as Concierge' \}/.test(flags),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired onboarding_concierge entry`)
 
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-check(app.includes("hasOnboardingConcierge=(!!signedInUser&&/@career\\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))"),
-  `${APP}: the client-side hasOnboardingConcierge mirror is missing or no longer matches the server gate`)
+check(app.includes('const hasOnboardingConcierge=!!signedInUser'),
+  `${APP}: the client-side hasOnboardingConcierge mirror is missing or has drifted from GA's plain signed-in check`)
 
 // The old hand-wired mechanism must actually be gone, not just superseded --
 // a leftover copy firing alongside the new catalog row would double the

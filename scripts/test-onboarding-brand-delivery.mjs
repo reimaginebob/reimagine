@@ -62,6 +62,21 @@ check(!brandDeliveryFullBlock.includes('Your story just came together above'),
   `${APP}: the brand-delivery effect still pushes the old static line -- it should defer to the brand-richness orientation check instead`)
 check(brandDeliveryFullBlock.includes('setPbCheckinOpenReq(x=>x+1)'),
   `${APP}: the brand-delivery effect no longer opens the coach panel on the big reveal`)
+
+// Recognition check at delivery (2026-09-14). #928 retired the Put it to Work
+// check-in for everyone and this effect recorded nothing in its place. The
+// question has to come back here, under its own key (never the frozen
+// personal-brand one), only for accounts that never answered the old one, and
+// its tap has to be handled (return true) so the follow-up line renders.
+const recognitionBlock = app.slice(brandDeliveryIdx, brandDeliveryIdx + 2000)
+check(recognitionBlock.includes('const askRecognition=!seenPbCheckin') && recognitionBlock.indexOf('const askRecognition') < recognitionBlock.indexOf('setSeenPbCheckin(true)'),
+  `${APP}: the brand-delivery effect must read seenPbCheckin into askRecognition BEFORE setting it, or it re-asks accounts that already answered`)
+check(recognitionBlock.includes("checkinKey:'personal-brand-delivery'") && !recognitionBlock.includes("checkinKey:'personal-brand',"),
+  `${APP}: the delivery recognition question must record under personal-brand-delivery, never the frozen personal-brand key`)
+const deliveryTapIdx = app.indexOf("if(checkinKey==='personal-brand-delivery'){")
+const deliveryTapBlock = deliveryTapIdx >= 0 ? app.slice(deliveryTapIdx, deliveryTapIdx + 400) : ''
+check(deliveryTapBlock.includes('/api/pb-checkin') && deliveryTapBlock.includes('return true'),
+  `${APP}: handleEmploymentQuickReply must record the delivery recognition tap and return true so its follow-up renders`)
 // The invitation to reply here or use "Does this feel right?" moved into
 // the brand-richness prompt itself, so it is still said, just as part of a
 // real reaction instead of a fixed line -- verified in
@@ -103,14 +118,15 @@ check(chat.includes("'brand-rework', [") && chat.includes("label: 'Yes, rework i
 check(chat.includes('Want me to rework it with that?'),
   `${CHAT}: the brand-rework offer no longer shows the note back before acting on it -- every sibling capture shows exactly what it is about to do before the tap`)
 
-// All three <Chat> mount points must pass the prop, or the capture works on
-// some surfaces and silently not others -- the same discipline the
-// pipeline-capture brief used. Three as of 2026-09-07: the embedded myCoach
-// panel, the floating bubble, and the concierge orientation-flow embedded
-// panel (which is what actually renders on p3 for a flagged account now).
+// Both remaining <Chat> mount points must pass the prop, or the capture
+// works on some surfaces and silently not others -- the same discipline
+// the pipeline-capture brief used. Two as of 2026-09-13 (One Coach
+// consolidation retired the dedicated myCoach embedded mount): the
+// floating bubble and the concierge orientation-flow embedded panel
+// (which is what actually renders on p3 for a flagged account now).
 const chatMountHits = (app.match(/brandReworkCaptureActive=\{hasOnboardingConcierge&&step==='p3'\}/g) || []).length
-check(chatMountHits === 3,
-  `${APP}: expected brandReworkCaptureActive passed at all three <Chat> call sites -- found ${chatMountHits}`)
+check(chatMountHits === 2,
+  `${APP}: expected brandReworkCaptureActive passed at both remaining <Chat> call sites -- found ${chatMountHits}`)
 
 // The write path: MUST route through submitCorrection (Track 6 conflict
 // detection) with a proceed callback. As of the 2026-09-10 box-stacking fix,

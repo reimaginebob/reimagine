@@ -18,6 +18,7 @@ const NON_CATALOG_PROMPT_CODES = [
   'life_events_thin',
   'brand_richness',
   'values_thin',
+  'resume_builder_draft_invite',
 ]
 
 // The QUESTION being asked. Every MOMENT_CATALOG row that carries a
@@ -35,6 +36,17 @@ export const PROMPT_CODES = [...new Set([
   ...NON_CATALOG_PROMPT_CODES,
   ...MOMENT_CATALOG.map(entry => entry.promptCode).filter(Boolean),
 ])]
+
+// Family lookup for prompt codes that come from MOMENT_CATALOG (arrival,
+// panel, choice, delivery, check, next_move, stall). Derived the same way
+// PROMPT_CODES itself is derived, for the same reason: a new catalog row
+// with a family is covered automatically, no second list to edit in
+// lockstep. Codes with no matching catalog row -- the NON_CATALOG_PROMPT_CODES
+// above, which predate the catalog -- have no entry here; callers needing one
+// bucket per code group those under 'other'.
+export const PROMPT_CODE_FAMILY = Object.fromEntries(
+  MOMENT_CATALOG.filter(entry => entry.promptCode).map(entry => [entry.promptCode, entry.family])
+)
 
 // The MECHANISM that caused one particular firing of a prompt_code.
 //   hub_arrival        a scripted one-time prompt fired on arrival at a hub

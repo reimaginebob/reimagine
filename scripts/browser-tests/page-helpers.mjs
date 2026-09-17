@@ -59,11 +59,35 @@ export async function openEmbeddedCoach(page) {
   await page.locator(`${INPUT}:not([disabled])`).waitFor({ state: 'visible', timeout: 10000 })
 }
 
-async function newPage(browser, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState }) {
+// Cross-device Clear (2026-09-16 follow-up): injects key/value pairs into
+// localStorage (or, via the second param, sessionStorage) BEFORE any page
+// script runs, so App.jsx's chatMessages useState initializer (which reads
+// reimagine_chat_history synchronously on first render) sees them -- a test
+// simulating "this device already had an old local transcript" has to seed
+// it this early, since setting it after page.goto would be too late for
+// that initializer to see. The sessionStorage form exists because
+// hasNextStep/hasOnboardingConcierge (src/App.jsx) both graduated to
+// `!!signedInUser` with no feature-flag gate left, so Chat.jsx's session-
+// open recap (sessionOpenEligible) fires on every first embedded-panel
+// mount of a fresh browser context regardless of any fixture flag -- the
+// app's own gate against re-firing it is the sessionStorage flag it sets
+// itself (reimagine_session_recap_fired), so a test that needs to observe
+// state undisturbed by that recap seeds the same flag the app would have
+// set after its first, real firing.
+async function seedStorage(page, localSeed, sessionSeed) {
+  if (!localSeed && !sessionSeed) return
+  await page.addInitScript(({ local, session }) => {
+    try { for (const [k, v] of local) localStorage.setItem(k, v) } catch {}
+    try { for (const [k, v] of session) sessionStorage.setItem(k, v) } catch {}
+  }, { local: Object.entries(localSeed || {}), session: Object.entries(sessionSeed || {}) })
+}
+
+async function newPage(browser, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride, chatClearedAt, localStorageSeed, sessionStorageSeed }) {
   const context = await browser.newContext({ viewport: VIEWPORT })
   const page = await context.newPage()
   await dismissCookieBanner(page)
-  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
+  await seedStorage(page, localStorageSeed, sessionStorageSeed)
+  const { coachRequests } = await mockBackend(page, { step, flagged, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride, chatClearedAt })
   await page.goto(DEV_URL)
   await page.locator(RAIL).waitFor({ state: 'visible', timeout: 30000 })
   return { context, page, coachRequests }
@@ -83,9 +107,19 @@ export async function newFocusPage(browser, { step = 'focus', coachReplyBody, co
 // opportunity's stage/dates/built-cards for those without touching the
 // shared DOOR1_RECORD/DOOR2_RECORD fixtures. coachReplyHeaders (t01-19
 // follow-up) simulates a real /api/coach response header, e.g.
-// { 'X-Coach-Widen-Search': 'widen-linkedin-contacts' }.
-export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
-  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState })
+// { 'X-Coach-Widen-Search': 'widen-linkedin-contacts' }. outputsOverride
+// (2026-09-16) merges onto DOOR1_RECORD.outputs -- e.g. { p6: '...' } to
+// mark the Bridge Story built for a widen-go-to-market candidacy test.
+// chatClearedAt (2026-09-16 cross-device Clear follow-up) stands in for
+// users.chat_cleared_at on the mocked /api/me response, simulating "this
+// account was cleared on another device." localStorageSeed (same
+// follow-up) pre-seeds this device's localStorage -- e.g.
+// { reimagine_chat_history: JSON.stringify([...]) } -- before the page's
+// own scripts ever run, simulating a device that already held an old
+// local transcript. sessionStorageSeed (same follow-up) is the sessionStorage
+// twin -- see seedStorage's own comment above for why a test may need it.
+export async function newFlaggedFocusPage(browser, { step = 'focus', coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride, chatClearedAt, localStorageSeed, sessionStorageSeed } = {}) {
+  const { context, page, coachRequests } = await newPage(browser, { step, flagged: true, coachReplyBody, coachReplyHeaders, employmentStatus, onboardingConcierge, coachMoments, pursuitStatusRows, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride, chatClearedAt, localStorageSeed, sessionStorageSeed })
   await openEmbeddedCoach(page)
   return { context, page, coachRequests }
 }

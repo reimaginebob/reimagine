@@ -1,0 +1,18 @@
+-- My Coach's "Clear" button (src/components/Chat.jsx) previously only reset
+-- the client's own chatMessages state -- effective on the tab that tapped it,
+-- but invisible everywhere else: a second signed-in device (or this same
+-- device after sign-out/sign-in) still rehydrated the full transcript from
+-- chat_messages via GET /api/coach-history, undoing the clear. The button's
+-- own confirmation copy promises "on every device where you're signed in,"
+-- which only holds if the clear is recorded server-side.
+--
+-- chat_cleared_at is a display boundary, not a delete: rows in chat_messages
+-- are untouched (still there for the admin coach-insights dashboard, billing/
+-- generation_events, and support diagnostics), and Coach's own model context
+-- is unaffected -- what it "still knows" comes from the person's saved
+-- profile/playbook fields (values, priorities, milestone captures, etc.),
+-- which live independently of chat_messages and are always in its prompt
+-- regardless of this column. Only GET /api/coach-history's rehydration query
+-- filters on it, so the visible transcript stays empty on every device going
+-- forward until a new exchange happens.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_cleared_at TIMESTAMPTZ; -- NULL until the person first taps Clear

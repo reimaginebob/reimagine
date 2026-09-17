@@ -31,9 +31,11 @@ check(evaluatorBlock.indexOf('if(!hydrationStable)return') > evaluatorBlock.inde
   `${APP}: the hydration gate should come after the isDemo/isTest/signedInUser short-circuits, not before them`)
 
 // hydrationStable must already be a dependency of this effect, or the gate
-// would never re-evaluate once hydration actually completes.
-check(app.includes(',activeSectionTick,hydrationStable])'),
-  `${APP}: the evaluator's dependency array no longer ends with hydrationStable -- the gate would use a stale closure value`)
+// would never re-evaluate once hydration actually completes. chatMessages
+// was added after it (2026-09-12, turn-pacing gate) so the array now ends
+// with both.
+check(app.includes(',activeSectionTick,hydrationStable,chatMessages])'),
+  `${APP}: the evaluator's dependency array no longer ends with hydrationStable,chatMessages -- the gate would use a stale closure value`)
 
 if (failures) {
   console.error(`test-coach-moments-hydration-gate: ${failures} check(s) failed`)

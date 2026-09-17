@@ -70,7 +70,7 @@ function parseTs(v) {
 
 // The write core is auth-agnostic on purpose (see PHASE-TWO SEAM). It merges the
 // patch over the existing row so unspecified fields are preserved, then upserts.
-async function writeCore(userId, recordId, patch) {
+async function writeCore(userId, recordId, patch, source = 'live') {
   const existingRows = await sql`
     SELECT stage, next_conversation_at, next_step_at, next_move, closed_at, outcome
     FROM pursuit_status
@@ -121,7 +121,7 @@ async function writeCore(userId, recordId, patch) {
     try {
       await sql`
         INSERT INTO pursuit_status_events (user_id, record_id, stage, outcome, prev_stage, source)
-        VALUES (${userId}::uuid, ${recordId}, ${stage}, ${outcome}, ${prevStage}, 'live')
+        VALUES (${userId}::uuid, ${recordId}, ${stage}, ${outcome}, ${prevStage}, ${source})
       `
     } catch { /* table not migrated yet, or a DB hiccup — never surfaces */ }
   }
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
       if (Object.keys(patch).length === 0) {
         return res.status(400).json({ error: 'no status fields provided' })
       }
-      await writeCore(user.id, recordId, patch)
+      await writeCore(user.id, recordId, patch, bearer ? 'connector' : 'live')
       return res.status(200).json({ ok: true })
     }
 

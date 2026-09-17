@@ -67,7 +67,8 @@ const DEFINITIONS = {
   resurrection: `Came back after ${RESURRECT_DAYS}+ quiet days. For a job search this is the retention signal that matters — people return when their search moves.`,
   workingSession: `A run of actions with no gap longer than ${SESSION_GAP_MIN} minutes. Length is first action to last, so reading time after the final action is not counted — treat it as a floor.`,
   depth: 'How many of the seven Focus sections a person has generated.',
-  recognition: 'Answers to "does this sound like you?" — the check-in on Personal Brand.',
+  recognition: 'Answers to "does this sound like you?" — the check-in on Personal Brand, asked on arrival at Put It to Work. Retired 2026-09-13; this series is frozen at its definition and no longer grows.',
+  recognitionDelivery: 'The same question and the same three answers, asked right after the Personal Brand is first built (from 2026-09-14). Kept as its own series because the moment differs: someone who has just read their brand is answering something different from someone who has moved on to the next screen.',
   reached: 'Ever recorded at a stage, from the append-only stage history. An opportunity counts only at stages someone actually set — a jump straight to offer does not credit interviewing.',
   outcome: 'How an opportunity ended: accepted, declined, not selected, withdrew, or no response.',
   funnelStep: 'Each funnel step is counted as a subset of the step above it, so a step-over-step conversion can never exceed 100%. The steps are not naturally nested — an Opportunity Playbook does not require finishing all seven sections — so they are nested deliberately.',
@@ -540,11 +541,12 @@ async function loadPayload(adminEmails) {
 
     // --- 9. Recognition: "does this sound like you?" -----------------------
     sql`
-      SELECT answer, COUNT(*)::int AS n
+      SELECT c.checkin_key, c.answer, COUNT(*)::int AS n
       FROM coach_checkin_responses c
       LEFT JOIN users u ON u.id = c.user_id
-      WHERE u.id IS NULL OR LOWER(u.email) <> ALL(${adminEmails}::text[])
-      GROUP BY answer`,
+      WHERE (u.id IS NULL OR LOWER(u.email) <> ALL(${adminEmails}::text[]))
+        AND c.checkin_key IN ('personal-brand', 'personal-brand-delivery')
+      GROUP BY c.checkin_key, c.answer`,
 
     // --- 10. Coach engagement ----------------------------------------------
     sql`
@@ -655,8 +657,14 @@ async function loadPayload(adminEmails) {
   const r = returnBehaviour[0] || {}
   const s = sessions[0] || {}
   const c = coach[0] || {}
-  const rec = recognition.reduce((m, row) => { m[row.answer] = num(row.n); return m }, {})
-  const recTotal = (rec.yes || 0) + (rec.mostly || 0) + (rec.not_quite || 0)
+  // One series per question key. personal-brand is the frozen pre-2026-09-13
+  // series (identical to what this panel always showed: it was the only key);
+  // personal-brand-delivery is the same question asked at brand delivery.
+  const recognitionFor = (key) => {
+    const m = recognition.filter(row => row.checkin_key === key).reduce((acc, row) => { acc[row.answer] = num(row.n); return acc }, {})
+    const total = (m.yes || 0) + (m.mostly || 0) + (m.not_quite || 0)
+    return { yes: m.yes || 0, mostly: m.mostly || 0, not_quite: m.not_quite || 0, total, rate: total > 0 ? (m.yes || 0) / total : null }
+  }
 
   return {
     as_of: new Date().toISOString(),
@@ -782,13 +790,8 @@ async function loadPayload(adminEmails) {
       backfill_events: num((historyCoverage[0] || {}).backfill_events),
       first_live_at: (historyCoverage[0] || {}).first_live_at || null,
     },
-    recognition: {
-      yes: rec.yes || 0,
-      mostly: rec.mostly || 0,
-      not_quite: rec.not_quite || 0,
-      total: recTotal,
-      rate: recTotal > 0 ? (rec.yes || 0) / recTotal : null,
-    },
+    recognition: recognitionFor('personal-brand'),
+    recognition_delivery: recognitionFor('personal-brand-delivery'),
     coach: {
       users: num(c.users),
       turns: num(c.turns),

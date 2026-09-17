@@ -84,10 +84,10 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(/const OP_CARD_LABELS=\{companyRead:/.test(app),
   `${APP}: OP_CARD_LABELS is no longer defined inline -- scripts/test-playbook-sections.mjs's drift check against OP_COUNTED_SECTIONS depends on finding it here`)
-// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
-// the same capture props the other two mounts already carried.
-check((app.match(/opCardReworkCaptureActive=\{hasPipeline&&!isIndependent&&hasSectionRework\}/g) || []).length === 3,
-  `${APP}: opCardReworkCaptureActive is not wired identically at all 3 <Chat> mount sites`)
+// 2, not 3: One Coach (2026-09-13) retired the dedicated myCoach embedded
+// mount, leaving the floating bubble and the concierge-embedded panel.
+check((app.match(/opCardReworkCaptureActive=\{hasPipeline&&!isIndependent&&hasSectionRework\}/g) || []).length === 2,
+  `${APP}: opCardReworkCaptureActive is not wired identically at both remaining <Chat> mount sites`)
 
 // The quick-reply write path: resolves the opportunity by title (falling
 // back to coachSaveTarget, exactly like opportunity-update above it),

@@ -57,7 +57,7 @@ check(coach.includes("const prioritiesCaptureNote = orientationCaptureOn ? PRIOR
   `${COACH}: prioritiesCaptureNote is not gated on orientationCaptureOn`)
 check(coach.includes("const lifeStoryCaptureNote = orientationCaptureOn ? LIFE_STORY_CAPTURE_NOTE : ''"),
   `${COACH}: lifeStoryCaptureNote is not gated on orientationCaptureOn`)
-check(coach.includes('${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${ORIENTATION_LISTENING_NOTE}`'),
+check(coach.includes('${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`'),
   `${COACH}: prioritiesCaptureNote/lifeStoryCaptureNote are not appended in the empty-profile template`)
 check(/\$\{reputationCaptureNote\}\$\{skillsCaptureNote\}\$\{prioritiesCaptureNote\}\$\{lifeStoryCaptureNote\}\$\{searchIntakeNoteThisTurn\}/.test(coach),
   `${COACH}: prioritiesCaptureNote/lifeStoryCaptureNote are not appended in the main profile-slice template`)
@@ -94,14 +94,15 @@ check(chat.includes("'life-story-capture', [") && chat.includes("It adds a new p
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
 
-// Three mounts as of 2026-09-07 (myCoach embedded, the floating bubble, and
-// the concierge orientation-flow embedded panel).
+// Two mounts as of 2026-09-13 (One Coach consolidation retired the
+// dedicated myCoach embedded mount): the floating bubble and the concierge
+// orientation-flow embedded panel.
 const prioritiesMountHits = (app.match(/prioritiesCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(prioritiesMountHits === 3,
-  `${APP}: expected prioritiesCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${prioritiesMountHits}`)
+check(prioritiesMountHits === 2,
+  `${APP}: expected prioritiesCaptureActive={!isDemo&&hasOrientationCapture} at both remaining <Chat> mount sites, found ${prioritiesMountHits}`)
 const lifeStoryMountHits = (app.match(/lifeStoryCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(lifeStoryMountHits === 3,
-  `${APP}: expected lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${lifeStoryMountHits}`)
+check(lifeStoryMountHits === 2,
+  `${APP}: expected lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} at both remaining <Chat> mount sites, found ${lifeStoryMountHits}`)
 
 const prioritiesBranchIdx = app.indexOf("checkinKey==='priorities-capture'")
 check(prioritiesBranchIdx !== -1, `${APP}: the checkinKey==='priorities-capture' branch is missing from handleEmploymentQuickReply`)

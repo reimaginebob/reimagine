@@ -13,7 +13,9 @@
 // - Empty string is a valid value (answered, then cleared). null/undefined means
 //   "leave this field alone" — it is not a clear.
 // - Plain UPDATE (updatable): the answer is a snapshot of where someone came in,
-//   and they can revise it from the Orientation screen at any time.
+//   and they can revise it from the Orientation screen at any time. Every real
+//   change is also appended to search_intake_history, so the first answer
+//   survives the revision (2026-09-14).
 
 import { sql } from './_lib/db.js'
 import { getSessionUser } from './_lib/session.js'
@@ -79,11 +81,42 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Not authenticated' })
   }
 
+  // Append-only history (migrations/2026-09-14_search-intake-history.sql): the
+  // columns below are overwritten in place, so each real change is also kept
+  // here, and the earliest row per field stays the person's first answer.
+  // Written before the UPDATE so the IS DISTINCT FROM test compares against
+  // the value being replaced; a blur with no change adds nothing, and neither
+  // does leaving a never-answered box empty. Best-effort:
+  // losing a history row is bad, failing the save the person is waiting on is
+  // worse.
+  const recordHistory = async (field, value) => {
+    try {
+      if (field === 'going_well') {
+        await sql`
+          INSERT INTO search_intake_history (user_id, field, value)
+          SELECT id, 'going_well', ${value}::text FROM users
+          WHERE id = ${user.id}::uuid AND search_going_well IS DISTINCT FROM ${value}::text
+            AND NOT (search_going_well IS NULL AND ${value}::text = '')
+        `
+      } else {
+        await sql`
+          INSERT INTO search_intake_history (user_id, field, value)
+          SELECT id, 'focus', ${value}::text FROM users
+          WHERE id = ${user.id}::uuid AND search_focus IS DISTINCT FROM ${value}::text
+            AND NOT (search_focus IS NULL AND ${value}::text = '')
+        `
+      }
+    } catch (err) {
+      console.error('search-intake: history insert failed (non-blocking)', { field, message: err?.message || String(err) })
+    }
+  }
+
   try {
     // Two narrow statements rather than one assembled UPDATE: the tagged-template
     // sql client takes no dynamic column lists, and a partial write must not touch
     // the other field's timestamp.
     if (goingWell !== undefined) {
+      await recordHistory('going_well', goingWell)
       await sql`
         UPDATE users
         SET search_going_well = ${goingWell}, search_going_well_updated_at = NOW()
@@ -91,6 +124,7 @@ export default async function handler(req, res) {
       `
     }
     if (focus !== undefined) {
+      await recordHistory('focus', focus)
       await sql`
         UPDATE users
         SET search_focus = ${focus}, search_focus_updated_at = NOW()

@@ -45,21 +45,41 @@ const PAGE_SIZE = 100
 // several hundred segment memberships inside a default timeout.
 export const config = { maxDuration: 300 }
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+// Resend's ceiling is 10 req/sec. This delay applies between every page
+// fetch, and the two listSegmentContacts calls below now run sequentially
+// (not via Promise.all) rather than adding a second, harder-to-reason-about
+// throttle to keep a concurrent combined rate under the same ceiling.
+const PAGE_FETCH_DELAY_MS = 200
+
+async function fetchContactsPage(apiKey, segmentId, after) {
+  const url = new URL(`https://api.resend.com/segments/${segmentId}/contacts`)
+  url.searchParams.set('limit', String(PAGE_SIZE))
+  if (after) url.searchParams.set('after', after)
+  // One retry on a 429: self-healing if a run ever gets close to the ceiling
+  // again (e.g. the target segment growing toward 886) without masking a
+  // sustained rate-limit problem behind repeated retries.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
+    if (resp.ok) return resp.json()
+    if (resp.status === 429 && attempt === 0) {
+      await sleep(1000)
+      continue
+    }
+    const body = await resp.text().catch(() => '')
+    throw new Error(`segment contacts ${resp.status} ${body.slice(0, 200)}`)
+  }
+}
+
 async function listSegmentContacts(apiKey, segmentId) {
   const out = []
   let after = null
   // Bounded rather than while(true): a paging bug that never terminates would
   // burn the function's whole budget and rate-limit the account.
   for (let page = 0; page < 50; page++) {
-    const url = new URL(`https://api.resend.com/segments/${segmentId}/contacts`)
-    url.searchParams.set('limit', String(PAGE_SIZE))
-    if (after) url.searchParams.set('after', after)
-    const resp = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } })
-    if (!resp.ok) {
-      const body = await resp.text().catch(() => '')
-      throw new Error(`segment contacts ${resp.status} ${body.slice(0, 200)}`)
-    }
-    const json = await resp.json()
+    if (page > 0) await sleep(PAGE_FETCH_DELAY_MS)
+    const json = await fetchContactsPage(apiKey, segmentId, after)
     const data = Array.isArray(json.data) ? json.data : []
     out.push(...data)
     if (!json.has_more || data.length === 0) break
@@ -92,11 +112,14 @@ export default async function handler(req, res) {
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), MAX_LIMIT) : DEFAULT_LIMIT
 
   try {
-    const [corner, userRows, targetExisting] = await Promise.all([
-      listSegmentContacts(apiKey, CORNER_SEGMENT_ID),
-      sql`SELECT email FROM users`,
-      listSegmentContacts(apiKey, TARGET_SEGMENT_ID),
-    ])
+    // The two segment listings run sequentially, not via Promise.all: two
+    // unthrottled pagination loops firing at once can exceed Resend's 10
+    // req/sec ceiling even with the per-page delay in listSegmentContacts,
+    // and TARGET_SEGMENT_ID only grows as this campaign fills up. This
+    // endpoint's 300s maxDuration has the room to spare.
+    const userRows = await sql`SELECT email FROM users`
+    const corner = await listSegmentContacts(apiKey, CORNER_SEGMENT_ID)
+    const targetExisting = await listSegmentContacts(apiKey, TARGET_SEGMENT_ID)
 
     const userKeys = new Set(userRows.map(r => normalizeEmail(r.email)))
     const alreadyInTarget = new Set(targetExisting.map(c => normalizeEmail(c.email)))

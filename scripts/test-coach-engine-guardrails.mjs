@@ -55,8 +55,24 @@ check(coach.includes("import { applyOutputStrippers, ensureDistressSupport, matc
   `${COACH}: matchesDistressTrigger is not imported`)
 check(coach.includes("import { parseSelfcheck, parseMood, parseWidenSearchHint } from '../src/coach-routing.js'"),
   `${COACH}: parseMood is not imported`)
-check(coach.includes('const distressDetected = matchesDistressTrigger(message)'),
+// Still computed from the PERSON's own words and never from the model's
+// output -- that is what this guard has always been for. Narrowed 2026-09-17
+// to the part of the message they actually typed when the turn carried an
+// attachment: a suicide-prevention job posting or an interview transcript
+// discussing a hard year can carry the trigger vocabulary in someone else's
+// words, and firing the crisis pointer plus a session-long hold on Coach's
+// own offers because of it is a bad answer to an ordinary "summarize this".
+// The three checks below keep the chain intact end to end: an absent
+// typedText still falls back to the whole message, so pasted text (which
+// cannot be told apart from typing) stays covered exactly as before.
+check(coach.includes("const typedTextForSafety = typeof typedText === 'string' ? typedText : null"),
+  `${COACH}: typedText is no longer validated to a string-or-null before reaching the distress scan`)
+check(coach.includes('const distressSource = typedTextForSafety === null ? message : typedTextForSafety'),
+  `${COACH}: the distress source is no longer "what they typed, else the whole message" -- an absent typedText MUST fall back to the full message or pasted distress stops being seen`)
+check(coach.includes('const distressDetected = matchesDistressTrigger(distressSource)'),
   `${COACH}: distressDetected is not computed from the user's own message`)
+check(coach.includes('ensureDistressSupport(distressSource, strippedText)'),
+  `${COACH}: ensureDistressSupport reads a different source than matchesDistressTrigger -- both must scan the same text or the reply and the hold disagree`)
 check(coach.includes("if (distressDetected) res.setHeader('X-Coach-Distress', '1')"),
   `${COACH}: the X-Coach-Distress response header is missing or has drifted`)
 check(coach.includes('const { mood, text: moodStripped } = parseMood(selfcheckStripped)'),
@@ -83,16 +99,23 @@ check(/if \(Math\.random\(\) < 0\.05\) \{\s*console\.log\('coach situation-block
   `${COACH}: the sampled (1-in-20) Situation-block size log is missing or has drifted`)
 
 // --- Client: session-scoped hold state ---
-check(app.includes('const[coachDistressHold,setCoachDistressHold]=useState(false)'),
-  `${APP}: coachDistressHold state is missing`)
-check(app.includes('const[coachMoodHold,setCoachMoodHold]=useState(false)'),
-  `${APP}: coachMoodHold state is missing`)
-check(app.includes('const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}'),
-  `${APP}: handleCoachDistressDetected does not set the hold`)
-check(app.includes('const handleCoachMoodLow=()=>{setCoachMoodHold(true)}'),
-  `${APP}: handleCoachMoodLow does not set the hold`)
-check(app.includes('const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}'),
-  `${APP}: handleCoachSessionOpen does not clear both holds`)
+// 2026-09-16 (four-my-coach-breaks brief, item C): both holds now initialize
+// from sessionStorage (src/coach-holds.js) instead of a bare useState(false),
+// and the three handlers also read/write/clear that same sessionStorage
+// copy -- so a hold set moments before a reload is still there afterward,
+// which a React-state-only hold could never be.
+check(app.includes('const[coachDistressHold,setCoachDistressHold]=useState(()=>readCoachHolds().distress)'),
+  `${APP}: coachDistressHold state is missing, or no longer initializes from readCoachHolds()`)
+check(app.includes('const[coachMoodHold,setCoachMoodHold]=useState(()=>readCoachHolds().mood)'),
+  `${APP}: coachMoodHold state is missing, or no longer initializes from readCoachHolds()`)
+check(app.includes("const handleCoachDistressDetected=()=>{setCoachDistressHold(true);writeCoachHold('distress')}"),
+  `${APP}: handleCoachDistressDetected does not set the hold and persist it via writeCoachHold`)
+check(app.includes("const handleCoachMoodLow=()=>{setCoachMoodHold(true);writeCoachHold('mood')}"),
+  `${APP}: handleCoachMoodLow does not set the hold and persist it via writeCoachHold`)
+check(app.includes('const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false);clearCoachHolds()}'),
+  `${APP}: handleCoachSessionOpen does not clear both holds and their sessionStorage copies via clearCoachHolds`)
+check(app.includes('import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"'),
+  `${APP}: coach-holds.js is not imported`)
 
 // --- Client: the evaluator actually checks both holds ---
 check(app.includes('if(coachDistressHold)return'),
@@ -111,13 +134,16 @@ check(app.includes("if(coachMoodHold&&entry.family!=='delivery'&&entry.family!==
   `${APP}: the evaluator does not hold every family except delivery/choice while coachMoodHold is set`)
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
 // savedPlaybooks/activePlaybooks/pursuitStatus/connNetwork/connManual/
-// connSearch appended by live-side brief PR 2, same day.
-check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
+// connSearch appended by live-side brief PR 2, same day. chatMessages
+// appended 2026-09-12 (turn-pacing gate).
+check(app.includes(',coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array does not include both new holds`)
 
-// --- Client: all 3 Chat mount sites wired ---
+// --- Client: both remaining Chat mount sites wired ---
+// 2, not 3: One Coach (2026-09-13) retired the dedicated myCoach embedded
+// mount, leaving the floating bubble and the concierge-embedded panel.
 const mountCount = (app.match(/onDistressDetected=\{handleCoachDistressDetected\} onMoodLow=\{handleCoachMoodLow\} onSessionOpen=\{handleCoachSessionOpen\}/g) || []).length
-check(mountCount === 3, `${APP}: expected all 3 Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
+check(mountCount === 2, `${APP}: expected both remaining Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
 
 // --- Chat.jsx: reads the headers, calls the callbacks, fires onSessionOpen ---
 check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {'),

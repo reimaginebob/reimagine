@@ -15,7 +15,7 @@ Yes, by email. The welcome screen asks for your email and sends a magic-link to 
 No. Reimagine is free to use, and if you are in a job search and feeling the pinch of no paycheck, please use it as much as you want with no expectation of payment. Nothing in Reimagine is gated on whether you give.
 
 **How do I support Reimagine?**
-If it has been useful and you have the capacity, the gold Support Reimagine card at the top of the left sidebar opens a panel with one-time options ($20, $50, $100, or an amount you choose) and a $10 monthly option. Each opens a Stripe checkout page in a new tab. AI tokens are what Reimagine costs to run, so every contribution helps keep it free for the next person.
+If it has been useful and you have the capacity, the gold Pay It Forward card at the top of the left sidebar opens a panel with one-time options ($20, $50, $100, or an amount you choose) and a $10 monthly option. Each opens a Stripe checkout page in a new tab. AI tokens are what Reimagine costs to run, so every contribution helps keep it free for the next person.
 
 **Do I have to take an assessment to use it?**
 No, but the recommendations will be more abstract without one. If you do not have one, the free Affintus assessment takes 15 minutes and gives Reimagine the data layer that makes everything more personal. The link is on the welcome screen and on the Assessment input screen.
@@ -47,6 +47,9 @@ No. Your inputs and outputs are not shared with third parties. The only places y
 
 **What if I clear my browser cache?**
 Once you are signed in, clearing cache does not affect your work. Sign in again on any device and your progress is there. If you declined the sign-in option and were using browser-local storage, clearing cache does clear your work.
+
+**How do I clear my conversation with My Coach?**
+Tap Clear at the top of the coach panel. It clears the conversation on every device where you are signed in, not only the one you tapped it on, and it cannot be undone. Nothing saved to your profile or a playbook is touched, and your coach still knows all of it; clearing only resets the back-and-forth itself.
 
 **Can I move my work to another device?**
 Yes, automatically. Sign in from the new device with the same email and your full session is there. No file export needed.
@@ -118,6 +121,9 @@ If a step keeps failing or the output is not making sense after multiple refines
 2. Try again with a slightly different input.
 3. Sign out and sign back in. A clean session sometimes resolves transient state issues.
 4. If none of that works, email [bob@career.club](mailto:bob@career.club) and describe what was happening. Beta feedback is what shapes the next build.
+
+**What does "Send diagnostics" send?**
+There is a **Send diagnostics** button under **Share feedback**, and a **Send to Career Club** button on the screen you see if the app ever crashes outright. Both send the same thing: which screen you were on, what kind of error came up, the version of Reimagine you were running, and your browser. Nothing is sent until you press the button, and you see the exact text on screen first so you can read it before deciding. It does not include your resume, your profile, your playbooks, or anything you have said to My Coach. It helps most when something keeps happening and is hard to describe, because it tells us where to look.
 
 ---
 

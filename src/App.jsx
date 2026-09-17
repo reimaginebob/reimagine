@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, createContext, useContext, lazy, Suspense } from "react"
 import { Check, Upload, Loader2, AlertCircle, Copy, CheckCheck, ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, ArrowRight, ArrowUpRight, Sparkles, Trophy, Download, Heart, Network, Briefcase, Fingerprint, Puzzle, MessageCircle, MessageSquare, Target, Send, MapPin, DollarSign, Clock, Lightbulb, Printer, Eye, Route, Compass, Plus, X, Search, FileText, Lock, Mic, Menu, Users, Pencil } from "lucide-react"
 import { demoProfile, demoOutputs, demoDeepOpts, demoChosen, demoDone } from "./demoData"
 import { testProfile } from "./testData"
@@ -17,7 +17,8 @@ import { stripCoachSpeak, applyContaminationPlaceholders, stripLogicFlipCadence,
 import { asText, formatSkills, buildSynthesisContext, buildUserProfileBlock } from "./profile-block.mjs"
 import { NAV_LABELS, LANE_LABELS } from "./nav-labels.js"
 import { MOMENT_CATALOG, WIDEN_SEARCH_ROW_KEYS } from "./coach-moments.js"
-import { pickNextWidenSearchRow, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { pickNextWidenSearchRow, pickWidenSearchRowForPipeline, widenSearchCandidateKeys as widenSearchCandidateKeysFor, snoozeWidenSearchRow, retireWidenSearchRow } from "./widen-search.js"
+import { readCoachHolds, writeCoachHold, clearCoachHolds } from "./coach-holds.js"
 import { PURSUIT_STAGES, PURSUIT_STAGE_LABELS } from "./pursuit-stages.js"
 import { ORIENTATION_NARRATION } from "./data/orientation-narration.js"
 // Sign-in clobber guard: the rule deciding when the debounced autosave may PUT.
@@ -40,10 +41,13 @@ import { ECOSYSTEM_CATEGORIES, ECOSYSTEM_CATEGORY_KEYS, ecosystemSignatureFor, E
 // gitignored; the script writes them from one SHA read so the bundled
 // constant and the deployed JSON are consistent by construction.
 import { BUILD_SHA, BUILT_AT } from "./build-meta.js"
+import { recordLocalFailure, buildDiagnosticsPayload } from "./support-trail.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
+import { extractText } from "./extract-text.js"
+import { clipChatHistoryForStorage } from "./chat-history-clip.js"
 import Staircase from "./components/Staircase"
-import { STEPS, nextSteps as computeNextSteps } from "./step-position.js"
+import { STEPS, nextSteps as computeNextSteps, activeOpportunities, stepPosition } from "./step-position.js"
 import Chat, { INTRO_MSG } from "./components/Chat"
 import SavedPlaybooks from "./components/SavedPlaybooks"
 import PlaybookSectionRail from "./components/PlaybookSectionRail"
@@ -54,9 +58,13 @@ import { parseMoney, monetizeBenefits, bonusModel, totalCompModel } from "./offe
 import { COMP_KNOWLEDGE } from "./comp-knowledge"
 import Privacy from "./Privacy"
 import Terms from "./Terms"
-import QuickStart from "./QuickStart"
 import AdminDashboard from "./AdminDashboard"
 import CoachInsights from "./CoachInsights"
+// /admin/support is lazy, unlike the two admin screens above it. Those predate
+// code-splitting here and are eagerly imported; this one is a staff-only screen
+// with no reason to sit in the bundle all 145 accounts download on every visit.
+// Suspense is required for React.lazy and has no other consumer in this file.
+const SupportView = lazy(() => import("./components/SupportView"))
 import ResearchDesk from "./components/ResearchDesk"
 import CookieBanner from "./CookieBanner"
 import { Analytics, track } from "@vercel/analytics/react"
@@ -323,6 +331,12 @@ const C = {
   bg:'#F7F8FA',panel:'#FFFFFF',card:'#FFFFFF',input:'#F3F4F6',
   border:'#E2E5EA',gold:'#C8924A',goldL:'#A06828',
   cream:'#1A2540',creamD:'#2D3748',gray:'#3D4A5C',grayL:'#2D3748',
+  // Three muted-gray tints (2026-09-16, ecosystem hub grid redesign) for
+  // description/sub-label text that sits between C.gray (body) and C.border
+  // (hairlines) on the scale -- distinct roles, not synonyms: grayMid is
+  // description prose, graySoft is secondary labels/breadcrumbs, grayLabel
+  // is small-caps eyebrows. crumbSep is the breadcrumb '>' glyph color only.
+  grayMid:'#4B5563',graySoft:'#6B7280',grayLabel:'#9CA3AF',crumbSep:'#C8CCD3',
   ok:'#2E7D52',err:'#C0392B'
 }
 
@@ -393,7 +407,13 @@ async function callClaude(prompt, opts={}) {
     content=prompt
   }
   const body={model:"claude-sonnet-5",max_tokens:effectiveMaxTokens,...(effort&&{output_config:{effort}}),system:[{type:"text",text:SYS_BASE,cache_control:{type:"ephemeral"}}],messages:[{role:"user",content}],...(voiceMode&&{voiceMode}),...(step&&{step}),...(tools&&{tools})}
-  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+  // x-reimagine-build: the bundle this browser is running, stamped on every
+  // generation and Coach request so a support_events failure row can say WHICH
+  // build produced it. "It broke for one user" and "it broke for everyone on
+  // the build that shipped an hour ago" are indistinguishable without it. An
+  // older cached bundle omits the header, which is itself the answer to the
+  // same question.
+  const res=await fetch("/api/claude",{method:"POST",headers:{"Content-Type":"application/json","x-reimagine-build":BUILD_SHA||""},body:JSON.stringify(body)})
   if(!res.ok){
     const e=await res.json().catch(()=>({}))
     // Account paused (auto or manual): surface it to the app so it can show the
@@ -1048,49 +1068,6 @@ async function callClaudeWithVoiceGate(promptFn, opts={}, meta={}) {
   return result
 }
 
-// How long to wait for the pdf.js bundle before giving up. Generous: a slow
-// phone on hotel wifi should still succeed. What it exists to prevent is the
-// unbounded wait, not a slow one.
-const PDFJS_LOAD_TIMEOUT_MS=20000
-// Loads pdf.js from the CDN. REJECTS on failure — it used to have an onload
-// handler and nothing else, so a script that never loaded left the promise
-// pending forever: extractText awaited it, the caller's `finally` never ran,
-// and the upload spinner stayed up for the rest of the session with no error
-// and no way forward but a reload. Three ways that happens in the wild, none
-// of them exotic: an ad blocker or corporate proxy blocking cdnjs, an offline
-// moment, and an SRI hash mismatch — which fires `error`, not `load`, so the
-// old code could not see it even in principle. Every failure now settles.
-function loadPDFJS(){return new Promise((resolve,reject)=>{
-  if(window.pdfjsLib){resolve(window.pdfjsLib);return}
-  const s=document.createElement('script')
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
-  // Subresource Integrity: pin the SHA-384 of the exact bytes we expect so a
-  // compromised CDN or MITM cannot execute swapped code. crossOrigin is
-  // required or the browser silently skips the integrity check on a
-  // cross-origin script. The worker is self-hosted under /public (SRI does
-  // not apply to Worker URLs the same way), removing third-party trust there.
-  s.integrity='sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'
-  s.crossOrigin='anonymous'
-  // One-shot settle guard: whichever of load / error / timeout arrives first
-  // wins and the rest become no-ops.
-  let settled=false
-  const fail=(why)=>{if(settled)return;settled=true;clearTimeout(timer);const e=new Error(why);e.pdfLoaderFailed=true;reject(e)}
-  const timer=setTimeout(()=>fail('pdf_reader_timeout'),PDFJS_LOAD_TIMEOUT_MS)
-  s.onload=()=>{
-    if(settled)return
-    // `load` fires but the global is absent when the bundle was served as
-    // something other than the script we expect — a captive-portal login page
-    // or a proxy error page with a 200. Treat it as a failure, not a success
-    // that crashes on the next line.
-    if(!window.pdfjsLib){fail('pdf_reader_unavailable');return}
-    settled=true;clearTimeout(timer)
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc='/pdf-worker/3.11.174/pdf.worker.min.js'
-    resolve(window.pdfjsLib)
-  }
-  s.onerror=()=>fail('pdf_reader_blocked')
-  document.head.appendChild(s)
-})}
-
 function parseResumeJSON(raw){
   if(!raw||typeof raw!=='string')return null
   let s=raw.trim()
@@ -1401,10 +1378,23 @@ function parseEcosystemCategoriesJSON(raw){
 // no industry name at all) -- empty string when the model omitted it or the
 // whole response failed to parse, so the render side can fall back to a
 // generic label rather than showing nothing.
+//
+// Cap length at a WORD boundary (2026-09-13 fix): a plain .slice() cut a long
+// industry name off mid-word in the center hub's small circle ("...Workforc").
+// This trims to the last full word inside the cap and appends an ellipsis of
+// its own, so the render side's CSS line-clamp is a backstop against a rare
+// long name, not the thing doing the truncating.
+function truncateAtWordBoundary(s,max){
+  const t=s.trim()
+  if(t.length<=max)return t
+  const cut=t.slice(0,max)
+  const lastSpace=cut.lastIndexOf(' ')
+  return (lastSpace>max*0.6?cut.slice(0,lastSpace):cut).trim()+'…'
+}
 function backstopEcosystemCategories(obj){
   const src=obj&&typeof obj==='object'?obj:{}
   const okStr=v=>typeof v==='string'&&v.trim().length>0
-  const industry=okStr(src.industry)?src.industry.trim().slice(0,60):''
+  const industry=okStr(src.industry)?truncateAtWordBoundary(src.industry,42):''
   const byKey={}
   ECOSYSTEM_CATEGORY_KEYS.forEach(k=>{
     const c=src[k]
@@ -2813,13 +2803,21 @@ function foldHighlightsIntoExperience(r){
   return {...r,experience,keyAccomplishments:remaining}
 }
 
-// renderResumeText(r) produces the human-reader text; renderResumeText(r, true)
+// renderResumeText(r) produces the human-reader text; renderResumeText(r, 'ats')
 // produces the ATS-reader arrangement of the SAME record: keyword bank up top,
-// wins folded into the roles where they happened, standard headings. No content
-// is invented or dropped — the two versions differ only in order and labels.
-function renderResumeText(r, ats=false){
+// wins folded into the roles where they happened, standard headings.
+// renderResumeText(r, 'traditional') produces a third arrangement: no Key
+// Accomplishments block, Summary then Skills then straight into experience --
+// the fold still runs so no highlight is silently dropped, and any highlight
+// that folds into no role falls back to the same Summary of Qualifications
+// heading ATS uses for the same reason. No content is invented or dropped
+// across any of the three — they differ only in order, headings, and (for ATS)
+// typography.
+function renderResumeText(r, format='human'){
   if(!r)return ''
-  if(ats)r=foldHighlightsIntoExperience(r)
+  const ats=format==='ats'
+  const traditional=format==='traditional'
+  if(ats||traditional)r=foldHighlightsIntoExperience(r)
 
   // Flatten structured bullets (matches buildResumeDoc's runsFromBullet and highlightParagraph)
   const bulletToText = (b) => {
@@ -2850,6 +2848,17 @@ function renderResumeText(r, ats=false){
     if(skillGroups.length){
       lines.push('')
       lines.push('CORE COMPETENCIES')
+      skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
+    }
+    if(ka.length){
+      lines.push('')
+      lines.push('SUMMARY OF QUALIFICATIONS')
+      ka.forEach(b=>lines.push('• '+bulletToText(b)))
+    }
+  } else if(traditional){
+    if(skillGroups.length){
+      lines.push('')
+      lines.push('SKILLS')
       skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
     }
     if(ka.length){
@@ -2902,7 +2911,7 @@ function renderResumeText(r, ats=false){
       lines.push(parts)
     })
   }
-  if(!ats&&skillGroups.length){
+  if(!ats&&!traditional&&skillGroups.length){
     lines.push('')
     lines.push('SKILLS')
     skillGroups.forEach(g=>{const l=skillLine(g);if(l)lines.push(l)})
@@ -2910,11 +2919,12 @@ function renderResumeText(r, ats=false){
   return lines.join('\n')
 }
 
-function resumeFilename(r, ats=false){
+function resumeFilename(r, format='human'){
   const name=(r&&r.header&&r.header.name)||'resume'
   const slug=name.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().split(/\s+/).join('_')
   const d=new Date().toISOString().slice(0,10)
-  return `${slug||'resume'}_resume${ats?'_ats':''}_${d}.docx`
+  const suffix=format==='ats'?'_ats':format==='traditional'?'_traditional':''
+  return `${slug||'resume'}_resume${suffix}_${d}.docx`
 }
 
 // Lazy-load the docx writer on first use so it is split into its own chunk
@@ -2933,8 +2943,12 @@ async function buildResumeDoc(r, opts = {}){
   // ATS mode re-arranges the same record for the machine reader: sans-serif font,
   // standard headings, skills as a Core Competencies bank up top, curated wins folded
   // into the roles where they happened, and bold stripped (a parser cannot see weight).
-  const ats = !!opts.ats
-  if (ats) r = foldHighlightsIntoExperience(r)
+  // Traditional mode folds the same wins into the roles (so none is silently dropped)
+  // but keeps ordinary human typography and headings -- no keyword bank, no bold-strip.
+  const format = opts.format || 'human'
+  const ats = format === 'ats'
+  const traditional = format === 'traditional'
+  if (ats || traditional) r = foldHighlightsIntoExperience(r)
   const h = r.header || {}
   const contact = [h.city, h.email, h.phone, h.linkedin].filter(Boolean).join(' | ')
   const FONT = ats ? 'Arial' : 'Garamond'
@@ -3066,6 +3080,14 @@ async function buildResumeDoc(r, opts = {}){
       children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
       ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
     }
+  } else if (traditional) {
+    // Traditional: no highlights block -- Skills instead, same fallback heading as
+    // ATS for any highlight the fold couldn't place, then straight into experience.
+    pushSkills('SKILLS')
+    if ((r.keyAccomplishments || []).length) {
+      children.push(sectionHeader('SUMMARY OF QUALIFICATIONS'))
+      ;(r.keyAccomplishments || []).forEach(item => children.push(highlightParagraph(item)))
+    }
   } else {
     // CAREER HIGHLIGHTS
     children.push(sectionHeader('CAREER HIGHLIGHTS'))
@@ -3149,9 +3171,9 @@ async function buildResumeDoc(r, opts = {}){
     }
   })
 
-  // SKILLS at the foot in human mode; in ATS mode skills were already emitted as
-  // CORE COMPETENCIES near the top.
-  if (!ats) pushSkills('SKILLS')
+  // SKILLS at the foot in human mode; ATS and Traditional already emitted skills
+  // near the top (as CORE COMPETENCIES or SKILLS respectively).
+  if (!ats && !traditional) pushSkills('SKILLS')
 
   return new Document({
     creator: 'Reimagine',
@@ -3170,42 +3192,11 @@ async function downloadResumeWord(r, opts={}){
   const url=URL.createObjectURL(blob)
   const a=document.createElement('a')
   a.href=url
-  a.download=resumeFilename(r, opts.ats)
+  a.download=resumeFilename(r, opts.format)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-}
-
-// Strip U+0000 — Postgres jsonb rejects NUL bytes; mammoth/pdf.js sometimes
-// emit them from malformed sources and contaminate profile state.
-const stripNulText=s=>typeof s==='string'?s.replace(/\x00/g,''):s
-
-async function extractText(file){
-  const ext=file.name.toLowerCase().split('.').pop()
-  if(ext==='docx'||ext==='doc'){const mammoth=await import('mammoth');const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});return stripNulText(r.value)}
-  if(ext==='pdf'){
-    // The reader failing to LOAD and a PDF failing to PARSE are different
-    // problems with different advice, and they are separated here.
-    //
-    // A parse failure degrades gracefully: the bracketed notice is returned as
-    // the extracted text, lands in the field, and tells the user what to do.
-    // That is deliberate: the file really cannot be read, and the user needs
-    // the guidance in front of them.
-    //
-    // A loader failure THROWS instead. Nothing is wrong with the file, so
-    // writing a notice into the user's assessment or resume would be wrong on
-    // the facts and would sit in their profile (and in every prompt built from
-    // it) forever. Every call site wraps this in try/catch + finally, so the
-    // throw clears the busy flag and surfaces a real error.
-    let lib
-    try{lib=await loadPDFJS()}
-    // Reads correctly both on its own (the resume upload shows e.message alone)
-    // and after a prefix (the others show "Could not read <file>: <message>").
-    catch{throw new Error("We could not load the PDF reader. An ad blocker or network filter may be blocking it. Paste the text into the box below instead, or try again on a different network.")}
-    try{const ab=await file.arrayBuffer();const pdf=await lib.getDocument({data:ab}).promise;let t='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}if(t.trim().length<100)return "[This PDF appears to be image-based or browser-printed and couldn't be read as text. Try opening it and using Save As to save as a standard PDF, or simply paste the text below.]";return stripNulText(t)}catch{return "[This PDF couldn't be read automatically. If it was saved from a browser (like Edge or Chrome), try opening it and printing to a standard PDF, or just paste the text directly below.]"}
-  }
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(stripNulText(e.target.result));r.onerror=rej;r.readAsText(file)})
 }
 
 // Lightly tidy a stored job description for read-only display (jd-retrieve
@@ -3353,6 +3344,64 @@ THE FIELD SHAPE, on any story where you suggest one:
 and "framework": null everywhere else.`
 }
 
+// Cover Letter length + register controls (cover-letter-length-register brief
+// 2026-09-16). 26 of the 128 "other" corrections were the same two asks --
+// shorter, less formal -- against a free-text box with no such knob. Length
+// is not a word-count swap: the three-paragraph shape is hard-coded in the
+// base prompt, so each length gets its own shape+paragraph spec rather than
+// asking the model to hit a shorter number inside the same shape. 'full' is
+// byte-identical to the pre-existing single-length prompt, and 'professional'
+// register is empty ('' below) rather than a restated instruction, so an
+// account that never touches either control generates exactly what it
+// generated before this brief. Both are Bob's calls, confirmed 2026-09-16:
+// default stays current behavior, and the choice persists per user (profile.
+// coverPrefs, via getOpCoverPrefs/updateOpCoverPrefs) rather than resetting
+// per opportunity.
+const OP_COVER_LENGTH_OPTIONS=[
+  {value:'brief',label:'Brief',hint:'~75 words'},
+  {value:'standard',label:'Standard',hint:'~120 words'},
+  {value:'full',label:'Full',hint:'~185 words'},
+]
+const OP_COVER_REGISTER_OPTIONS=[
+  {value:'conversational',label:'Conversational'},
+  {value:'professional',label:'Professional'},
+]
+const OP_COVER_LENGTH_SPECS={
+  full:{
+    aim:185,hardLimit:200,retryThreshold:210,
+    shape:'SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.',
+    outputParas:'three paragraphs',
+    paragraphs:`PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
+
+PARAGRAPH 2 (2-3 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for...").
+
+PARAGRAPH 3 (2-3 sentences), a close that expresses genuine interest in the role. Convey real, specific enthusiasm for THIS company and role and how their experience lines up with it, warmth rather than a list of questions. Draw on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, and tie it back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may close with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+  standard:{
+    aim:120,hardLimit:135,retryThreshold:145,
+    shape:'SHAPE: a greeting, then exactly TWO short paragraphs, then a sign-off.',
+    outputParas:'two paragraphs',
+    paragraphs:`PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
+
+PARAGRAPH 2 (3-4 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for..."). Then, in this same paragraph's final one or two sentences, fold in the close: real, specific enthusiasm for THIS company and role, drawing on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, tied back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may end with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+  brief:{
+    aim:75,hardLimit:90,retryThreshold:100,
+    shape:'SHAPE: a greeting, then exactly ONE short paragraph, then a sign-off.',
+    outputParas:'one paragraph',
+    paragraphs:`PARAGRAPH 1 (4-6 sentences), doing the combined work of a human opening and a genuine close in one paragraph. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career..."). Compress the relevance thread from the Personal Brand below -- the through-line across their background and why it fits THIS role -- into a SINGLE short clause inside this paragraph (for example, "and that same pattern is exactly what this role needs"); do not give it its own sentence and do not narrate a proof point. Close within this same paragraph with real, specific interest in the role and company, drawing on the WHERE THEY FIT framing below for why it matters to this person, tied to what the company is doing; never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may end with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.`,
+  },
+}
+// professional is '' deliberately, not a restated instruction: the baseline
+// prompt (VOICE, above) already sets this register, and a Full+Professional
+// build (the default) must stay byte-identical to the pre-existing prompt --
+// verified live 2026-09-16 that appending even a restatement here measurably
+// affected paragraph-shape adherence on Full, which is exactly the drift the
+// no-default-change goal was written to avoid.
+const OP_COVER_REGISTER_TEXT={
+  professional:'',
+  conversational:'\n\nREGISTER: lean more conversational than the baseline above -- shorter sentences, more contractions, phrasing closer to how this person would actually say it out loud to a peer over coffee. Keep every substance rule above (the greeting rule, the five-company test, the anti-restate rule, the banned constructions) exactly as written; only sentence rhythm and formality shift.',
+}
 const P={
   // Stage one (Personal Brand): the lean analysis. A short coach frame plus the
   // full raw inputs, run "free" against a safety-only system prompt. No
@@ -3574,10 +3623,10 @@ A short bullet may appear under a card ONLY when a specific role-context interse
   // exactly (same pc fields, already proven against check-prompt-refs.mjs).
   iiEcosystem:(pr,o3,o3Structured,ecosystemRefine)=>{const _struct=buildSynthesisContext(o3Structured);const _catList=ECOSYSTEM_CATEGORIES.map(c=>`${c.key} (${c.label})`).join('; ');const _catKeys=ECOSYSTEM_CATEGORY_KEYS.map(k=>`"${k}"`).join(', ');return `Map the ecosystem around this person's industry into exactly these seven fixed categories: ${_catList}.
 
-FIRST, name this person's specific industry in a short, common name (2 to 5 words, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate") -- the same industry the seven categories below are built around. This becomes the "industry" field described below.
+FIRST, name this person's specific industry in a short, common name -- at most 4 words and 30 characters, e.g. "Consumer Packaged Goods (CPG)", "HR Technology (HCM)", "Commercial Real Estate" -- the same industry the seven categories below are built around. This renders as the headline in a hub panel at the top of the page, so shorter and more common beats precise and long. This becomes the "industry" field described below.
 
 For EACH of the seven categories, whether or not it turns out to be a real factor in this industry, produce:
-- description: one to two plain sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label). If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
+- description: one to two plain, brief sentences naming what this category actually IS in this person's specific industry (not a generic definition of the category label), plus, when it adds real information, the kind of organization or player that populates it. This describes the CATEGORY and the INDUSTRY -- never this person. Do not reference their resume, their background, their name, or how this category connects to them specifically; that bridge is made later, once a role is picked. Stay factual and generic to the industry itself, the way a reference guide would describe it to anyone in that industry. If this category genuinely is not a meaningful factor in this industry, say so plainly instead of stretching to fill it: "Not a factor in this industry" plus, if there is a one-clause reason, that reason.
 - count: your best rough estimate of how many organizations exist in this category for this industry, as a plain integer. Use 0 when the category is not a factor.
 - examples: two to three REAL, currently operating company names that belong to this category, using web search to ground them. Never invent a company name. If you cannot find real examples, return an empty array rather than a plausible-sounding placeholder.
 
@@ -3976,6 +4025,7 @@ For each note, return an object with:
 
 Return ONLY a JSON array of objects { "shaped": string, "nudge"?: string } in the same order as the input lines. No preamble, no markdown fence. Input lines:
 ${rawLines}`,
+  BUILDER_FIRST_ROLE_WALKTHROUGH:(title,companyContext,bullets)=>`You are Coach, talking to someone building their resume for the first time in the guided builder. This is their first company: ${title}${companyContext?` at ${companyContext}`:''}. ${bullets&&bullets.length?`They already have these lines for it:\n${bullets.join('\n')}\n\nFor any line here that is measurable but has no number, name how this kind of work is usually measured (an impact figure like money, time, or volume moved, or a scope figure like budget, headcount, or geography) and ask them if they can recall roughly where it landed.`:`They have not written any bullets for this role yet.`} Also name three or four areas of responsibility or impact someone in a role like this commonly owns, spanning the functional work, any management or leadership piece, cross-functional or stakeholder work, and domain or compliance work where relevant, and ask if any of these sound familiar so they can add what applies. Do not invent specifics about this person; these are prompts for their own recall, not claims about them. Close by telling them plainly that you can walk through this same thing for any other company on their resume whenever they want, just by asking. Keep it warm, plain, and no more than a short paragraph or two, spoken as Coach in the first person. Do not mention that this is an automated check.`,
   SKILLS:(title,industry,shapedAccomplishments)=>`Build a skills list for a ${title}${industry?` in ${industry}`:''}, to appear on their resume. Ground it in what they described:
 ${shapedAccomplishments||'(no accomplishments captured yet; use the role and industry)'}
 
@@ -4402,19 +4452,15 @@ ${(companyRead||'').slice(0,3000)||'(not built)'}
 PERSONAL BRAND (their voice and the through-line of their background):
 ${(brand||'').slice(0,2500)||'(not built yet)'}
 `,
-  p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel)=>`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
+  p_cover:(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,sel,length,register)=>{const spec=OP_COVER_LENGTH_SPECS[length]||OP_COVER_LENGTH_SPECS.full;const registerText=OP_COVER_REGISTER_TEXT[register]||OP_COVER_REGISTER_TEXT.professional;return`Write a cover letter draft for this person applying to a specific posting${sel?` (they are pursuing **${sel}**)`:''}. This is a peer-to-peer direct message, the sibling of the Making Your Own Weather outreach email. It is NOT an essay, NOT a manifesto, and NOT a compressed life story. A hiring manager reads it in fifteen seconds.
 
-HARD LIMIT: 200 words for the body (the greeting and sign-off do not count). Aim for about 185. If you go over 200, cut until you are under it.
+HARD LIMIT: ${spec.hardLimit} words for the body (the greeting and sign-off do not count). Aim for about ${spec.aim}. If you go over ${spec.hardLimit}, cut until you are under it.
 
-SHAPE: a greeting, then exactly THREE short paragraphs, then a sign-off.
+${spec.shape}
 
 GREETING: Address the letter to the most relevant leader you can identify from the ABOUT THIS COMPANY text below, the executive whose remit actually covers this role (the head of the function or department this role sits in; for a senior or officer role, the relevant C-level leader). Use that person's FIRST NAME only, on its own line, with no "Dear" and no title: just "<First name>,". Only ever name a real person who appears in the ABOUT THIS COMPANY text or the posting; never invent or guess a name. Relevance matters more than seniority: if the only leaders named are not connected to this role's function (for example, only the CEO is named for a mid-level role), do NOT address them, use the team fallback instead. TEAM FALLBACK: when no leader whose area covers this role is named, open with the function drawn from the posting, as "Hi <Function> Team," (for example, "Hi Product Team,"). Never use "Dear", and never fall back to "Hiring Manager".
 
-PARAGRAPH 1 (2-3 sentences), a human opening that leads with genuine interest in this role and company. Open the way a real person opens a note to someone whose work they respect: warm, direct, first person. Say plainly what draws them to THIS role at THIS company, grounded in something real, what the company does or is working on connected to what this person actually cares about (from their Personal Brand, values, and passions below). Do NOT open bluntly with a company fact or a dated event ("Your April 2025 acquisition of Argano signals..." is exactly the wrong opener); a specific company detail can come later, woven in, not as the cold lead. Embed the role name naturally; never announce it ("I am writing to apply for the <role>"). No manifesto opener ("I have spent my career...").
-
-PARAGRAPH 2 (2-3 sentences), the overall relevance of their experience, drawn from the Personal Brand below. Synthesize the through-line the Personal Brand already found, the integrating thread across their background, and translate it into why their experience as a whole fits THIS role. This is a synthesis of relevance, NOT a STAR story: do not narrate a single accomplishment blow-by-blow. You may anchor the thread with ONE concrete proof in a short clause (a real result, stated lightly, "including <result>"), but the paragraph's job is the pattern and the fit, not a mini case study. First person, present tense, plain and confident. No self-labeling opener ("My colleagues call me...", "I am known for...").
-
-PARAGRAPH 3 (2-3 sentences), a close that expresses genuine interest in the role. Convey real, specific enthusiasm for THIS company and role and how their experience lines up with it, warmth rather than a list of questions. Draw on the WHERE THEY FIT framing below for how this person sees the fit and why it matters to them, and tie it back to what the company is doing. Keep it honest and grounded (a specific reason it appeals), never generic gushing ("I am passionate about...") or empty enthusiasm. If the resume below includes an email or phone, you may close with a brief contact line ("You can reach me at <email> or <phone>."); never invent contact details.
+${spec.paragraphs}
 
 SIGN-OFF: "Best," on its own line, then the candidate's name: ${candidateName||'the name on the resume'}.
 
@@ -4422,7 +4468,7 @@ FIVE-COMPANY TEST: the letter must contain at least one fact specific to ${compa
 
 ANTI-RESTATE: any concrete proof you reference must illustrate the through-line (what the pattern of their experience brings to this role), not restate a resume bullet. Do not turn the relevance paragraph into a narrated accomplishment.
 
-VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}
+VOICE: you are writing AS the candidate, not ABOUT the candidate. Write like a person who did the work, sending a direct email to another person who does adjacent work. One operator to another. If the candidate would not say this out loud to a peer over coffee, do not write it. It is the person's own voice from their Personal Brand. ${DIRECT_OUTREACH_VOICE}${registerText}
 Explicitly avoid consultant-register, thought-leader, and MBA-speak:
 - No spatial metaphors: "sits at the center of", "at the intersection of", "occupies the space between", "lives in the tension of", "at the nexus of", "in the room(s) where", "at the table", "at the crossroads of", "at the heart of".
 - No evaluative distance: "how it lands", "where it lives", "how it shows up", "how it plays", "what it looks like on the ground", "how it holds up", "signals that X".
@@ -4449,7 +4495,7 @@ ${brand||'(not built yet; work from the posting and resume)'}
 WHERE THEY FIT (how they fit and why it matters — draw on this for the closing expression of interest):
 ${roleFit||'(not built)'}
 
-OUTPUT: the greeting, three paragraphs, and sign-off, as prose only. No headers, no preamble, no code fences.`,
+OUTPUT: the greeting, ${spec.outputParas}, and sign-off, as prose only. No headers, no preamble, no code fences.`},
   p11_question_regen:(pr,outs,sel,life,questionIdx,currentQuestion,otherQuestionTexts,correctionText,jdContext='')=>{const qType=(currentQuestion&&currentQuestion.type)||'behavioral';const qId=(currentQuestion&&currentQuestion.id)||('q'+(questionIdx+1));const behavioralShape='SHAPE: this question is behavioral. The regenerated version MUST include a complete star_breakdown with S, T, A, R sub-sections. S carries raw_material, relevance_bridge_draft, and to_strengthen, each a non-empty string. T, A, R each carry raw_material and to_strengthen, each a non-empty string. raw_material draws from the verbatim inputs below; do not invent specifics not in the inputs. to_strengthen names what specific addition would sharpen this STAR sub-section.';const nonBehavioralShape='SHAPE: this question is non_behavioral. Produce a non_behavioral question with a non-empty framing_recommendation only (no star_breakdown).';const starOutput='"star_breakdown": { "S": { "raw_material": "specific moment from inputs", "relevance_bridge_draft": "short opener bridging to the role", "to_strengthen": "what to add" }, "T": { "raw_material": "...", "to_strengthen": "..." }, "A": { "raw_material": "...", "to_strengthen": "..." }, "R": { "raw_material": "...", "to_strengthen": "..." } }';const nonBehavioralOutput='"framing_recommendation": "plain-language framing this person can use to answer"';return `You are regenerating ONE Interview Prep question for this person while preserving every OTHER question in the set untouched. They are pursuing: **${sel}**.\\n\\nQUESTION INDEX TO REGENERATE: ${questionIdx+1} (1-based)\\n\\nUSER FEEDBACK ON THIS QUESTION:\\n${(correctionText||'').trim()||'(no specific feedback; produce a sharper version that addresses obvious weaknesses)'}\\n\\nTHE CURRENT VERSION OF THIS QUESTION (do not repeat the same prompt; do not pull the same raw_material verbatim; bring a sharper angle that responds to the feedback above):\\n${JSON.stringify(currentQuestion,null,2)}\\n\\nTHE OTHER QUESTIONS IN THIS SET (do NOT duplicate the prompt of any of these; do NOT pull source material another question already uses):\\n${(otherQuestionTexts||[]).map((q,i)=>(i+1)+'. '+q).join('\\n')}\\n\\n${jdContext?'JD CONTEXT (scope this question to the specific opportunity, lane-independent):\\n'+jdContext+'\\n\\n':''}VOICE RULES (load-bearing):\\n- Never use "room" or "rooms" as a generic synonym for situation, conversation, or audience. Use situation, conversation, interview, screen, panel, or meeting.\\n- No logic-flip cadence ("not X, you Y" / "is not Z, it is W"). State the positive claim on its own.\\n- No comparative standing against unnamed groups ("most people", "many candidates", "where others X").\\n- No AI-coaching register ("sit with this", "lean into", "hold space for", "trust the process").\\n- No absolutism ("every", "always", "the most", "the only").\\n- No mind-reading ("your conviction that X" / "your mission is X" unless verbatim from raw signals).\\n- No slogan cadence ("X is the Y. Z is the W.").\\n\\n${qType==='behavioral'?behavioralShape:nonBehavioralShape}\\n\\nframework_thread: if a framework the candidate uses applies cleanly to this question, name it (one or two words). Otherwise null.\\n\\nINPUTS:\\n\\nPROFILE: ${asText(outs.p3)}\\n\\nRAW SIGNALS (verbatim; do not paraphrase back):\\nVALUES: ${pr.values||'not provided'}\\nPASSIONS AND CAUSES: ${pr.passions||'not provided'}\\nPRAISE THEY RECEIVE: ${pr.rep.memory||'not provided'}\\nWHO CALLS THEM IN EMERGENCY: ${pr.rep.emergency||'not provided'}\\nHOW PEOPLE DESCRIBE THEIR SUPERPOWER: ${pr.rep.twoWords||'not provided'}\\nOTHER REPUTATION DATA: ${pr.rep.other||'not provided'}\\nLIFE-SHAPING EXPERIENCES: ${life||'not provided'}\\nASSESSMENT TYPE: ${pr.assessType||'not provided'}\\nASSESSMENT NOTES: ${pr.assess||'not provided'}\\nFRAMEWORKS THEY USE: ${Array.isArray(pr.frameworks)&&pr.frameworks.length?pr.frameworks.join(', '):'not provided'}\\n\\nOUTPUT REQUIRED: a single JSON object wrapping just the regenerated question under the key "question". Return ONLY the JSON. No preamble, no markdown code fences. Start with { and end with }.\\n\\n{\\n  "question": {\\n    "id": "${qId}",\\n    "question": "the new question prompt",\\n    "type": "${qType}",\\n    "framework_thread": null,\\n    ${qType==='behavioral'?starOutput:nonBehavioralOutput}\\n  }\\n}`},
   // Interview Panel web research (PR 4): one light, public-domain pass on a single
   // interviewer. Confirms identity, surfaces sourced public signal, stays a
@@ -5044,6 +5090,7 @@ const lifeEventsThinPromptMessage=(checkinKey)=>({role:'assistant',content:"One 
 // conversation. See PROMPT_ENGAGEMENT_META_BY_CHECKIN below for the single
 // checkinKey this uses.
 const valuesThinPromptMessage=()=>({role:'assistant',content:"One more thing that tends to sharpen everything else — is there a value you actually live by, not just one that sounds good? Even a word or two helps, and there's no wrong answer here.",checkinKey:'values-thin-hub',quickReplies:[{label:'Sure, let\'s add one',value:'accept',followUp:'Good — tell me about it here, or add it directly on Values, Passions & Causes whenever works for you.'},{label:'Not now',value:'dismiss'}]})
+const resumeBuilderDraftInviteMessage=()=>({role:'assistant',content:"This is a solid start. If any part of it feels thin, tell me what you actually did there and I'll help turn it into stronger resume language, right here, instead of you typing it alone.",checkinKey:'resume-builder-draft-invite'})
 // Bounded checkinKey -> {code, trigger} lookup for coach-prompt-engagement
 // logging (src/coach-prompt-codes.js carries the canonical PROMPT_CODES/
 // TRIGGER_TYPES lists the server validates against). Only prompts worth
@@ -5182,50 +5229,71 @@ const S={
 }
 
 function Btn({onClick,disabled,secondary,small,prominent,children,style={},...rest}){const base=small?(prominent?S.smSolid:S.sm):(secondary?S.sec:S.btn);return <button style={{...base,opacity:disabled?0.5:1,...(disabled?{cursor:'not-allowed'}:null),...style}} onClick={onClick} disabled={disabled} {...rest}>{children}</button>}
-// Shared Human / ATS segmented control. Both versions render from the SAME record;
-// the flag only changes arrangement (renderResumeText/buildResumeDoc take `ats`).
+// Shared Human / Traditional / ATS segmented control. All three render from the
+// SAME record; the format only changes arrangement (renderResumeText/buildResumeDoc
+// take `format`).
 function ResumeVersionSeg({variant,setVariant}){
   const tab=(mode,label,sub)=>{
     const active=variant===mode
     return <button onClick={()=>setVariant(mode)} aria-pressed={active} style={{flex:1,border:'none',cursor:'pointer',borderRadius:8,padding:'10px 12px',background:active?'#FFFFFF':'transparent',color:active?C.gold:C.gray,fontWeight:600,fontSize:16,lineHeight:1.25,textAlign:'center',boxShadow:active?`inset 0 0 0 1px ${C.gold},0 1px 2px rgba(20,30,45,.10)`:'none',transition:'background .15s,color .15s'}}>{label}<span style={{display:'block',fontSize:15,fontWeight:500,opacity:.85,marginTop:2}}>{sub}</span></button>
   }
-  return <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:460}}>
+  return <div role="group" aria-label="Resume version" style={{display:'flex',gap:6,background:'#EEF1F5',border:`1px solid ${C.border}`,borderRadius:11,padding:5,marginBottom:12,maxWidth:620}}>
     {tab('human','Human version','Recruiter & interview')}
+    {tab('traditional','Traditional version','Classic, familiar format')}
     {tab('ats','ATS version','Online applications')}
   </div>
 }
 
-// Resume Refresh view with a Human / ATS version toggle. Both versions render from
-// the SAME parsed record; the toggle only changes arrangement and the download
-// target. Self-contained state so it does not touch the parent's hooks.
+// Resume format preference persists per browser so it does not reset back to
+// Human every time one of these views remounts (switching sections, reloading
+// the page). Shared by both views below so the choice carries across them too.
+const RESUME_FORMAT_KEY='reimagine_resume_format_v1'
+function useResumeFormat(){
+  const [format,setFormatState]=useState(()=>{
+    try{const v=localStorage.getItem(RESUME_FORMAT_KEY);if(v==='human'||v==='ats'||v==='traditional')return v}catch{}
+    return 'human'
+  })
+  const setFormat=(f)=>{setFormatState(f);try{localStorage.setItem(RESUME_FORMAT_KEY,f)}catch{}}
+  return [format,setFormat]
+}
+
+// Resume Refresh view with a Human / Traditional / ATS toggle. All three render
+// from the SAME parsed record; the toggle only changes arrangement and the
+// download target. Self-contained state so it does not touch the parent's hooks.
 function ResumeRefreshView({resumeJson,isDemo,copy,copied,independent=false}){
-  const [variant,setVariant]=useState('human')
-  const ats=variant==='ats'
-  const resumeText=renderResumeText(resumeJson,ats)
+  const [format,setFormat]=useResumeFormat()
+  const ats=format==='ats'
+  const traditional=format==='traditional'
+  const resumeText=renderResumeText(resumeJson,format)
   const helper=ats
     ?'Tuned for the parser: a Core Competencies keyword bank up top, standard headings, and plain type. Best when you apply through a company portal like Workday, Greenhouse, or iCIMS.'
+    :traditional
+    ?'A classic, no-frills layout: summary, skills, then your work history in order, with no highlights block up front. Best when a reader expects the resume they already know how to read.'
     :'Tuned for a person: your strongest wins above the fold, with bold drawing the eye. Best for a recruiter hand-off, a referral, or walking into an interview.'
+  const downloadLabel=ats?'Download ATS version (Word)':traditional?'Download traditional version (Word)':'Download as Word'
   return <>
-    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{independent?'Below is your One-Sheet, ready to download and print as a Word document. Switch between the version a person reads and the plain-text version, which travels better when someone forwards it. Both are built from the same content.':'Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads and the version an applicant tracking system reads. Both are built from the same content.'}</div>
-    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
+    <div style={{...S.note,background:'#FFFFFF',borderLeft:`3px solid ${C.gold}`,border:`1px solid ${C.border}`,borderLeftColor:C.gold,color:C.gray}}>{independent?'Below is your One-Sheet, ready to download and print as a Word document. Switch between the version a person reads, the classic version most readers expect, and the plain-text version, which travels better when someone forwards it. All three are built from the same content.':'Below is your Resume Refresh, ready to download and print as a Word document. Switch between the version a recruiter reads, the classic version most readers expect, and the version an applicant tracking system reads. All three are built from the same content.'}</div>
+    <ResumeVersionSeg variant={format} setVariant={setFormat}/>
     <div style={{...S.footnote,marginTop:0,marginBottom:12,color:C.gray}}>{helper}</div>
     <div style={S.out}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:17,lineHeight:1.65,color:C.cream,margin:0}}>{resumeText}</pre></div>
-    <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download as Word'}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
+    <div style={S.row}><Btn onClick={()=>downloadResumeWord(resumeJson,{format})}><Download size={14}/>{downloadLabel}</Btn><Btn secondary onClick={()=>copy(resumeText)}>{copied?<><CheckCheck size={13}/>Copied</>:<><Copy size={13}/>Copy text</>}</Btn></div>
     {!isDemo&&<div style={S.footnote}>Reimagine does not modify your original resume file. The download is a new Word document you can edit, save, and share.</div>}
   </>
 }
 
-// Built-resume preview (Resume Builder) with the same Human / ATS toggle. The caller
-// passes its own workflow buttons (Regenerate, Continue) as children for the action row.
+// Built-resume preview (Resume Builder) with the same Human / Traditional / ATS
+// toggle. The caller passes its own workflow buttons (Regenerate, Continue) as
+// children for the action row.
 function BuiltResumeView({record,children}){
-  const [variant,setVariant]=useState('human')
-  const ats=variant==='ats'
+  const [format,setFormat]=useResumeFormat()
+  const ats=format==='ats'
+  const traditional=format==='traditional'
   return <>
-    <ResumeVersionSeg variant={variant} setVariant={setVariant}/>
-    <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(record,ats)}</pre></div>
+    <ResumeVersionSeg variant={format} setVariant={setFormat}/>
+    <div style={{...S.out,marginTop:0}}><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:15,lineHeight:1.6,color:'#1A2540',margin:0}}>{renderResumeText(record,format)}</pre></div>
     <div style={{fontSize:15,color:C.ok,marginTop:10}}><Check size={12} style={{display:'inline',marginRight:4}}/>Saved to your account</div>
     <div style={S.row}>
-      <Btn onClick={()=>downloadResumeWord(record,{ats})}><Download size={14}/>{ats?'Download ATS version (Word)':'Download (Word)'}</Btn>
+      <Btn onClick={()=>downloadResumeWord(record,{format})}><Download size={14}/>{ats?'Download ATS version (Word)':traditional?'Download traditional version (Word)':'Download (Word)'}</Btn>
       {children}
     </div>
   </>
@@ -5630,64 +5698,94 @@ function ReshapeBox({busy,error,onSubmit,title,body,label,placeholder,submitLabe
     {error&&<div style={{...S.err,marginTop:12}}>{error}</div>}
   </div>
 }
-// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view).
-// Category -> Role -> Company exploration that replaces p4's role list for the
-// Industry Insider lane only. Purely presentational -- all persistent state
-// (categories, expanded category, per-category role lists, refine text) lives
-// in the App component's `ecosystem` state and is passed in as props, the
-// same division of labor ReshapeBox and RefineBox already use.
-// Fixed heptagon layout (percentages of a square container, 0-100 viewBox),
-// one node per ECOSYSTEM_CATEGORIES entry in order, ring radius tuned to
-// clear both the center hub and each other at the node width below. Widened
-// 2026-09-11 (Bob's review: cards were too small to show a full description)
-// -- radius 36 / node width 27% keeps the same clearance margin the original
-// 34/25% pairing had.
-const ECOSYSTEM_NODE_POS=[
-  {x:50,y:14},{x:78.16,y:27.56},{x:85.1,y:58.01},{x:65.62,y:82.43},
-  {x:34.38,y:82.43},{x:14.9,y:58.01},{x:21.84,y:27.56},
-]
-function IndustryEcosystemHub({isDemo,onBack,hubLabel,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+// Industry Insider ecosystem view (2026-09-10, gated on industry_ecosystem_view;
+// GA'd 2026-09-14, PR #929 -- hasIndustryEcosystemView now returns true for
+// every signed-in user). Category -> Role -> Company exploration that replaces
+// p4's role list for the Industry Insider lane only. Purely presentational --
+// all persistent state (categories, expanded category, per-category role
+// lists, refine text) lives in the App component's `ecosystem` state and is
+// passed in as props, the same division of labor ReshapeBox and RefineBox
+// already use.
+//
+// Redesigned 2026-09-16 from a radial hub-and-spoke diagram (Bob's Option A
+// pick after the first flat-grid version read as "a series of cards, not an
+// ecosystem") to a card grid with a rectangular hub panel -- a deliberate
+// second reversal, per Bob's own design spec, now that the feature is GA and
+// he wants the map to read as reference material rather than a diagram. The
+// h1 text below ("Your Industry Ecosystem") is quoted verbatim in
+// src/coach-screen.js's describeScreen -- keep the two in sync if either
+// changes again.
+function EcosystemCategoryCard({cat,data,onExplore,disabled}){
+  const[hover,setHover]=useState(false)
+  // isEmpty reads the description, not the count (2026-09-13 fix, carried
+  // forward through this redesign): a real, populated category can still come
+  // back with no count, or count:0, and that is NOT the same thing as "not a
+  // factor in this industry" -- that exact phrase (the prompt's own
+  // instruction for a real non-factor, and what the backstop below writes
+  // when the model skipped a key entirely) is the only reliable signal.
+  // Reading count instead grayed out a real category ("Customers &
+  // channels") that simply had no count number.
+  const isEmpty=/^not a factor in this industry/i.test((data.description||'').trim())
+  const clickable=!isEmpty&&!disabled
+  const hasExamples=!isEmpty&&Array.isArray(data.examples)&&data.examples.length>0
+  const Tag=clickable?'button':'div'
+  return <Tag
+    {...(clickable?{onClick:()=>onExplore(cat.key),onMouseEnter:()=>setHover(true),onMouseLeave:()=>setHover(false),disabled}:{})}
+    style={{width:'100%',textAlign:'left',display:'flex',flexDirection:'column',background:C.panel,border:`1px solid ${hover&&clickable?C.gold:C.border}`,borderRadius:12,padding:'22px 22px 20px',minHeight:224,boxSizing:'border-box',fontFamily:'inherit',cursor:clickable?'pointer':'default',boxShadow:hover&&clickable?'0 6px 22px rgba(26,37,64,0.08)':'none',transform:hover&&clickable?'translateY(-2px)':'none',transition:'border-color 0.15s ease,box-shadow 0.15s ease,transform 0.15s ease'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:10}}>
+      <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,color:C.cream,lineHeight:1.25}}>{cat.label}</div>
+      {!isEmpty&&data.count>0&&<div style={{flexShrink:0,fontSize:15,fontWeight:600,color:C.cream,background:C.input,borderRadius:999,padding:'3px 11px',whiteSpace:'nowrap'}}>{data.count} companies</div>}
+    </div>
+    <div style={{fontSize:16,color:C.grayMid,lineHeight:1.5,marginBottom:14}}>{data.description}</div>
+    {hasExamples&&<div style={{marginTop:'auto',borderTop:`1px dashed ${C.border}`,paddingTop:12}}>
+      <div style={{fontSize:15,fontWeight:700,color:C.grayLabel,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>For example</div>
+      <div style={{fontSize:15,color:C.grayMid,lineHeight:1.45}}>{data.examples.join(', ')}</div>
+    </div>}
+    {clickable&&<div style={{marginTop:hasExamples?12:'auto',fontSize:15,fontWeight:600,color:C.gold,display:'flex',alignItems:'center',gap:3,transform:hover?'translateX(2px)':'none',transition:'transform 0.15s ease'}}>Explore <ChevronRight size={13}/></div>}
+  </Tag>
+}
+const ECOSYSTEM_EMPTY_CAT={description:'Not a factor in this industry.',count:0,examples:[]}
+function IndustryEcosystemHub({isDemo,categories,industry,busy,err,onGenerate,onExplore,onRefine,otherLanes,onExploreAnother,disabled}){
+  const isMobile=useIsMobile()
+  const first4=ECOSYSTEM_CATEGORIES.slice(0,4)
+  const last3=ECOSYSTEM_CATEGORIES.slice(4)
   return <div>
-    {!isDemo&&<div data-print="hide" style={{marginBottom:10}}><button onClick={onBack} style={{background:'transparent',border:'none',padding:0,fontSize:15,color:C.gray,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:4}}><ArrowLeft size={13}/>Back to {hubLabel}</button></div>}
-    {!isDemo&&<div style={S.tag('#8A9BB8')}>Apply Your Foundation</div>}
-    <h1 id="section-p4" style={S.title}>Industry Insider</h1>
-    <p style={{...S.sub,fontStyle:'italic',color:C.gold,marginBottom:14}}>Map the ecosystem first, then pick a role from inside it.</p>
+    {!isDemo&&<div data-print="hide" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:15,color:C.graySoft,marginBottom:14}}>
+      <button onClick={onExploreAnother} style={{background:'none',border:'none',padding:0,margin:0,font:'inherit',color:'inherit',cursor:'pointer'}}>Career Paths</button>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span>Industry Insider</span>
+      <span style={{color:C.crumbSep}}>›</span>
+      <span style={{color:C.cream,fontWeight:500}}>Your Industry Ecosystem</span>
+    </div>}
+    <h1 id="section-p4" style={S.title}>Your Industry Ecosystem</h1>
+    <p style={{fontSize:18,color:C.grayMid,lineHeight:1.55,maxWidth:760,margin:'0 0 20px'}}>The companies, partners, and adjacent players around your industry — explore the map, then pick a role from inside it.</p>
     <CoachingCallout><strong style={{color:'#1A2540'}}>How this works</strong><p style={{margin:'8px 0 0'}}>Seven categories make up any industry's ecosystem: the clients, vendors, consultants, and adjacent players around it. Click a category to see the specific roles inside it, each with a couple of real companies to ground it. Pick a role to open its full playbook, with a real, sourced company list built for that role specifically.</p></CoachingCallout>
     {!categories&&!busy&&<div style={S.row}><Btn onClick={onGenerate}><Sparkles size={14}/>Map My Industry</Btn></div>}
     {busy&&<Loading msg="Mapping your industry's ecosystem…" step="p4"/>}
     {err&&<ErrBox msg={err}/>}
     {categories&&!busy&&<>
-      <ReshapeBox
-        title="Want the map to lean a certain way?"
-        body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
-        label="What should the map focus on?"
-        placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
-        submitLabel="Rebuild the map"
-        busyLabel="Rebuilding the map…"
-        busy={busy}
-        onSubmit={onRefine}
-      />
-      <div style={{position:'relative',width:'100%',maxWidth:1000,aspectRatio:'1/1',margin:'28px auto 0'}}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
-          {ECOSYSTEM_NODE_POS.map((p,i)=><line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke={C.gold} strokeWidth={0.35} strokeOpacity={0.45}/>)}
-        </svg>
-        <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'19%',aspectRatio:'1/1',borderRadius:'50%',background:C.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',boxShadow:'0 4px 14px rgba(26,37,64,0.25)',padding:10,boxSizing:'border-box'}}>
-          <Compass size={20} color="#FFFFFF"/>
-          <div style={{fontSize:15,fontWeight:700,color:'#FFFFFF',marginTop:5,textAlign:'center',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
-        </div>
-        {ECOSYSTEM_CATEGORIES.map((cat,i)=>{
-          const c=categories[cat.key]||{description:'Not a factor in this industry.',count:0,examples:[]}
-          const isEmpty=!c.count
-          const p=ECOSYSTEM_NODE_POS[i]
-          return <button key={cat.key} onClick={()=>onExplore(cat.key)} disabled={disabled} style={{position:'absolute',left:`${p.x}%`,top:`${p.y}%`,transform:'translate(-50%,-50%)',width:'27%',textAlign:'left',background:isEmpty?'#F3F4F6':'#FFFFFF',border:`1px solid ${C.border}`,borderRadius:12,padding:'16px 18px',cursor:'pointer',fontFamily:'inherit',boxShadow:isEmpty?'none':'0 1px 3px rgba(0,0,0,0.06)',boxSizing:'border-box'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
-              <div style={{fontSize:17,fontWeight:700,color:isEmpty?C.gray:'#1A2540',lineHeight:1.25}}>{cat.label}</div>
-              {c.count>0&&<div style={{fontSize:15,color:C.gray,whiteSpace:'nowrap',flexShrink:0}}>~{c.count}</div>}
-            </div>
-            <div style={{fontSize:15,color:C.gray,lineHeight:1.45,marginTop:6,display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.description}</div>
-            <div style={{fontSize:15,color:C.gold,fontWeight:700,marginTop:8,display:'flex',alignItems:'center',gap:3}}>Explore <ChevronRight size={11}/></div>
-          </button>
-        })}
+      <div style={{maxWidth:580,margin:'32px auto 44px',padding:'30px 40px 32px',textAlign:'center',background:`linear-gradient(180deg, ${C.panel} 0%, #FBF7EF 100%)`,border:`2px solid ${C.gold}`,borderRadius:14,boxShadow:'0 4px 22px rgba(200,146,74,0.12)',boxSizing:'border-box'}}>
+        <div style={{...S.tag(C.gold),marginBottom:16}}>Your target industry</div>
+        <div style={{fontFamily:'Georgia,serif',fontSize:36,fontWeight:600,color:C.cream,letterSpacing:'-0.01em',lineHeight:1.15,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{industry||'Your industry'}</div>
+        <div style={{fontSize:16,color:C.graySoft,marginTop:10}}>From your Career Paths — Industry Insider lane</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(4,1fr)',gap:isMobile?14:20}}>
+        {first4.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(3,1fr)',gap:isMobile?14:20,maxWidth:870,margin:'20px auto 0'}}>
+        {last3.map(cat=><EcosystemCategoryCard key={cat.key} cat={cat} data={categories[cat.key]||ECOSYSTEM_EMPTY_CAT} onExplore={onExplore} disabled={disabled}/>)}
+      </div>
+      <div style={{maxWidth:870,margin:'32px auto 0'}}>
+        <ReshapeBox
+          title="Want the map to lean a certain way?"
+          body="Tell us what to focus on — a sub-sector, a type of organization, a geography — and we'll rebuild the map around it. The note carries into whichever category you open next, too."
+          label="What should the map focus on?"
+          placeholder="e.g. lean toward the payer side · focus on mid-market · skip consulting"
+          submitLabel="Rebuild the map"
+          busyLabel="Rebuilding the map…"
+          busy={busy}
+          onSubmit={onRefine}
+        />
       </div>
     </>}
     <div style={S.row}>
@@ -5967,6 +6065,12 @@ const normalizeWork = (p) => {
 const V1_STEPS = new Set(ALL)
 const ROLE_SUBMODULES = ['p5','p6','p7','p8','p9','p10','p11','p_res','salaryRead','income']
 const POST_P5_SUBMODULES = ROLE_SUBMODULES.filter(k=>k!=='p5')
+// Content-viewed beacon (2026-09-17 brief, part 1) -- generated-content
+// destinations nav() and restoreFromSavedSlot may fire a view for. Mirrors
+// api/_lib/view-events.js's VIEWABLE_SECTION_IDS; kept as its own list for
+// the same reason ROLE_SUBMODULES is its own list rather than derived from
+// NAV_LABELS, which also carries non-generated structural step ids.
+const VIEWABLE_SECTION_IDS = ['p3','p4','p5','p6','p7','p8','p9','p11','p_res','income','op','focus']
 // Cap on the user's saved playbooks set. One shared limit across Door 1 (auto-save
 // past The Role) and Door 2 (auto-save on JD upload). Future paid-tier work becomes
 // a per-user value loaded from the user record (V2 launch bundle); the accessor is
@@ -6106,20 +6210,6 @@ const CORRECTIONS_LOG_URL = 'https://script.google.com/macros/s/AKfycbzbw7MFbN0G
 // they need no changes; the value they attach to telemetry rows now
 // identifies the exact commit that produced the row.
 const APP_VERSION = BUILD_SHA
-
-// Per-prompt telemetry: which raw-content fields were surfaced into the
-// prompt at the time of generation. Lets us cohort post-Step-3 corrections
-// by Surface decision and evaluate whether surfacing improved or degraded
-// outputs in beta. Keep keys in sync with the prompts that read these
-// fields from `pc`; the build-time invariant in scripts/check-prompt-refs.mjs
-// catches mismatches between `${pr.X}` references and `pc` keys.
-const SURFACED_FIELDS = {
-  p3: ['lifeEvents', 'linkedin'],
-  p4: ['lifeEvents'],
-  p5: ['lifeEvents'],
-  p8: ['lifeEvents', 'linkedin'],
-  p11: ['lifeEvents'],
-}
 
 const COUNTRY_OPTIONS = [
   'United States', 'Canada', 'United Kingdom', 'Ireland', 'Australia',
@@ -6856,8 +6946,50 @@ function WidenCareerOptions({lane,prevTitles,onSubmit,disabled}){
 // specifically the four op v2 cards (Role, Resume Refresh, Interview Prep,
 // About This Company). Default false preserves existing behavior for the
 // Focus per-section, Personal Brand, and op v1 consumers.
+//
+// Correction actions (PILOT, correction_actions flag, launch capture
+// foundation 2026-09-14, PR 4). An optional "What should happen?" choice
+// above the box. CAPTURE ONLY: the choice is stored on the correction
+// (corrections.action) and does not yet change how corrections reach any
+// prompt -- correctionsBlock still sorts on its negation rule. Routing on the
+// stored action is deliberate post-launch work; it changes every generation.
+//
+// The choice reaches recordCorrection through a small text-keyed hand-off
+// rather than through each of the thirteen onRegenerate call sites and the
+// Personal Brand correction queue: RefineBox notes the action against the
+// exact text it submits, and recordCorrection takes it back by that same
+// text. Keyed on the text, a note left behind by a box that never records
+// (Salary Read, a conflict taken offline) can never attach itself to a
+// different correction, and it expires.
+const CORRECTION_ACTIONS=[
+  {code:'fact',label:'Fix a fact'},
+  {code:'add',label:'Add something'},
+  {code:'wording',label:'Change how it reads'},
+  {code:'omit',label:'Leave this out of what I show employers'},
+]
+const CORRECTION_ACTION_CODES=CORRECTION_ACTIONS.map(a=>a.code)
+const CORRECTION_ACTION_TTL_MS=30*60*1000
+const pendingCorrectionActions=new Map()
+function notePendingCorrectionAction(text,action){
+  if(typeof text!=='string'||!text.trim()||!CORRECTION_ACTION_CODES.includes(action))return
+  const now=Date.now()
+  for(const[k,e]of pendingCorrectionActions)if(now-e.at>CORRECTION_ACTION_TTL_MS)pendingCorrectionActions.delete(k)
+  pendingCorrectionActions.set(text.trim(),{action,at:now})
+}
+function takePendingCorrectionAction(text){
+  if(typeof text!=='string')return null
+  const key=text.trim(),e=pendingCorrectionActions.get(key)
+  if(!e)return null
+  pendingCorrectionActions.delete(key)
+  return Date.now()-e.at<=CORRECTION_ACTION_TTL_MS?e.action:null
+}
+// Whether RefineBox shows the choice. A context rather than a prop on all
+// fourteen RefineBox usages; App provides it from hasCorrectionActions.
+const CorrectionActionsContext=createContext(false)
 function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,freshLabel,onlyUpdateButton,guard,sectionId,anchorId}){
   const[open,setOpen]=useState(false)
+  const actionsOn=useContext(CorrectionActionsContext)
+  const[action,setAction]=useState('')
   // Submit guard (2026-08-11 dead-button fix): the update/fresh regen is a multi-
   // minute call and the button gave no click feedback, so users re-clicked and
   // each click recorded a duplicate correction (inflating the correction counts).
@@ -6877,6 +7009,8 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
   const submit=fresh=>{
     if(submittingRef.current)return
     submittingRef.current=true;setSubmitting(true)
+    if(!fresh&&actionsOn&&action)notePendingCorrectionAction(value,action)
+    setAction('')
     if(fresh){onChange('');setOpen(false);onRegenerate('')}
     else if(guard&&value&&value.trim()){const v=value;guard(sectionId,v,()=>{onChange('');setOpen(false);onRegenerate(v)})}
     else{const v=value;onChange('');setOpen(false);onRegenerate(v)}
@@ -6891,6 +7025,12 @@ function RefineBox({value,onChange,onRegenerate,hint,placeholder,updateLabel,fre
     </button>
     {open&&<div style={{background:'#FFFFFF',padding:'16px 20px',borderTop:`1px solid ${C.border}`}}>
       <div style={{fontSize:16,color:C.gray,marginBottom:12,lineHeight:1.65}}>{hint||'If anything feels off, wrong tone, missing context, something we misread, describe it here and we\'ll adjust.'}</div>
+      {actionsOn&&<div style={{marginBottom:12}} role="radiogroup" aria-label="What should happen?">
+        <span style={S.label}>What should happen? <span style={{textTransform:'none',letterSpacing:0,fontWeight:400}}>(optional)</span></span>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {CORRECTION_ACTIONS.map(a=>{const on=action===a.code;return <button key={a.code} type="button" role="radio" aria-checked={on} onClick={()=>setAction(on?'':a.code)} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540'}}>{a.label}</button>})}
+        </div>
+      </div>}
       <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
         <textarea style={{...S.ta,minHeight:80,flex:1}} value={value} onChange={e=>{onChange(e.target.value);if(submittingRef.current)clearSubmit()}} placeholder={placeholder||'e.g. The seniority level feels too junior… you missed that I ran a P&L… the tone doesn\'t sound like me…'}/>
         {hasSpeech&&<SpeechBtn onResult={t=>onChange(t)} style={{marginTop:2}}/>}
@@ -6986,7 +7126,7 @@ function DemoUnavailable(){
     </div>
   </div>
 }
-// Support Reimagine — voluntary-support surface. Reimagine stays entirely
+// Pay It Forward — voluntary-support surface. Reimagine stays entirely
 // free; this is the one place a user can choose to give back. No paywall, no
 // gating; nothing else in the app keys off whether it is opened. All copy and
 // the Stripe payment links live in this single constant so a wording or amount
@@ -6994,7 +7134,7 @@ function DemoUnavailable(){
 // external donate.stripe.com checkout pages (each with its own thank-you
 // configured on Stripe's side) — no backend route, no success/return handling.
 const SUPPORT_PANEL_COPY={
-  navLabel:'Support Reimagine',
+  navLabel:'Pay It Forward',
   navSubline:'Free to use, help keep it that way',
   header:'Reimagine is free',
   body:[
@@ -7018,7 +7158,7 @@ const SUPPORT_PANEL_COPY={
   ],
 }
 
-// One-time announcement that points every user at the Support Reimagine sidebar
+// One-time announcement that points every user at the Pay It Forward sidebar
 // entry. Purely informational — it does not ask for money itself, it just says
 // where the ask already lives. Copy sits next to SUPPORT_PANEL_COPY so both are
 // edited in one place. Shown once per account and never again (seenSupportAnnounce
@@ -7060,7 +7200,19 @@ const MOVE_ANNOUNCEMENT_CUTOFF=Date.parse('2026-08-30T00:00:00Z')
 // new tab. "Give once" and "Give monthly" are two separate labeled groups, not
 // a shared tier row: there is no monthly equivalent for each one-time amount,
 // so the layout must not imply parity between them.
-function SupportPanel({onClose}){
+//
+// userId (signedInUser.id, when signed in) is appended to each link as
+// ?client_reference_id=<id> -- Stripe Payment Links support this URL
+// parameter and carry it through onto the resulting Checkout Session
+// (https://docs.stripe.com/payment-links/url-parameters), which is what
+// api/webhooks/stripe.js reads to tie a donation back to a Reimagine
+// account. Signed-out visitors and the demo still get a plain link with no
+// parameter -- Stripe silently drops an empty/invalid client_reference_id,
+// so nothing breaks, that donation just cannot be attributed.
+function withDonorRef(url,userId){
+  return userId?`${url}?client_reference_id=${encodeURIComponent(userId)}`:url
+}
+function SupportPanel({onClose,userId}){
   const K=SUPPORT_PANEL_COPY
   const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
@@ -7076,20 +7228,20 @@ function SupportPanel({onClose}){
       <div style={{marginTop:22}}>
         <div style={sectionLabelStyle}>{K.onceLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.onceOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
       <div style={{marginTop:20}}>
         <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.monthlyOptions.map(o=><a key={o.label} href={o.url} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
         </div>
       </div>
     </div>
   </div>
 }
 
-function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
+function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,chosen,openSupportReq=0,signedIn=false,userId=null,hasPipeline=false,pipelineOverdue=0,mobile=false,drawerOpen=false,brandExists=false,isIndependent=false,hasNextStep=false}){
   const navRef=useRef(null)
   // Below the breakpoint the rail leaves the flex flow and becomes an off-canvas
   // drawer, which is what hands the content column the full width. At or above
@@ -7124,7 +7276,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
   // render in either mode going forward; My Playbooks (PR3a dashboard)
   // supersedes it. hasPrereq predicate was removed in the same change:
   // the only steps it gated (p4, focus) no longer appear in PHASES.
-  // Always-on Support Reimagine entry. Pinned to the TOP of the rail in both
+  // Always-on Pay It Forward entry. Pinned to the TOP of the rail in both
   // sidebar shapes (dashboard and the linear PHASES flow) since 2026-09-11:
   // it sat at the bottom, below Inputs, and a user who wanted to give could not
   // find it. Styled as a card rather than a rail row so it reads as a different
@@ -7143,7 +7295,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
         <div style={{fontSize:15,color:'#B0BEDE',marginTop:1}}>{SUPPORT_PANEL_COPY.navSubline}</div>
       </div>
     </div>
-    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)}/>}
+    {supportOpen&&<SupportPanel onClose={()=>setSupportOpen(false)} userId={userId}/>}
   </>
   const personalBrandDone=done.includes('p3')
   if(personalBrandDone&&!isDemo){
@@ -7233,7 +7385,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
-        const active=step===id||childActive
+        const active=(id==='myCoach'?coachActive:step===id)||childActive
         const rows=[
           <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
             <Icon size={16}/>
@@ -7285,7 +7437,7 @@ function Sidebar({step,done,onNav,isDemo,prog,selectedLane,chosen,openSupportReq
       only surface the entry when a click would actually open a working coach
       (not a "sign in first" dead end). Standalone row — never a sequential
       orientation step, so no progress dot or done-check. */}
-  {signedIn&&(()=>{const active=step==='myCoach';return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
+  {signedIn&&(()=>{const active=coachActive;return <div data-step="myCoach" onClick={()=>onNav('myCoach')} style={{margin:'0 14px 6px',padding:'11px 12px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderRadius:8,background:active?`${C.gold}45`:'rgba(200,146,74,0.12)',border:`1px solid ${active?C.gold:'rgba(200,146,74,0.35)'}`,transition:'all 0.15s'}}>
     <MessageCircle size={17} color={active?'#FFFFFF':C.gold}/>
     <div style={{flex:1}}>
       {/* Batch item 10 (2026-09-10): same mark as the header pill (CoachMark,
@@ -7518,9 +7670,14 @@ export default function PivotEngine(){
   const _path=typeof window!=='undefined'?(window.location.pathname.replace(/\/+$/,'')||'/'):'/'
   if(_path==='/privacy')return <Privacy/>
   if(_path==='/terms')return <Terms/>
-  if(_path==='/quick-start')return <QuickStart/>
   if(_path==='/admin/dashboard')return <AdminDashboard/>
   if(_path==='/admin/coach-insights')return <CoachInsights/>
+  // Same unconditional render as its two siblings above, for the same reason:
+  // the gate is on the DATA endpoint (api/admin/support-timeline.js, session +
+  // ADMIN_LOGIN_EMAILS), and signedInUser is not declared until well below this
+  // early-return block, so reading it here would be a TDZ crash. An unauthorized
+  // visitor gets the page shell and a 403 from every lookup it tries.
+  if(_path==='/admin/support')return <Suspense fallback={null}><SupportView/></Suspense>
   // ResearchDesk gates itself against /api/me. The two screens above render
   // unconditionally because their DATA endpoints hold an ADMIN_TOKEN gate; this
   // one has no endpoint of its own, and signedInUser is not declared until well
@@ -7544,6 +7701,12 @@ export default function PivotEngine(){
   // otherwise a stray link would reframe a standard user's whole product around
   // work they never did.
   const trackParam=isTrack(_params.get(TRACK_PARAM))?_params.get(TRACK_PARAM):null
+  // Where to send the user back after sign-in, e.g. an admin bookmark that
+  // bounced them here for a fresh magic link (AdminDashboard.jsx,
+  // CoachInsights.jsx). Carried through request-link.js -> the emailed link
+  // -> verify.js, which is the only place it is actually trusted -- this is
+  // just read-and-forward.
+  const nextParam=_params.get('next')||null
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',resumeDelta:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',bridgeTarget:'',bridgeRunway:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',fitNeed:'',fitBuyer:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
@@ -7621,6 +7784,11 @@ export default function PivotEngine(){
   const[upstreamCheck,setUpstreamCheck]=useState(null)
   const correctionConflictRef=useRef(null)
   const currentSavedSlotIdRef=useRef(null)
+  // Set true immediately before a nav() call that is itself about to trigger
+  // a regenerate (navToUpstream, "Update Personal Brand now"), so nav()'s own
+  // view-fire below is skipped for that one call -- a regenerate must not
+  // double-count as a view.
+  const skipNextViewRef=useRef(false)
   // Where "Back to X" on an opportunity/role playbook actually goes (2026-09-05,
   // reported live: opening an opportunity from My Pipeline showed "Back to Put
   // It to Work" -- the hub link was hardcoded to hubStep/hubLabel regardless of
@@ -7721,6 +7889,44 @@ export default function PivotEngine(){
   // into a void and every reload restored them to their last successful save.
   // One account sat over the ceiling for six days that way without being told.
   const[saveError,setSaveError]=useState(null)
+  // The last save-failure reason already reported to the server, so a run of
+  // identical failures writes one row rather than one per debounce tick. The
+  // autosave effect reschedules on every state change, and a person typing
+  // through an offline stretch would otherwise post a row every few seconds.
+  // Cleared on the next successful save, so a failure that comes BACK after a
+  // recovery is reported again -- a save that keeps breaking and healing is a
+  // different story from one that broke once, and both are worth being able to
+  // tell apart.
+  const lastReportedSaveFailureRef=useRef(null)
+  // Reports the two save failures the SERVER never sees. api/profile/save.js
+  // records its own 413/409/500 rows, so posting those from here as well would
+  // double-count every one of them; 'offline' means the request never arrived
+  // and 'device_full' means it was never sent, which is exactly why they need a
+  // client-side path. 'paused' and 'signed_out' are not recorded at all: the
+  // account-hold modal and the sign-in prompt own those screens, and neither is
+  // a failure of the save machinery.
+  //
+  // Fire-and-forget with the rejection swallowed. On the 'offline' path this
+  // POST is itself likely to fail, which is fine and expected -- what it must
+  // never do is surface a second error to someone whose work is already not
+  // saving.
+  const reportSaveFailure=(reason)=>{
+    if(reason!=='offline'&&reason!=='device_full')return
+    if(lastReportedSaveFailureRef.current===reason)return
+    lastReportedSaveFailureRef.current=reason
+    // Local mirror, so the Send box can show the person their recent failures
+    // before they approve sending them. Class and screen only, same as the row.
+    recordLocalFailure({kind:'save_failed',step,error_class:reason})
+    try{
+      fetch('/api/support/client-event',{
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({kind:'save_failed',error_class:reason,step,build_sha:BUILD_SHA||''}),
+        keepalive:true,
+      }).catch(()=>{})
+    }catch{}
+  }
   const[toast,setToast]=useState(null)
   const saveRef=useRef(null)
   // Batch item 18 (2026-09-10, production report L8: a false "not being
@@ -7771,7 +7977,7 @@ export default function PivotEngine(){
   // a localStorage key, so "seen once" survives sign-out and follows the user to
   // a second device.
   //
-  // The Support Reimagine announcement is NOT a "what's new" popup, so it is not
+  // The Pay It Forward announcement is NOT a "what's new" popup, so it is not
   // gated on a ship date. It is the one time a person is told that voluntary
   // support exists, and every account gets it, new ones included. It waits until
   // they have something to show for their time (any completed phase) so the ask
@@ -7853,7 +8059,35 @@ export default function PivotEngine(){
   const[feedbackSending,setFeedbackSending]=useState(false)
   const[feedbackError,setFeedbackError]=useState(null)
   const feedbackTaRef=useRef(null)
-  const closeFeedback=()=>{setFeedbackOpen(false);setFeedbackText('');setFeedbackSent(false);setFeedbackSending(false);setFeedbackError(null)}
+  // "Send to Career Club" inside the Share feedback modal (2026-09-08
+  // observability brief, part C). The brief called this the Help panel; there
+  // is no such surface -- "Support Reimagine" is the donation panel -- and this
+  // modal is where someone already goes when something is wrong, so the second
+  // entrance lives here. The crash screen (src/ErrorBoundary.jsx) is the other.
+  //
+  // Nothing is sent until the person has seen the exact JSON and clicked Send.
+  // buildDiagnosticsPayload builds what is DISPLAYED and what is POSTED, so
+  // there is no second path that could add a field the preview never showed.
+  const[diagOpen,setDiagOpen]=useState(false)
+  const[diagPayload,setDiagPayload]=useState(null)
+  const[diagSending,setDiagSending]=useState(false)
+  const[diagSent,setDiagSent]=useState(false)
+  const[diagError,setDiagError]=useState(null)
+  const openDiagnostics=()=>{
+    let crash=null
+    try{crash=JSON.parse(localStorage.getItem('reimagine_last_error')||'null')}catch{}
+    setDiagPayload(buildDiagnosticsPayload({crash,step,buildSha:BUILD_SHA}))
+    setDiagSent(false);setDiagError(null);setDiagOpen(true)
+  }
+  const sendDiagnostics=async()=>{
+    setDiagSending(true);setDiagError(null)
+    try{
+      const r=await fetch('/api/support/diagnostics',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(diagPayload)})
+      if(!r.ok){setDiagError('That did not go through. Try again in a moment.');setDiagSending(false);return}
+      setDiagSending(false);setDiagSent(true)
+    }catch{setDiagError('We could not reach the server. Check your connection and try again.');setDiagSending(false)}
+  }
+  const closeFeedback=()=>{setFeedbackOpen(false);setFeedbackText('');setFeedbackSent(false);setFeedbackSending(false);setFeedbackError(null);setDiagOpen(false);setDiagSent(false);setDiagError(null)}
   useEffect(()=>{if(!feedbackOpen)return;const t=setTimeout(()=>{if(feedbackTaRef.current)feedbackTaRef.current.focus()},0);return()=>clearTimeout(t)},[feedbackOpen])
   // One-way drop: posts the note plus silently-gathered context (current
   // surface, lane, focused role, build SHA). user_id and email are resolved
@@ -8010,8 +8244,8 @@ export default function PivotEngine(){
   // later calm message in the same session -- a hold that lifts the instant
   // the person sounds okay again would fire the very next silent turn on the
   // heels of what they just said.
-  const[coachDistressHold,setCoachDistressHold]=useState(false)
-  const[coachMoodHold,setCoachMoodHold]=useState(false)
+  const[coachDistressHold,setCoachDistressHold]=useState(()=>readCoachHolds().distress)
+  const[coachMoodHold,setCoachMoodHold]=useState(()=>readCoachHolds().mood)
   // Coach-as-Concierge Phase 3b (Stall, Output/handoff/2026-09-09_coach-
   // concierge-phase-3-build-nextmove-stall.md): the two new signals nothing
   // in the codebase tracked before this -- a per-identity visit count and an
@@ -8130,6 +8364,11 @@ export default function PivotEngine(){
   // Life Events' three-trigger build.
   const[seenValuesThinHub,setSeenValuesThinHub]=useState(false)
   const valuesThinHubFiredRef=useRef(false)
+  // Resume builder draft-ready invitation (2026-09-13, Bob's hand-holding
+  // concern). One-shot, fires only inside the guided resume builder -- see
+  // the triggering effect below.
+  const[seenResumeBuilderDraftInvite,setSeenResumeBuilderDraftInvite]=useState(false)
+  const resumeBuilderDraftInviteFiredRef=useRef(false)
   // Proactive pipeline check-in (2026-09-05, brief: "let Coach ask what it
   // doesn't know when something moves on your pipeline"). Ref-guarded like its
   // siblings above, but capped via sessionStorage rather than a profile-blob
@@ -8163,60 +8402,34 @@ export default function PivotEngine(){
   // every user would be walked through a four-step setup that dead-ends on a 403
   // consent screen.
   const hasConnectorBeta=Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('my_search')
-  // PILOT — Coach next-move capture, 2026-09-02. Server-side truth is
-  // api/_lib/feature-flags.js (PIPELINE_CAPTURE_FLAG); this mirror only decides
-  // whether the client will render an offer. The server independently decides
-  // whether the model was ever told it could make one, so a tampered client
-  // gains nothing: with no instruction there is no trailer and no header.
-  // On for the team by email, or for a named outside tester granted the flag.
-  // Mirrors isInternalAccount/hasPipelineCapture in api/_lib/feature-flags.js,
-  // which is the real gate; this only decides whether to render an offer.
-  const hasPipelineCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_capture'))
-  // PILOT — Your Next Step, 2026-09-02. Mirrors hasNextStep in
-  // api/_lib/feature-flags.js; the server decides independently what the Coach
-  // is told, so this only governs whether the rail draws the item.
-  const hasNextStep=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('next_step'))
-  // PILOT — Coach-as-Concierge onboarding narration, 2026-09-04. Mirrors
-  // hasOnboardingConcierge in api/_lib/feature-flags.js; the server decides
-  // independently what Coach is told, so this only governs whether the
-  // client fires the check-ins that narrate onboarding. A separate flag from
-  // hasNextStep so the two rollouts can be toggled independently.
-  const hasOnboardingConcierge=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('onboarding_concierge'))
-  // PILOT — Coach presence, 2026-09-08. Mirrors hasCoachPresence in
-  // api/_lib/feature-flags.js; gates the widened embedded panel (Phase 1b of
-  // the Coach-as-Concierge redesign). A separate flag from
-  // hasOnboardingConcierge on purpose -- that one still gates the onboarding
-  // steps' own narration and framing, unrelated to whether the panel itself
-  // reaches screens past onboarding.
-  const hasCoachPresence=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))
-  // PILOT — Pipeline board, 2026-09-05. Mirrors hasPipelineBoard in
-  // api/_lib/feature-flags.js; the server decides who may use the underlying
-  // writes, this only decides whether the client renders the summary board.
-  const hasPipelineBoard=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('pipeline_board'))
-  // PILOT — Save-to-notes agency, 2026-09-05. Mirrors hasCoachNoteAgency in
-  // api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client renders the disclosure and the offer.
-  const hasCoachNoteAgency=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_note_agency'))
-  // PILOT — Section rework from chat, 2026-09-05. Mirrors hasSectionRework in
-  // api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client threads returnSection at all.
-  const hasSectionRework=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('section_rework'))
-  // PILOT — Orientation field capture, 2026-09-06. Mirrors hasOrientationCapture
-  // in api/_lib/feature-flags.js; the server decides who gets the instruction,
-  // this only decides whether the client renders the Reputation/Skills offers.
-  const hasOrientationCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('orientation_capture'))
-  // PILOT — Close-reason capture, 2026-09-07. Mirrors hasCloseReasonCapture
-  // in api/_lib/feature-flags.js; the server decides who gets the
-  // instruction, this only decides whether the client renders the
-  // disclosure and the offer. A separate flag from hasPipelineCapture on
-  // purpose -- see that flag's own comment in feature-flags.js.
-  const hasCloseReasonCapture=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('close_reason_capture'))
-  // PILOT — Industry Insider ecosystem view, 2026-09-10. Mirrors
-  // hasIndustryEcosystemView in api/_lib/feature-flags.js; the server decides
-  // independently what Coach is told, so this only governs whether the
-  // client renders the ecosystem hub instead of p4's role list for the
-  // Industry Insider lane, and whether the Moments evaluator may suggest it.
-  const hasIndustryEcosystemView=(!!signedInUser&&/@career\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('industry_ecosystem_view'))
+  // GA 2026-09-13 (Coach as Concierge). Was a per-account pilot mirror; every
+  // signed-in account now has all ten of these, following the same
+  // hasPipeline=!!signedInUser precedent above (My Pipeline's own GA,
+  // 2026-08-30). Server-side truth is api/_lib/feature-flags.js, which made
+  // the identical change to isInternalAccount/feature_flags for all ten.
+  const hasPipelineCapture=!!signedInUser
+  const hasNextStep=!!signedInUser
+  const hasOnboardingConcierge=!!signedInUser
+  const hasCoachPresence=!!signedInUser
+  // GA 2026-09-13. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasPipelineBoard=!!signedInUser
+  const hasCoachNoteAgency=!!signedInUser
+  const hasSectionRework=!!signedInUser
+  const hasOrientationCapture=!!signedInUser
+  const hasCloseReasonCapture=!!signedInUser
+  // GA 2026-09-13. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasIndustryEcosystemView=!!signedInUser
+  // PILOT -- correction actions (2026-09-14). Mirror of hasCorrectionActions in
+  // api/_lib/feature-flags.js: the flag, or any internal account.
+  const hasCorrectionActions=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('correction_actions'))||/@career\.club$/i.test(signedInUser.email||''))
+  // GA 2026-09-17. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasCoachFileUpload=!!signedInUser
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
@@ -8363,14 +8576,24 @@ export default function PivotEngine(){
       checkinKey:'pursuit-saved-open',
       quickReplies:[{label:`Open ${savedTitle}`,value:targetId},{label:'Stay here',value:'dismiss'}]}
   }
+  // Outcome (2026-09-14): how a closed opportunity ended, from the person's own
+  // words via Coach. The server already drops an outcome that disagrees with
+  // the stage; checked again here because this is the write. A valid outcome
+  // implies Closed.
+  const updateStageAndOutcome=(data)=>{
+    const rawStage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+    const outcome=data&&typeof data.outcome==='string'&&PURSUIT_OUTCOME_LABELS[data.outcome]&&(!rawStage||rawStage==='closed')?data.outcome:''
+    return{stage:outcome?'closed':rawStage,outcome}
+  }
   const execOpportunityUpdate=(data,targetId)=>{
-    const stage=data&&typeof data.stage==='string'&&PURSUIT_STAGES.some(s=>s.value===data.stage)?data.stage:''
+    const{stage,outcome}=updateStageAndOutcome(data)
     const move=data&&typeof data.move==='string'?data.move.trim():''
     const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
     const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
     const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
     const patch={}
     if(stage){patch.stage=stage;if(stage==='closed')patch.closed_at=new Date().toISOString()}
+    if(outcome)patch.outcome=outcome
     if(move)patch.next_move=move
     if(move&&data.date)patch.next_step_at=new Date(`${data.date}T12:00:00Z`).toISOString()
     if(meeting)patch.next_conversation_at=new Date(`${meeting}T12:00:00Z`).toISOString()
@@ -8396,7 +8619,7 @@ export default function PivotEngine(){
     }
     const fmtDay=(iso)=>new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})
     const landed=[]
-    if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}`)
+    if(stage)landed.push(`stage is now ${PURSUIT_STAGE_LABELS[stage]||stage}${outcome?` (${PURSUIT_OUTCOME_LABELS[outcome]})`:''}`)
     if(move)landed.push(`next move is now “${move}”${data.date?`, by ${fmtDay(data.date)}`:''}`)
     if(meeting)landed.push(`next scheduled meeting is ${fmtDay(meeting)}`)
     if(people.length)landed.push(`Interview Team now includes ${people.map(p=>p.name).join(', ')}`)
@@ -8506,6 +8729,15 @@ export default function PivotEngine(){
       setLifeEventsThinTopicCloseCount(c=>c+1)
       logPromptEngagement('life_events_thin','topic_close_tap','shown')
       setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-tap')])
+    }
+    // Recognition check at brand delivery (2026-09-14). Handled here rather
+    // than left to Chat's fall-through POST, because only a handled tap
+    // (return true) shows its follow-up line. The write is best-effort: the
+    // conversation moves on whether or not it lands.
+    if(checkinKey==='personal-brand-delivery'){
+      if(value==='dismiss')return true
+      try{await fetch('/api/pb-checkin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({checkin:checkinKey,answer:value})})}catch{}
+      return true
     }
     if(checkinKey==='employment-status'){
       await saveEmployment(value)
@@ -8649,8 +8881,10 @@ export default function PivotEngine(){
         widenSearchDoIt:(rowKey)=>{
           const code=(MOMENT_CATALOG.find(m=>m.key===rowKey)||{}).promptCode
           if(code)logPromptEngagement(code,'topic_close_tap','do it now')
+          if(rowKey==='widen-go-to-market')return genSec('p7')
           if(rowKey==='widen-recruiters')return genSec('recruiters')
           if(rowKey==='widen-networking-groups')return genSec('groups')
+          if(rowKey==='widen-job-search-resources')return nav('resources')
           if(rowKey==='widen-income-now')return genSec('income')
           if(rowKey==='widen-career-club-corner'){try{window.open(CAREER_CLUB_CORNER.url,'_blank','noopener,noreferrer')}catch{};return}
           if(rowKey==='widen-linkedin-contacts'){
@@ -8767,7 +9001,7 @@ export default function PivotEngine(){
       const meeting=data&&typeof data.meeting==='string'?data.meeting.trim():''
       const people=data&&Array.isArray(data.people)?data.people.filter(p=>p&&p.name):[]
       const removePeople=data&&Array.isArray(data.removePeople)?data.removePeople.filter(n=>typeof n==='string'&&n.trim()):[]
-      if(!stage&&!move&&!meeting&&!people.length&&!removePeople.length)return false
+      if(!stage&&!(data&&PURSUIT_OUTCOME_LABELS[data.outcome])&&!move&&!meeting&&!people.length&&!removePeople.length)return false
       const resolved=resolveOpportunityByName(activePlaybooks,data.opportunity)
       if(resolved.status==='ambiguous')return buildDisambiguationOffer('opportunity-update',data,resolved.matches)
       const tgt=coachSaveTarget()
@@ -9080,7 +9314,7 @@ export default function PivotEngine(){
       const section=data&&typeof data.section==='string'?data.section:''
       if(!note||!['p6','p_res','p9','income','p7','p8'].includes(section))return false
       submitCorrection(section,note,()=>{
-        recordCorrection(section,note)
+        recordCorrection(section,note,{original:focusSectionText(section)})
         if(section==='p6'){generateP6({refine:note});return}
         const O=sanitizeUpstreamForSection(section,outputs)
         const laneLbl=laneLabelFor(selectedLane)
@@ -9226,7 +9460,7 @@ export default function PivotEngine(){
       setStoryLostNums(n=>({...n,[story.id]:missingNumbers(note,story,next)}))
       // The correction carries forward the way every other correction in Reimagine
       // does, so a fact they fixed once does not come back wrong somewhere else.
-      if(note&&note.trim())recordCorrection('stories',note)
+      if(note&&note.trim())recordCorrection('stories',note,{original:JSON.stringify({title:story.title||'',question:story.question||'',slots:story.slots||{}})})
     }catch(e){
       setStoryRefineErr(er=>({...er,[story.id]:e.message||'That did not come back. Try again.'}))
     }finally{setStoryRefining(null)}
@@ -9713,12 +9947,6 @@ export default function PivotEngine(){
     const content=typeof explainEntry.message==='function'?explainEntry.message({...ctx,selfOpenReason:reason}):explainEntry.message
     setChatMessages(m=>[...m,{role:'assistant',content,checkinKey:`moment:${explainEntry.key}`,quickReplies:[]}])
   }
-  // Arriving at the dedicated My Coach step counts as opening the coach, so the
-  // floating panel that remounts on the way back out is already open rather
-  // than collapsed -- otherwise someone who reached My Coach straight from the
-  // sidebar (never having opened the floating bubble first) would still hit
-  // the "lost the coach" problem in reverse the moment they left.
-  useEffect(()=>{if(step==='myCoach')setCoachOpen(true)},[step])
   const[showPulse,setShowPulse]=useState(false)
   // Coach doors (PR-3, item H): a one-shot seed that prefills the My Coach input
   // when a "prep with My Coach" / "talk it through" affordance navigates here.
@@ -9747,17 +9975,19 @@ export default function PivotEngine(){
   // the moment the person leaves myCoach, so this can never point at a
   // section they have since left; hasSectionRework governs the whole feature
   // client-side (the server independently re-checks it).
-  const sectionReworkTarget=hasSectionRework&&coachReturn&&coachReturn.step==='focus'&&['p6','p_res','p9','income','p7','p8'].includes(coachReturn.section)?coachReturn.section:null
-  const coachReturnLabel=(fromStep,section)=>{
-    if(section&&NAV_LABELS[section])return NAV_LABELS[section]
-    if(fromStep==='focus')return 'your Focus Playbook'
-    // Name it. "Back to this opportunity" makes someone work out which one they
-    // came from; "Back to Imerys · Human Resources Vice President" does not.
-    if(fromStep==='op'){const t=coachSaveTarget();return (t&&t.title)||'this opportunity'}
-    return NAV_LABELS[fromStep]||'where you were'
-  }
-  const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(step==='myCoach'?null:{step,section:returnSection||null,label:coachReturnLabel(step,returnSection)});nav('myCoach')}
-  const returnFromCoach=()=>{const r=coachReturn;if(!r)return;setCoachReturn(null);nav(r.step);if(r.section)setTimeout(()=>scrollToOutput(r.section),150)}
+  // Still gated on being ON the focus step right now, not on a stored "step"
+  // snapshot -- opening Coach no longer leaves the screen, so the live step
+  // IS the only step this could ever be reworking.
+  const sectionReworkTarget=hasSectionRework&&step==='focus'&&coachReturn&&['p6','p_res','p9','income','p7','p8'].includes(coachReturn.section)?coachReturn.section:null
+  // One Coach (2026-09-13): opening Coach no longer navigates anywhere. It
+  // surfaces whichever of the two mounts is live for this account (the
+  // floating panel, or the concierge-embedded one) in its fully-open state,
+  // in place, on the screen the user is already looking at. coachReturn is
+  // kept ONLY as the signal sectionReworkTarget needs (which Focus section,
+  // if any, Coach was opened from) -- there is no "return" to perform
+  // anymore, so its step/label fields are dropped.
+  const openMyCoachPanel=()=>{if(conciergeEmbedded){if(coachPresence==='minimized')beginCoachRestore()}else{setCoachOpen(true);setCoachMaximized(true)}}
+  const openCoachWith=(seedText,autoSend=false,returnSection=null)=>{setCoachSeed(seedText||'');setCoachSeedAuto(!!autoSend);setCoachReturn(returnSection?{section:returnSection}:null);openMyCoachPanel()}
   // Subtle inline "ask the coach" nudge woven along the journey — the free-text
   // orientation prompts, the direction choice, a section's empty state. A text
   // link, not a gold Btn, so it invites without competing with the step's
@@ -9845,7 +10075,7 @@ export default function PivotEngine(){
     return()=>{try{bc&&bc.close()}catch{};window.removeEventListener('storage',onStorage)}
   },[magicLinkSentTo])
 
-  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
+  useEffect(()=>{if(isDemo)return;if(isTest){try{localStorage.removeItem('pe_v3');localStorage.removeItem('pe_v4')}catch{};return}try{let d=null;const v4=localStorage.getItem('pe_v4');if(v4){d=JSON.parse(v4)}else{const v3=localStorage.getItem('pe_v3');if(v3){const x=normalizeProfileState(JSON.parse(v3));d=x.normalizedState;try{localStorage.setItem('pe_v4',JSON.stringify(d));localStorage.removeItem('pe_v3')}catch{};if(x.didMigrate)setMigratedFromPreV1(true)}}if(d){if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenResumeBuilderDraftInvite)setSeenResumeBuilderDraftInvite(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0))setHasProgress(true)}}catch{};setLocalHydrationDone(true)},[])
   // Hydrate the saved playbooks set from its own localStorage key on mount.
   // Demo mode skips persistence; test mode wipes the key so test sessions
   // start clean (mirrors the pe_v4 gating one line up).
@@ -9866,13 +10096,44 @@ export default function PivotEngine(){
     }catch{}
   },[])
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
-  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}return fetch('/api/profile/load',{credentials:'include'}).then(r=>{if(r.ok)serverLoadOkRef.current=true;return r.ok?r.json():null})}return null}).then(serverProfile=>{if(!serverProfile)return;profileUpdatedAtRef.current=serverProfile.updatedAt||null;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
+  // Cross-device Clear (2026-09-16 follow-up to My Coach's Clear button,
+  // src/components/Chat.jsx / api/coach-clear.js): users.chat_cleared_at
+  // (returned here via /api/me -> getSessionUser's SELECT, api/_lib/
+  // session.js) only reached a device whose local transcript was ALREADY
+  // just the seed intro -- the coach-history rehydration effect right
+  // below this one only fires on that exact blank-slate shape. A device
+  // that still held an OLDER local transcript (this same tab before the
+  // clear, or a second device that was never cleared) never rechecked
+  // anything, so "on every device" did not actually hold for that shape.
+  // reimagine_chat_cleared_at_applied is the last chat_cleared_at value
+  // this device has already applied; a newer server value means a clear
+  // happened since, so the stale local transcript resets to the intro
+  // before anything else in this chain runs.
+  useEffect(()=>{if(isDemo||isTest)return;fetch('/api/me',{credentials:'include'}).then(r=>r.ok?r.json():{user:null}).then(data=>{if(data.user){setSignedInUser(data.user);setSignedUp(true);if(data.user.suspended_at)setAccountSuspended(true);if(data.user.employment_status)setEmploymentStatus(data.user.employment_status);if(typeof data.user.search_going_well==='string')setSearchGoingWell(data.user.search_going_well);if(typeof data.user.search_focus==='string')setSearchFocus(data.user.search_focus);searchIntakeSavedRef.current={goingWell:typeof data.user.search_going_well==='string'?data.user.search_going_well.trim():'',focus:typeof data.user.search_focus==='string'?data.user.search_focus.trim():''};try{const bc=new BroadcastChannel('reimagine-auth');bc.postMessage({type:'signed_in',email:data.user.email||null});bc.close()}catch{}try{localStorage.setItem('pe_signed_in_at',String(Date.now()))}catch{}try{localStorage.setItem('pe_has_signed_in_before','true')}catch{}if(typeof data.user.chat_cleared_at==='string'&&data.user.chat_cleared_at){let appliedAt=null;try{appliedAt=localStorage.getItem('reimagine_chat_cleared_at_applied')}catch{}if(!appliedAt||new Date(data.user.chat_cleared_at).getTime()>new Date(appliedAt).getTime()){setChatMessages([INTRO_MSG]);try{localStorage.setItem('reimagine_chat_cleared_at_applied',data.user.chat_cleared_at)}catch{}}}return fetch('/api/profile/load',{credentials:'include'}).then(r=>{if(r.ok)serverLoadOkRef.current=true;return r.ok?r.json():null})}return null}).then(serverProfile=>{if(!serverProfile)return;profileUpdatedAtRef.current=serverProfile.updatedAt||null;if(serverProfile.profile&&Object.keys(serverProfile.profile).length>0){const x=normalizeProfileState(serverProfile.profile);const d=x.normalizedState;if(d.step)setStep(d.step);if(d.profile)setProfile(normalizeWork(d.profile));if(d.outputs)setOutputs(d.outputs);if(d.done)setDone(d.done);if(d.deepOpts)setDeepOpts(d.deepOpts);if(d.chosen)setChosen(d.chosen);if(d.selectedLane)setSelectedLane(d.selectedLane);if(Array.isArray(d.exploredRoleTitles))setExploredRoleTitles(d.exploredRoleTitles);if(Array.isArray(d.savedPlaybooks))setSavedPlaybooks(d.savedPlaybooks);if(d.seenCoachIntro)setSeenCoachIntro(true);if(d.seenPbCheckin)setSeenPbCheckin(true);if(d.seenEmploymentPrompt)setSeenEmploymentPrompt(true);if(d.seenSearchIntakePrompt)setSeenSearchIntakePrompt(true);if(d.seenNotesCapabilityMention)setSeenNotesCapabilityMention(true);if(d.seenCloseReasonMention)setSeenCloseReasonMention(true);if(d.seenLifeEventsThinHub)setSeenLifeEventsThinHub(true);if(Number.isFinite(d.lifeEventsThinTopicCloseCount))setLifeEventsThinTopicCloseCount(Number(d.lifeEventsThinTopicCloseCount));if(d.seenValuesThinHub)setSeenValuesThinHub(true);if(d.seenResumeBuilderDraftInvite)setSeenResumeBuilderDraftInvite(true);if(d.seenSupportAnnounce)setSeenSupportAnnounce(true);if(d.seenCorrectionsIntro)setSeenCorrectionsIntro(true);if(Number(d.stepOverride)>=2&&Number(d.stepOverride)<=5)setStepOverride(Number(d.stepOverride));if(d.seenPipelineIntro)setSeenPipelineIntro(true);if(d.seenMoveAnnounce)setSeenMoveAnnounce(true);if(Array.isArray(d.narratedOrientationSteps))setNarratedOrientationSteps(d.narratedOrientationSteps);if(d.seenBrandDeliveryMoment)setSeenBrandDeliveryMoment(true);if(d.seenOrientationRoute)seenOrientationRouteRef.current=true;if(d.coachMoments&&typeof d.coachMoments==='object')setCoachMoments(d.coachMoments);if(d.widenSearchState&&typeof d.widenSearchState==='object')setWidenSearchState(d.widenSearchState);if(d.qualityCheckedFields&&typeof d.qualityCheckedFields==='object')setQualityCheckedFields(d.qualityCheckedFields);if(x.didMigrate)setMigratedFromPreV1(true)}// Removed: vestigial auto-push from localStorage to server when server
 // profile is empty. That branch was written for the pre-May-11 era when
 // the app worked without accounts and a user could have built work in
 // localStorage before signing up. The current flow requires sign-up
 // before any profile work, so the branch only contaminated new accounts
 // with prior-account data from the same browser. See brief
 // 2026-06-04_localstorage-account-scoping.md.
+}).then(()=>{
+  // Sign-out clears reimagine_chat_history by design (clearAccountLocalState),
+  // so the next sign-in's chatMessages initializer (line ~9518) falls back to
+  // [INTRO_MSG] -- indistinguishable from a brand-new account. This restores
+  // the server's own copy in that case. Gated on the panel still being at its
+  // untouched default AT THE TIME THIS CHAIN WAS SET UP (this effect's deps
+  // are [], so this closure over chatMessages reflects the mount-time value,
+  // which is exactly "was there anything to hydrate from locally"). The
+  // actual write below re-checks the SAME condition inside the setChatMessages
+  // updater against the live value, so a message that arrives while this
+  // request is in flight (a proactive moment, a narration line) is never
+  // clobbered by this resolving late -- the Situation-safety rule in CLAUDE.md
+  // section 8 for exactly this render-snapshot-vs-async-use bug class.
+  if(chatMessages.length===1&&chatMessages[0]&&chatMessages[0].role==='assistant'&&!chatMessages[0].banner&&chatMessages[0].content===INTRO_MSG.content){
+    fetch('/api/coach-history',{credentials:'include'}).then(r=>r.ok?r.json():null).then(data=>{
+      if(data&&Array.isArray(data.turns)&&data.turns.length>0)setChatMessages(cur=>(cur.length===1&&cur[0]&&cur[0].role==='assistant'&&!cur[0].banner&&cur[0].content===INTRO_MSG.content)?[INTRO_MSG,...data.turns]:cur)
+    }).catch(()=>{})
+  }
 }).catch(()=>{}).finally(()=>{serverLoadDoneRef.current=true;setServerLoadDone(true);setServerLoadOk(serverLoadOkRef.current)})},[])
   // Privacy: drop the NULL-guard (2026-06-24 conversation-review material update) so
   // grandfathered users who never accepted a version also see the notice before
@@ -9880,7 +10141,7 @@ export default function PivotEngine(){
   // grandfathered users are not force-re-accepted on an unrelated document).
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{if(localStorage.getItem('pe_has_signed_in_before')==='true')return;const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
-  useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
+  useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(clipChatHistoryForStorage(chatMessages.slice(-50))))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
   // Coach-as-Concierge onboarding narration (2026-09-04, next_step-adjacent
   // pilot gated on its own flag — see hasOnboardingConcierge above), first
@@ -10005,6 +10266,17 @@ export default function PivotEngine(){
   // prompts' own "did the PB check-in just take this slot" guards correct
   // without touching them: they read seenPbCheckin, which this sets exactly
   // as if the existing check-in had already run.
+  //
+  // Recognition check (launch capture foundation, 2026-09-14). Taking over the
+  // old check-in's slot also took away its one recorded signal: from #928
+  // (2026-09-13) nobody was asked "does this sound like you?" and nothing
+  // replaced the answer. This effect now asks the same one-tap question at the
+  // moment the brand is first read -- only for an account that never answered
+  // the old check-in (askRecognition is read before seenPbCheckin is set). It
+  // records under its own key, personal-brand-delivery, not the old
+  // personal-brand: the question fires at a different moment, and folding the
+  // two together would quietly change what the frozen Recognition series on
+  // the Growth tab measures.
   useEffect(()=>{
     if(isDemo||isTest)return
     if(!signedInUser||!hasOnboardingConcierge)return
@@ -10013,6 +10285,7 @@ export default function PivotEngine(){
     if(seenBrandDeliveryMoment||brandDeliveryFiredRef.current)return
     brandDeliveryFiredRef.current=true
     setSeenBrandDeliveryMoment(true)
+    const askRecognition=!seenPbCheckin
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
     // The actual words come from the brand-richness orientation check below
@@ -10022,7 +10295,12 @@ export default function PivotEngine(){
     // brand-richness's own dedupe (orientationCheckFields, keyed on the
     // built brand + raw material) fires the reaction moments later.
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,isDemo,isTest])
+    if(askRecognition){
+      const yesFollow='Good. Everything Reimagine builds for you from here starts from this read.'
+      const lukewarmFollow='Use the "Does this feel right?" box right under it to say what\'s missing or off, and Reimagine will rework it with your notes. Or tell me here what doesn\'t sound like you.'
+      setChatMessages(m=>[...m,{role:'assistant',content:'Now that you\'ve read it, does this sound like you?',checkinKey:'personal-brand-delivery',quickReplies:[{label:'Yes',value:'yes',followUp:yesFollow},{label:'Mostly',value:'mostly',followUp:lukewarmFollow},{label:'Not quite',value:'not_quite',followUp:lukewarmFollow}]}])
+    }
+  },[step,signedInUser,hasOnboardingConcierge,outputs,loading,seenBrandDeliveryMoment,seenPbCheckin,isDemo,isTest])
   // Personal Brand check-in. The first time a signed-in user reaches Put it to
   // Work with a built Personal Brand, open My Coach once with a one-tap check-in.
   // Dedupe via seenPbCheckin (persists in the synced profile) + a session ref;
@@ -10070,7 +10348,7 @@ export default function PivotEngine(){
       setCoachThinkingCount(c=>c+1)
       try{
         if(saveRef.current)await saveRef.current()
-        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})})
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},body:JSON.stringify({moment:{key:entry.key,...entry.momentContext(ctx)},history:chatMessages.slice(-10),currentStep:step,situation:computeSituation(),surface:'sidebar'})})
         if(!res.ok)return
         const raw=await res.text()
         const reply=raw&&raw.trim()
@@ -10355,20 +10633,39 @@ export default function PivotEngine(){
       const latestFired=coachMoments[latest]['_'].firedAt
       return new Date(fired)>new Date(latestFired)?k:latest
     },null)
-    // Career Club Corner and Load LinkedIn contacts don't need a direction;
-    // Recruiters/Networking Groups/Income Now build a Focus section via
-    // genSec and do (their own eligible() checks ctx.chosen too). Excluding
-    // the latter three from the candidate list itself, not just leaving it
-    // to their own eligible() to reject, matters for rotation: without a
-    // direction chosen yet, rotation with no lastOfferedKey always starts
-    // at index 0 (widen-recruiters) -- if that row's own eligible() were
-    // the only thing rejecting it, nothing would ever fire, and nothing
-    // would ever advance lastOfferedKey past null, so it would stay stuck
-    // offering (and rejecting) widen-recruiters forever, even for a Door-2-
-    // only account that never picks a direction and could still use the
-    // two rows that don't need one.
-    const widenSearchCandidateKeys=chosen?WIDEN_SEARCH_ROW_KEYS:WIDEN_SEARCH_ROW_KEYS.filter(k=>k==='widen-linkedin-contacts'||k==='widen-career-club-corner')
-    const widenSearchTarget=hasOnboardingConcierge?pickNextWidenSearchRow(widenSearchCandidateKeys,widenSearchState,{lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
+    // Pipeline-aware rotation (Bob, 2026-09-16): a thin pipeline -- fewer
+    // than two live opportunities, or nothing touched on any of them in
+    // fourteen-plus days -- leads with what widens the person's network
+    // instead of rotating the set in the healthy-pipeline order. Reuses
+    // step-position.js's own definitions (activeOpportunities/
+    // stepPosition) so the screen, Coach's next-step read, and this
+    // rotation never disagree about what "thin" means. Gated on
+    // pursuitStatusLoaded so a not-yet-loaded pipeline never reads as thin.
+    const widenOpen=activeOpportunities({savedPlaybooks},pursuitStatus)
+    const widenPos=stepPosition({outputs,chosen,savedPlaybooks,stepOverride},pursuitStatus)
+    const pipelineThin=pursuitStatusLoaded&&(widenOpen.length<2||widenPos.stalled)
+    // Career Club Corner, Load LinkedIn contacts, and Job Search Resources
+    // don't need a direction; Go-to-Market/Recruiters/Networking Groups/
+    // Income Now build a Focus section via genSec and do (their own
+    // eligible() checks ctx.chosen too). Excluding the latter four from
+    // the candidate list itself, not just leaving it to their own
+    // eligible() to reject, matters for rotation: without a direction
+    // chosen yet, a rotation that only ever saw a rejected row at its
+    // current position would never advance past it, staying stuck
+    // offering (and rejecting) the same row forever instead of ever
+    // reaching the direction-free ones.
+    //
+    // A row whose own Focus section is already built is also excluded --
+    // offering to build something that already exists reads as Coach not
+    // paying attention. Go-to-Market additionally needs the Bridge Story
+    // built (outputs.p6): the guide places Go-to-Market late in the Focus
+    // Playbook on purpose, since it runs live research and is the most
+    // expensive section to build, and the Bridge Story is the voice
+    // template its outreach draws on.
+    const widenBuilt=(sid)=>!!(outputs[sid]&&outputs[sid].length)
+    const widenBridgeBuilt=(typeof outputs.p6==='string'&&outputs.p6.length>0)||(outputs.p6&&typeof outputs.p6==='object')||outputs.p6===null
+    const widenSearchCandidateKeys=widenSearchCandidateKeysFor(WIDEN_SEARCH_ROW_KEYS,{hasDirection:!!chosen,bridgeBuilt:widenBridgeBuilt,goToMarketBuilt:widenBuilt('p7'),recruitersBuilt:widenBuilt('recruiters'),groupsBuilt:widenBuilt('groups'),incomeBuilt:widenBuilt('income')})
+    const widenSearchTarget=hasOnboardingConcierge?pickWidenSearchRowForPipeline(widenSearchCandidateKeys,widenSearchState,{pipelineThin,lastOfferedKey:widenSearchLastOfferedKey,offeredThisSession:widenSearchOfferedThisSessionRef.current,now:new Date()}):null
     // The stage-aware "one card that fits" pick (live-side brief PR 2's Next
     // move row), shared by Opportunity Playbook arrival (offers the first
     // one that fits) and Next move (offers the one after whatever Delivery
@@ -10434,7 +10731,7 @@ export default function PivotEngine(){
       const pick=opPickByStage(s.stage,cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       const arrivalTarget=(pick&&pick!=='knownContacts'&&pick!=='practice'&&pick!=='tradeoff')?{key:pick,label:cardLabel(pick)}:null
       const stageLine=pick==='knownContacts'?'Who You Know Here hasn’t turned up a match check yet for this one.'
-        :pick==='practice'?'Interview Prep is built — want to practice the answer that’s weakest?'
+        :pick==='practice'?'Interview Prep is built — want to practice one of your answers?'
         :pick==='tradeoff'?'Offer & Negotiation is built — ready to weigh the trade-offs?'
         :arrivalTarget?`With where this stands, ${arrivalTarget.label} is the one to build next.`
         :''
@@ -10503,7 +10800,7 @@ export default function PivotEngine(){
       if(!anchorKey)return null
       const pick=opPickByStage(opRecord.stage,opRecord.cardBuilt,opKnownCountFor(opCurrentRecordRaw))
       if(!pick||pick===anchorKey)return null
-      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your weakest answer':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
+      const nextLabel=pick==='knownContacts'?'Who You Know Here':pick==='practice'?'practicing your interview answers':pick==='tradeoff'?'weighing the trade-offs':opRecord.cardLabel(pick)
       const tapLabel=pick==='knownContacts'?'Open Who You Know Here':pick==='practice'?'Practice it':pick==='tradeoff'?'Trade-off considerations':`Build ${nextLabel}`
       // actionPhrase (F1 twenty-minute session, item 4): only p_cover/p11/
       // offerNegotiation are something to BUILD -- knownContacts is already
@@ -10512,7 +10809,7 @@ export default function PivotEngine(){
       // already built (the tap itself was Practice it/Trade-off
       // considerations, never Build). This is what makes the closing
       // question match the tap it is actually attached to.
-      const actionPhrase=pick==='knownContacts'?'open Who You Know Here':pick==='practice'?'practice the weakest answer':pick==='tradeoff'?'walk through the trade-offs':`build ${opRecord.cardLabel(pick)}`
+      const actionPhrase=pick==='knownContacts'?'open Who You Know Here':pick==='practice'?'practice your interview answers':pick==='tradeoff'?'walk through the trade-offs':`build ${opRecord.cardLabel(pick)}`
       return{recordId:opRecord.id,company:opRecord.company,anchorLabel:opRecord.cardLabel(anchorKey),nextId:pick,nextLabel,tapLabel,actionPhrase}
     })()
     // Interview is close (Check family): scans every active opportunity, not
@@ -10539,7 +10836,7 @@ export default function PivotEngine(){
       const days=Math.round((ms-now)/86400000)
       const when=days<=0?'today':days===1?'tomorrow':'in two days'
       const copy=prepBuilt
-        ?`${company} is ${when}. Interview Prep is built. Want to practice the answer that's weakest?`
+        ?`${company} is ${when}. Interview Prep is built. Want to practice one of your answers?`
         :`${company} is ${when}. Interview Prep isn't built for it yet. Want me to build it now?`
       return{recordId:rec.id,dateIso,copy,tapLabel:prepBuilt?'Practice it':'Build Interview Prep',prepBuilt}
     })()
@@ -10641,6 +10938,21 @@ export default function PivotEngine(){
     // are not the same thing for two independent async fetches. This pass
     // is retried the instant the in-flight one settles (momentReevalTick).
     if(momentInFlightRef.current)return
+    // Turn pacing (Bob live-test finding, 2026-09-12): the guard above only
+    // blocks a new candidate while the CURRENTLY FIRING one's own fetch is
+    // in flight -- once that resolves, nothing stopped this same pass from
+    // immediately picking a second, unrelated entry with no message from
+    // the person in between (reproduced live: career-paths-intro and the
+    // Industry Insider ecosystem hint landed back to back off one "yes").
+    // Hold any new unprompted moment until the most recently fired one has
+    // been followed by a genuine user turn -- a real, non-synthetic message
+    // (setMessages's own synthetic:true marks a quick-reply tap as NOT a
+    // real turn, Chat.jsx line ~567) sent after it. Scoped to catalog fires
+    // only (checkinKey starts 'moment:'); a freeform Coach reply carries no
+    // such checkinKey and is already one-per-user-turn by construction, so
+    // it never trips this guard.
+    const lastMomentIdx=chatMessages.reduce((acc,mm,i)=>(mm&&typeof mm.checkinKey==='string'&&mm.checkinKey.startsWith('moment:'))?i:acc,-1)
+    if(lastMomentIdx!==-1&&!chatMessages.slice(lastMomentIdx+1).some(mm=>mm&&mm.role==='user'&&!mm.synthetic))return
     const{entry,subKey,dedupeValue}=picked
     momentFiredRef.current.add(`${entry.key}:${subKey}`)
     setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
@@ -10668,7 +10980,7 @@ export default function PivotEngine(){
       fireStaticEntryMessage(entry,ctx)
     }
     setPbCheckinOpenReq(x=>x+1)
-  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])
+  },[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView,outputs,selectedLane,chosen,coachMoments,isDemo,isTest,done,isIndependent,focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])
   // Orientation quality check (Coach-as-Concierge follow-on, 2026-09-04,
   // extended 2026-09-04 to cover Resume/LinkedIn/Assessment): the moment
   // someone leaves a covered step with new content, Coach reads it and
@@ -10717,7 +11029,7 @@ export default function PivotEngine(){
         // seeing ANCHOR 1 empty, was then free to offer to "save" values
         // that were already saved. My Coach review, finding #3.3.
         if(saveRef.current)await saveRef.current()
-        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
+        const res=await fetch('/api/coach',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},body:JSON.stringify({orientationCheck:{step:stepId,text:sendText},history:chatMessages.slice(-10),currentStep:stepId,surface:'sidebar'})})
         if(res.status===204){setQualityCheckedFields(prev=>({...prev,[stepId]:combinedText}));return}
         if(!res.ok){
           // Release the fired-guard on failure -- leaving it set (as this
@@ -10903,6 +11215,37 @@ export default function PivotEngine(){
     setChatMessages(m=>[...m,valuesThinPromptMessage()])
     setPbCheckinOpenReq(x=>x+1)
   },[step,signedInUser,hasOnboardingConcierge,profile.values,profile.passions,seenValuesThinHub,employmentStatus,seenEmploymentPrompt,searchGoingWell,searchFocus,seenSearchIntakePrompt,seenPbCheckin,outputs,profile.lifeEvents,seenLifeEventsThinHub,coachOpenTick,isDemo,isTest])
+  // Resume builder draft-ready invitation (2026-09-13, Bob's hand-holding
+  // concern). Fires once, the moment someone's first baseline draft finishes
+  // generating in the guided builder (phase becomes 'draft'), inviting them to
+  // build out any thin bullets or skills by talking to Coach instead of only
+  // using the builder's own inline click-to-assist buttons (genDraftNudge,
+  // genDraftSayMore, genDraftSkills), which stay untouched by this change.
+  // Deliberately does not inspect bullet/skill content -- this is a one-time
+  // invitation, not a targeted review of what is thin; a person who takes the
+  // invitation gets that review through the conversation itself.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!hasOnboardingConcierge||!signedInUser)return
+    if(step!=='resume-builder'||!profile.builder||profile.builder.phase!=='draft')return
+    if(!profile.baselineResume||!(profile.baselineResume.experience&&profile.baselineResume.experience[0]))return
+    if(seenResumeBuilderDraftInvite||resumeBuilderDraftInviteFiredRef.current)return
+    resumeBuilderDraftInviteFiredRef.current=true
+    setSeenResumeBuilderDraftInvite(true)
+    logPromptEngagement('resume_builder_draft_invite','hub_arrival','shown')
+    ;(async()=>{
+      const role=profile.baselineResume.experience[0]
+      const title=(role.titles&&role.titles[0]&&role.titles[0].title)||''
+      const bullets=Array.isArray(role.bullets)?role.bullets:[]
+      try{
+        const walkthrough=await callClaudeWithVoiceGate(()=>P.BUILDER_FIRST_ROLE_WALKTHROUGH(title,role.company||'',bullets),{maxTokens:900,voiceMode:'prose'},{step:'builder-first-role-walkthrough',onEvent:logVoiceEvent})
+        setChatMessages(m=>[...m,{role:'assistant',content:String(walkthrough||'').trim()||resumeBuilderDraftInviteMessage().content,checkinKey:'resume-builder-draft-invite'}])
+      }catch{
+        setChatMessages(m=>[...m,resumeBuilderDraftInviteMessage()])
+      }
+      setPbCheckinOpenReq(x=>x+1)
+    })()
+  },[step,signedInUser,hasOnboardingConcierge,profile.builder,profile.baselineResume,seenResumeBuilderDraftInvite,isDemo,isTest])
   // Save-to-notes disclosure (2026-09-05, brief: "let Coach save to notes on
   // request, not on its own judgment"). Fires once ever, the first time Coach
   // opens with a specific opportunity already in focus -- coachOpenTick only
@@ -11044,7 +11387,7 @@ export default function PivotEngine(){
       // lives only in the saved_playbooks table (per-record dual-write above), so a
       // whole-profile save can never touch a playbook again. The server merge shim
       // stays as belt-and-suspenders for any old cached client still sending it.
-      const stateForSave={step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,widenSearchState,qualityCheckedFields}
+      const stateForSave={step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,widenSearchState,qualityCheckedFields}
       const blob=JSON.stringify(stateForSave)
       localStorage.setItem('pe_v4',blob)
       // The localStorage write above is unconditional; only the server PUT is
@@ -11063,16 +11406,17 @@ export default function PivotEngine(){
         // modal already owns that screen and a second notice behind it is noise.
         let reason=null
         try{
-          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({...stateForSave,profile_updated_at:profileUpdatedAtRef.current})})
+          const r=await fetch('/api/profile/save',{method:'PUT',headers:{'Content-Type':'application/json','x-reimagine-build':BUILD_SHA||''},credentials:'include',body:JSON.stringify({...stateForSave,profile_updated_at:profileUpdatedAtRef.current})})
           if(r.ok){const saved=await r.json().catch(()=>null);if(saved&&saved.updatedAt)profileUpdatedAtRef.current=saved.updatedAt}
           else reason=r.status===409?'stale':r.status===413?'too_large':r.status===403?'paused':r.status===401?'signed_out':'server'
         }catch{reason='offline'}
-        if(reason){setSaveStatus('error');setSaveError(reason);return}
+        if(reason){setSaveStatus('error');setSaveError(reason);reportSaveFailure(reason);return}
       }
       setLastSaveAt(Date.now())
       setSaveStatus('saved')
       setSaveError(null)
-    }catch{setSaveStatus('error');setSaveError('device_full')}
+      lastReportedSaveFailureRef.current=null
+    }catch{setSaveStatus('error');setSaveError('device_full');reportSaveFailure('device_full')}
     finally{
       saveInFlightRef.current=false
       // A dependency change arrived while this save's fetch was still in
@@ -11081,7 +11425,7 @@ export default function PivotEngine(){
       // server rather than being silently dropped.
       if(saveRerunPendingRef.current){saveRerunPendingRef.current=false;save()}
     }
-  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
+  };saveRef.current=save;const t=setTimeout(save,800);return()=>clearTimeout(t)},[step,stepOverride,profile,outputs,done,deepOpts,chosen,selectedLane,exploredRoleTitles,seenCoachIntro,seenPbCheckin,seenEmploymentPrompt,seenSearchIntakePrompt,seenNotesCapabilityMention,seenCloseReasonMention,seenLifeEventsThinHub,lifeEventsThinTopicCloseCount,seenValuesThinHub,seenResumeBuilderDraftInvite,seenSupportAnnounce,seenCorrectionsIntro,seenPipelineIntro,seenMoveAnnounce,narratedOrientationSteps,seenBrandDeliveryMoment,coachMoments,widenSearchState,qualityCheckedFields,signedInUser,serverLoadOk,isDemo,isTest])
   // Persist savedPlaybooks to its own localStorage key on every change.
   // Hybrid persistence: the durable source of truth is now the server.
   // Since PR #579 savedPlaybooks does NOT ride in the autosave blob above — it
@@ -11602,7 +11946,13 @@ export default function PivotEngine(){
   // opportunity-update/opportunity-context/coach-note-save all fell back to
   // writing to that stale record when the model's own title did not
   // resolve.
-  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);const _navSlot=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current);if(_navSlot&&_navSlot.source==='door2'&&to!=='op'&&to!=='myCoach')currentSavedSlotIdRef.current=null;if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
+  // Content-viewed beacon (2026-09-17 brief, part 1). Fires only when nav()
+  // lands on a section that already has generated content -- the read, not
+  // the generation. The two call sites that pair a nav('p3') with an
+  // immediate generateChain() (navToUpstream, "Update Personal Brand now")
+  // set skipNextViewRef first so a regenerate never double-counts as a view.
+  const recordSectionView=(section)=>{if(isDemo||!signedInUser)return;try{fetch('/api/view-events',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({section}),keepalive:true}).catch(()=>{})}catch{}}
+  const nav=(to)=>{track('step_entered',{step:to});if(to!=='myCoach')setCoachReturn(null);setShowOfferCompare(false);const _navSlot=savedPlaybooks.find(x=>x&&x.id===currentSavedSlotIdRef.current);if(_navSlot&&_navSlot.source==='door2'&&to!=='op'&&to!=='myCoach')currentSavedSlotIdRef.current=null;if(skipNextViewRef.current)skipNextViewRef.current=false;else if(VIEWABLE_SECTION_IDS.includes(to)&&done.includes(to))recordSectionView(to);if(isDemo){const idx=DEMO_TOUR.findIndex(t=>t.step===to);if(idx>=0){setDemoIdx(idx);setStep(to)}return}maybeInputStaleNudge(step,to);setStep(to);setErr(null);window.scrollTo(0,0)}
   // Scroll new output into view AFTER generation completes. Every generate
   // path already scrolls to 0,0 on click (so the loading panel is visible);
   // none scroll after the API returns, leaving the user wherever they
@@ -11642,30 +11992,6 @@ export default function PivotEngine(){
     const nameFromForm=((signupForm.firstName||'')+' '+(signupForm.lastName||'')).trim()
     return {userEmail:email,userName:(nameFromAccount||nameFromForm)}
   }
-  const logCorrection=(correction)=>{
-    if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
-    try{
-      // sectionOutputLength: for p3, strip the JSON tail before measuring so
-      // the recorded length reflects what the user actually read (prose only),
-      // not the structured-emit bytes appended after. The tail is invisible
-      // in the UI; recording its length in the corrections sheet would be
-      // noise reviewers would have to subtract out by hand.
-      const rawOutput=outputs[correction.step]||''
-      const renderableOutput=correction.step==='p3'?stripPersonalBrandTail(rawOutput):rawOutput
-      const payload={
-        ...logIdentity(),
-        correctionId:correction.id,
-        step:correction.step,
-        stepDisplayName:STEP_DISPLAY_NAMES[correction.step]||correction.step,
-        sectionOutputLength:renderableOutput.length,
-        correctionText:correction.text,
-        surfaced:SURFACED_FIELDS[correction.step]||[],
-        appVersion:APP_VERSION,
-        browser:navigator.userAgent||'',
-      }
-      fetch(CORRECTIONS_LOG_URL,{method:'POST',body:JSON.stringify(payload)}).catch(()=>{})
-    }catch{}
-  }
   const logVoiceEvent=(evt)=>{
     if(!CORRECTIONS_LOG_URL||CORRECTIONS_LOG_URL.startsWith('PASTE_'))return
     try{
@@ -11699,12 +12025,31 @@ export default function PivotEngine(){
   const handleCoachVoiceViolation=(violations)=>{
     logVoiceEvent({step:'coach-chat',attempt:1,recovered:false,violations})
   }
-  const handleCoachDistressDetected=()=>{setCoachDistressHold(true)}
-  const handleCoachMoodLow=()=>{setCoachMoodHold(true)}
-  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false)}
-  const recordCorrection=(step,text)=>{
+  const handleCoachDistressDetected=()=>{setCoachDistressHold(true);writeCoachHold('distress')}
+  const handleCoachMoodLow=()=>{setCoachMoodHold(true);writeCoachHold('mood')}
+  const handleCoachSessionOpen=()=>{setCoachDistressHold(false);setCoachMoodHold(false);clearCoachHolds()}
+  // The Focus-section text a correction on that section is aimed at. Only for
+  // Focus sections: the Opportunity Playbook cards and the opportunity Bridge
+  // Story share these step ids but live on the saved record, so their call
+  // sites pass their own text instead of calling this.
+  const focusSectionText=(step)=>step==='p6'?bridgeStoryToProse(outputs.p6):asText(outputs[step])
+  // ctx.original: the section exactly as the person saw it when they wrote
+  // the correction (launch capture foundation, 2026-09-14). Posted once to
+  // api/correction-context.js and NEVER added to the correction object --
+  // profile.corrections rides every autosave, and a section snapshot per
+  // correction would bloat that blob toward its size cap. ctx.recordId names
+  // the saved playbook for an opportunity-card correction.
+  const recordCorrection=(step,text,ctx={})=>{
     if(!text||!text.trim())return
     const correction={id:`corr_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,step,text:text.trim(),created_at:new Date().toISOString()}
+    // Pilot (correction_actions): the "What should happen?" choice RefineBox
+    // noted against this exact text, if any. Capture only -- see RefineBox.
+    const action=takePendingCorrectionAction(text)
+    if(action)correction.action=action
+    const original=ctx&&typeof ctx.original==='string'?ctx.original:''
+    if(original.trim()&&signedInUser&&!isDemo&&!isTest){
+      try{fetch('/api/correction-context',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:correction.id,step,original,recordId:ctx.recordId||null})}).catch(()=>{})}catch{}
+    }
     // Track 7: when the user chose "Apply anyway" on a correction that asks for a
     // phrase Reimagine writes around, tag the stored correction with that phrase
     // so the staleness indicator on downstream sections can use honest wording
@@ -11713,6 +12058,23 @@ export default function PivotEngine(){
     // conflict modal immediately before proceed() runs this.
     const conflictPhrase=correctionConflictRef.current;correctionConflictRef.current=null
     if(conflictPhrase)correction.conflictPhrase=conflictPhrase
+    // Personal Brand ramification tags, for the corrections diagnostic (2026-09-13).
+    // Structural: this step is p3 itself, or SECTION_UPSTREAMS already says it was
+    // built from p3 -- cheap, always available, no false negatives against the
+    // known edge map. Confirmed: reuses Track 8's own test (extractCorrectionTerms +
+    // countTermInText against the live p3 output) rather than duplicating a second
+    // heuristic -- if this correction's wording actually contradicts what Personal
+    // Brand currently says, that is the strongest signal available and worth saving
+    // even when the Track 8 prompt itself is dismissed unread.
+    const pbUpstreams=SECTION_UPSTREAMS[step]||[]
+    if(step==='p3'||pbUpstreams.includes('p3')){
+      correction.personalBrandRelevant=true
+      if(step!=='p3'){
+        const terms=extractCorrectionTerms(text)
+        const p3Text=asText(outputs.p3)
+        if(terms.some(t=>countTermInText(p3Text,t)>0))correction.personalBrandConfirmed=true
+      }
+    }
     setProfile(p=>({...p,corrections:[...(p.corrections||[]),correction]}))
     // Track 1 (1A, source-scoped): a correction on an upstream that has
     // downstream consumers stamps that upstream as updated, so sections built
@@ -11722,7 +12084,11 @@ export default function PivotEngine(){
     // recordCorrection itself so every correction path is covered, not just the
     // p3/p6 RefineBox regens that already cascade.
     if(STAMPABLE_UPSTREAMS.includes(step)){const now=Date.now();setOutputs(o=>({...o,[`${step}_updated_at`]:now}))}
-    logCorrection(correction)
+    // Corrections capture into Postgres now happens server-side, in
+    // api/profile/save.js, as a byproduct of the autosave this triggers --
+    // no separate log call needed here. See that file's comment for why
+    // (the old client -> Apps Script POST this used to make was the fragile
+    // link that went silently dead 2026-08-20).
   }
   // Track 8: after a correction in a non-root section, offer to check the
   // upstream section(s) it was built from for the same pattern. Only when the
@@ -11756,7 +12122,7 @@ export default function PivotEngine(){
   // leaving them to re-correct it by hand (the whack-a-mole). Other upstreams
   // (Bridge Story, LinkedIn Remix) scroll into view on the focus surface for a
   // manual rebuild; the global correction still reaches them when they rebuild.
-  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){nav('p3');generateChain()}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
+  const navToUpstream=(u)=>{setUpstreamCheck(null);if(u==='p3'){skipNextViewRef.current=true;nav('p3');generateChain()}else{if(step!=='focus')nav('focus');scrollToOutput(u)}}
   const applyConflictAnyway=()=>{const m=conflictModal;if(!m)return;correctionConflictRef.current=m.phrase;m.proceed();maybeShowUpstreamCheck(m.sectionId,m.text);setConflictModal(null)}
   const rephraseConflict=()=>{const m=conflictModal;if(!m)return;setConflictModal(null);setToast(`Try: ${m.rephrase}`);setTimeout(()=>setToast(t=>t===`Try: ${m.rephrase}`?null:t),6000)}
   const offlineConflict=()=>{const m=conflictModal;if(!m)return;setFb(m.sectionId,'');setConflictModal(null);const msg='Got it — we will write this section the way Reimagine writes. What you generate is yours to edit afterward.';setToast(msg);setTimeout(()=>setToast(t=>t===msg?null:t),5000)}
@@ -11946,7 +12312,7 @@ export default function PivotEngine(){
   const runP3Correction=(ask)=>{
     const prevBrand=outputsRef.current.p3||''
     const prevPres=(outputsRef.current.p3_structured&&outputsRef.current.p3_structured.presentation)||null
-    recordCorrection('p3',ask)
+    recordCorrection('p3',ask,{original:asText(prevBrand)})
     out('p3','')
     refreshP3(ask,prevBrand,prevPres)
   }
@@ -12350,7 +12716,7 @@ export default function PivotEngine(){
       if(!cr.ok){setSignupError('Something went wrong. Try again.');return}
       const cdata=await cr.json().catch(()=>({}))
       if(cdata.exists){
-        const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em})})
+        const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,next:nextParam})})
         if(!r.ok){
           const data=await r.json().catch(()=>({}))
           if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
@@ -12381,7 +12747,7 @@ export default function PivotEngine(){
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam,next:nextParam})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
@@ -12417,7 +12783,7 @@ export default function PivotEngine(){
   //                                     caught it either; unrelated surface
   // Add a key here only if it holds the user's own content or session state.
   const clearAccountLocalState=()=>{
-    const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error']
+    const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error','reimagine_chat_cleared_at_applied']
     keys.forEach(k=>{try{localStorage.removeItem(k)}catch{}})
     // sessionStorage, not localStorage -- see widenSearchOfferedThisSessionRef's
     // own comment. Both Start Fresh and Sign Out navigate this same tab to a
@@ -12425,6 +12791,7 @@ export default function PivotEngine(){
     // widen-the-search offer already made under the old account would
     // silently suppress the first one the new account should get.
     try{sessionStorage.removeItem('pe_widen_search_offered_session')}catch{}
+    clearCoachHolds()
   }
   const signOut=async()=>{
     // Verify the server actually cleared the session BEFORE we wipe local state
@@ -12660,6 +13027,23 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     if(!slotId)return
     setSavedPlaybooks(prev=>prev.map(rec=>rec.id===slotId?{...rec,panel:updater(getOpPanel(rec)),updatedAt:new Date().toISOString()}:rec))
   }
+  // Cover Letter length/register prefs (cover-letter-length-register brief
+  // 2026-09-16). Per-user, not per-record (Bob's call): rides in profile.
+  // coverPrefs, so it saves in the same debounced autosave blob as any other
+  // profile field via pr() and carries across every opportunity's letter, the
+  // same way a person's own writing voice would. Defaults ('full'/
+  // 'professional') reproduce the prompt's pre-existing single-length
+  // behavior exactly, so an account no one has touched this control on
+  // builds identically to before this brief.
+  const getOpCoverPrefs=()=>{
+    const p=profile.coverPrefs&&typeof profile.coverPrefs==='object'?profile.coverPrefs:null
+    const length=(p&&OP_COVER_LENGTH_OPTIONS.some(o=>o.value===p.length))?p.length:'full'
+    const register=(p&&OP_COVER_REGISTER_OPTIONS.some(o=>o.value===p.register))?p.register:'professional'
+    return{length,register}
+  }
+  const updateOpCoverPrefs=(patch)=>{
+    pr('coverPrefs',{...getOpCoverPrefs(),...patch})
+  }
   // Connector interview-team suggestions: remove a staged row (adopted or
   // dismissed), and adopt one into the real (blob) panel via the normal path.
   const dismissStagedInterviewer=(interviewerId)=>{
@@ -12886,7 +13270,10 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     const slotId=currentSavedSlotIdRef.current
     const rec=slotId?savedPlaybooks.find(x=>x&&x.id===slotId):null
     const record=rec?{id:rec.id,source:rec.source,title:rec.title||(rec.source==='door2'?'this opportunity':'this direction'),lane:rec.lane||null,company:rec.company||null}:null
-    return{screen:step,record,section:activeSectionRef.current||null}
+    const builderRoles=(step==='resume-builder'&&profile.builder&&profile.builder.phase==='draft'&&profile.baselineResume&&Array.isArray(profile.baselineResume.experience))
+      ?profile.baselineResume.experience.map(r=>({company:r.company||'',title:(r.titles&&r.titles[0]&&r.titles[0].title)||'',bulletCount:Array.isArray(r.bullets)?r.bullets.length:0,bulletsMissingNumbers:Array.isArray(r.bullets)?r.bullets.filter(b=>!/\d/.test(String(b||''))).length:0}))
+      :null
+    return{screen:step,record,section:activeSectionRef.current||null,builderRoles,lane:selectedLane||null,ecosystemCategory:(step==='p4'&&selectedLane==='insider'&&hasIndustryEcosystemView&&ecosystem.expanded)||null}
   }
   const saveCoachNoteToOpportunity=(text,personName)=>{
     const t=(typeof text==='string'?text:'').trim();if(!t)return ''
@@ -14600,17 +14987,20 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const candidateName=deriveDisplayName(profile.resume)
       const lv=opLaneValue(rec0)
       const laneLabel=opLaneLabel(lv)
+      const{length:coverLength,register:coverRegister}=getOpCoverPrefs()
+      const coverSpec=OP_COVER_LENGTH_SPECS[coverLength]||OP_COVER_LENGTH_SPECS.full
       const corrTail=correctionText&&correctionText.trim()?`\n\nNEW CORRECTION FROM THIS SECTION: ${correctionText.trim()}`:''
       const opts={maxTokens:1600,voiceMode:'prose',profileBlock:buildUserProfileBlock(pc,{...outputs,p6:opP6}),step:'op-cover-letter'}
       const meta={step:'op-cover-letter',onEvent:logVoiceEvent}
       const _wc=s=>(String(s||'').trim().match(/\S+/g)||[]).length
-      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,laneLabel)+corrTail
+      const fn=()=>correctionsBlock(profile.corrections)+P.p_cover(pc,brand,resumeRefresh,companyReadText,roleFit,jd,companyName,candidateName,laneLabel,coverLength,coverRegister)+corrTail
       let r=await callClaudeWithVoiceGate(fn,opts,meta)
       if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
-      // Firm ~200-word cap: one retry if the model overshoots (reshape 2026-06-29
-      // — the first ship ran long and essay-like against Bob's short mockup).
-      if(_wc(r)>210){
-        const fn2=()=>fn()+`\n\nThe previous draft ran ${_wc(r)} words, which is too long. Rewrite it under 200 words, keeping the greeting, three short paragraphs, and the sign-off.`
+      // Firm word cap (per length): one retry if the model overshoots (reshape
+      // 2026-06-29 — the first ship ran long and essay-like against Bob's short
+      // mockup; thresholds now scale with the length control, brief 2026-09-16).
+      if(_wc(r)>coverSpec.retryThreshold){
+        const fn2=()=>fn()+`\n\nThe previous draft ran ${_wc(r)} words, which is too long. Rewrite it under ${coverSpec.hardLimit} words, keeping the greeting, ${coverSpec.outputParas}, and the sign-off.`
         const r2=await callClaudeWithVoiceGate(fn2,opts,meta)
         if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
         if(typeof r2==='string'&&r2.trim())r=r2
@@ -14622,7 +15012,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const _crHits=s=>{const out=[];for(const re of OP_COVER_CONSULTANT_RE){const m=String(s||'').match(re);if(m)out.push(m[0])}return out}
       const _cr=_crHits(r)
       if(_cr.length){
-        const fn3=()=>fn()+`\n\nThe previous draft used consultant-register phrasing: ${_cr.map(x=>`"${x}"`).join(', ')}. Rewrite those clauses in plain, direct language — say what happened and what it meant, one operator to another — and keep the whole letter under 200 words.`
+        const fn3=()=>fn()+`\n\nThe previous draft used consultant-register phrasing: ${_cr.map(x=>`"${x}"`).join(', ')}. Rewrite those clauses in plain, direct language — say what happened and what it meant, one operator to another — and keep the whole letter under ${coverSpec.hardLimit} words.`
         const r3=await callClaudeWithVoiceGate(fn3,opts,meta)
         if(reqId!==opSectionReqRef.current||currentSavedSlotIdRef.current!==slotId)return
         if(typeof r3==='string'&&r3.trim()){
@@ -14635,7 +15025,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       setSavedPlaybooks(prev=>prev.map(rec=>{
         if(rec.id!==slotId)return rec
         const sections={...(rec.sections||{})}
-        sections.p_cover={...(sections.p_cover||{}),content:cleaned,builtAt:new Date().toISOString(),builtLane:lv}
+        sections.p_cover={...(sections.p_cover||{}),content:cleaned,builtAt:new Date().toISOString(),builtLane:lv,builtLength:coverLength,builtRegister:coverRegister}
         return{...rec,sections,updatedAt:new Date().toISOString()}
       }))
       setCurrentRoleSaved(false)
@@ -14707,7 +15097,12 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
   // matches Focus per-section refine behavior (corrections carry forward).
   const refineOpCard=(cardKey,correctionText)=>{
     if(cardKey==='p6')return
-    recordCorrection(cardKey,correctionText)
+    // The card as it stands on the open saved record -- not outputs[cardKey],
+    // which is the Focus section that shares this step id.
+    const _ctxRec=savedPlaybooks.find(r=>r&&r.id===currentSavedSlotIdRef.current)
+    const _ctxSec=_ctxRec&&_ctxRec.sections?_ctxRec.sections[cardKey]:null
+    const _ctxBody=_ctxSec&&typeof _ctxSec==='object'&&'content' in _ctxSec?_ctxSec.content:_ctxSec
+    recordCorrection(cardKey,correctionText,{original:asText(_ctxBody),recordId:_ctxRec?_ctxRec.id:null})
     if(cardKey==='companyRead'){
       generateOpCompanyRead(correctionText)
     }else if(cardKey==='p_cover'){
@@ -15293,6 +15688,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     setCurrentRoleSaved(true)
     setCurrentRoleInSavedSet(true)
     currentSavedSlotIdRef.current=rec.id
+    // This IS the reread moment nav()'s own view-fire can't see: restoring a
+    // saved slot sets step directly rather than going through nav(), and it
+    // is always reopening EXISTING content (never a first generation), so no
+    // done-gate is needed here the way nav() needs one.
+    recordSectionView(rec.source==='door2'?'op':'focus')
     setStep(rec.source==='door2'?'op':'focus')
     // Scroll-to-top is handled by the step-change useEffect that resets
     // contentColumnRef.current.scrollTop on every step change. No per-call
@@ -16314,7 +16714,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
         <span style={{color:C.gold,fontWeight:600,fontSize:15,display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{profile.builder&&profile.builder.phase?'Continue':'Get started'}<ChevronRight size={15}/></span>
       </button>
-      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{ats:true})}>Download ATS version (Word)</a></div>}
+      {profile.baselineResume&&<div style={{...S.note,marginTop:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}><Check size={14} color={C.ok}/>Your built resume is saved to your account.<a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume)}>Download (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{format:'traditional'})}>Download traditional version (Word)</a><a style={{color:C.gold,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadResumeWord(profile.baselineResume,{format:'ats'})}>Download ATS version (Word)</a></div>}
       {err&&<ErrBox msg={err}/>}
       <div style={S.row}><Btn secondary onClick={()=>nav('location')}><ArrowLeft size={13}/>Back</Btn><Btn onClick={()=>profile.resume?advance('resume','linkedin'):setErr('Add your resume to continue, or build one with us.')}>Continue <ChevronRight size={14}/></Btn></div>
     </div>
@@ -16793,8 +17193,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         />
         return <IndustryEcosystemHub
           isDemo={isDemo}
-          onBack={()=>nav(hubStep)}
-          hubLabel={hubLabel}
           categories={ecosystem.categories}
           industry={ecosystem.industry}
           busy={ecosystemBusy}
@@ -16851,7 +17249,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       const FOCUS_ORDER=focusOrderFor(isIndependent)
       const FOCUS_GROUPS_ACTIVE=focusGroupsFor(isIndependent)
       const laneLbl=laneLabelFor(selectedLane)
-      const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v);if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
+      const refineSec=(id,v)=>{if(id!=='salaryRead')recordCorrection(id,v,{original:focusSectionText(id)});if(id==='p6'){generateP6({refine:v})}else{generateSection(id,()=>gp(id)()+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),go(id))}}
       const renderBody=(id)=>{
         // Legacy tolerance: object-shape outputs.p6 from pre-2026-05-31 records is preserved by normalizeProfileState (no migration). Do not delete this branch.
         if(id==='p6'){const rawP6=typeof outputs.p6==='string'?outputs.p6:(outputs.p6?bridgeStoryToProse(outputs.p6):'');const hasCoaching=typeof rawP6==='string'&&rawP6.includes('---COACHING NOTE---');const parts=hasCoaching?rawP6.split('---COACHING NOTE---').map(s=>s.trim()):[rawP6,''];const storyPart=parts[0]||'';const coachingPart=parts[1]||'';return <><OutPanel text={storyPart} onCopy={copy} copied={copied}/>{hasCoaching&&coachingPart&&<div data-print="content" style={{margin:'16px 0 24px',padding:'18px 22px',background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:8,fontStyle:'italic',color:C.cream,lineHeight:1.65,fontSize:16}}><MD text={coachingPart}/></div>}{!isDemo&&<RefineBox guard={submitCorrection} sectionId="p6" value={feedback.p6} onChange={v=>setFb('p6',v)} hint="Does this sound like something you would actually say? Tell us what to adjust: the opening, the tone, which part of your background to lead with, or how you want to close." placeholder="e.g. The opening does not feel personal enough… I want to lead with my sustainability work instead… the ending needs to connect more directly to the role…" onRegenerate={v=>refineSec('p6',v)}/>}</>}
@@ -17230,33 +17628,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </div>
       </div>
     }
-    // height:'100%',display:'flex',flexDirection:'column' (2026-09-09,
-    // composer-visible structural fix): gives the embedded Chat panel below
-    // a genuine, definite height to fill via its own flex:'1 1 auto' rather
-    // than a JS window-measurement -- see Chat.jsx's panelRef sizing
-    // comment. Resolves against contentColumnRef's own height, which is
-    // itself definite (a flex-row item under App's outer 100dvh/overflow:
-    // hidden shell). The back-button + header block above keep their
-    // natural height; Chat takes what's left.
-    case'myCoach':return <div style={{height:'100%',display:'flex',flexDirection:'column'}}>
-      {coachReturn&&<button type="button" onClick={returnFromCoach} style={{background:'none',border:'none',color:C.gold,fontSize:16,fontWeight:600,cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',gap:6,padding:0,marginBottom:12,flexShrink:0}}><ArrowLeft size={15}/>Back to {coachReturn.label}</button>}
-      {/* The header is deliberately thin. Everything above the panel pushes it
-          down, and the panel fills the rest of the flex column -- so a
-          paragraph here is a paragraph of conversation gone, on every visit,
-          forever. What used to sit here introduced the coach
-          ("ask anything: where to focus, how to tell your story, how to prepare
-          for a conversation") directly above the coach's own first message,
-          which says the same thing in the same order. Saying it twice cost
-          about 200px and taught the reader nothing the transcript did not.
-          The privacy line is a first-run reassurance rather than a standing
-          fact, so it shows while the conversation is empty and steps out of the
-          way once there is one to read. */}
-      <div style={{marginBottom:8,flexShrink:0}}>
-        <h1 style={{...S.title,marginBottom:chatMessages.length>1?0:6}}>My Coach</h1>
-        {chatMessages.length<=1&&<div style={{...S.helperText,marginTop:8}}>Everything your coach knows about you came from you — your profile, your resume, and this conversation. <strong style={{color:C.grayL,fontWeight:600}}>It never looks you up: no searching for you, no reading your accounts, no opening your website.</strong></div>}
-      </div>
-      <Chat embedded currentStep={step} C={C} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
-    </div>
     // Job Search Resources (docs/networking-groups-brief.md). Its own
     // destination, reachable from the first screen, needing no direction and no
     // playbook. Career Club Corner is fixed at the top and is never a search
@@ -17410,7 +17781,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       // playbook. Income content generated here is keyed on `chosen`; the
       // orphan state (chosen cleared via addNewOpportunity while outputs.income
       // survives) intentionally renders the gated screen, never stale content.
-      const refineIncome=(v)=>{recordCorrection('income',v);generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
+      const refineIncome=(v)=>{recordCorrection('income',v,{original:asText(outputs.income)});generateSection('income',()=>P.income(pc,outputs,chosen,profile.bridgeTarget,isIndependent?'':profile.bridgeRunway,isIndependent)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:7000,profileBlock:buildUserProfileBlock(pc,outputs),step:'income'})}
       if(!(chosen&&chosen.length>0))return <div>
         <h1 style={S.title}>{isIndependent?'Price, Package & Launch':'Income Now'}</h1>
         <p style={S.sub}>{isIndependent
@@ -17532,7 +17903,6 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
             <Btn onClick={downloadOnePager}><Download size={14}/>Download One-Pager (PDF)</Btn>
             <Btn secondary onClick={downloadAllMarkdown}><Download size={14}/>Download All Outputs (Markdown)</Btn>
-            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{...S.sec,display:'inline-flex',alignItems:'center',gap:8,textDecoration:'none'}}><Download size={14}/>Download User Guide (PDF)</a>
             {!isDemo&&<Btn secondary onClick={reset}><RotateCcw size={14}/>Start a New Session</Btn>}
           </div>
         </div>
@@ -17605,7 +17975,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{margin:0}}>If something is off about how Reimagine read the JD or your background, the "Does this feel right?" box below sharpens it. Corrections you submit here also carry forward to your next playbook.</p>
           </CoachingCallout>}
           {(()=>{const _body=<>{!opIsV2&&<div id="section-op" style={{scrollMarginTop:80}}><OutPanel text={outputs.op} onCopy={copy} copied={copied}/></div>}
-          {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v);out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
+          {!isDemo&&!opIsV2&&<RefineBox value={feedback.op} onChange={v=>setFb('op',v)} hint="Did we read the JD or your background right? Tell us what to adjust." placeholder="e.g. 'You missed that the role explicitly requires P&L experience.' Or: 'My time at [Company] was internal strategy, not consulting.' Or: 'Emphasize the operating depth angle more, less on strategic vision.'" onRegenerate={v=>{recordCorrection('op',v,{original:asText(outputs.op)});out('op','');generate('op',()=>P.op(pc,outputs,chosen,profile.jd)+(v?`\n\nNEW CORRECTION FROM THIS SECTION: ${v}`:''),{maxTokens:11000,msg:'Building your Opportunity Playbook…',profileBlock:buildUserProfileBlock(pc,outputs),step:'op'})}}/>}
           {opIsV2&&!_anyOpCardBuilt&&<>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:28,fontWeight:700,color:'#1A2540',margin:'0 0 8px'}}>{(profile.jd||'').split('\n').find(l=>l.trim())||'Your Opportunity Playbook'}</h2>
             <CoachingCallout>Build each section when you're ready. They are independent; build the ones that help most.</CoachingCallout>
@@ -17774,7 +18144,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _crBuilt=!!(_sec.companyRead&&_sec.companyRead.content&&_sec.companyRead.content.trim())
                 const _crBusy=(opSectionBuilding==='companyRead'&&opBuildingSlot===currentSavedSlotIdRef.current)||_opAutoBuildPending
                 return _cardWrap(<>
-                  {_head('About This Company','A read beyond Glassdoor: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  {_head('About This Company','A read on the company: recent news, the employee voice, industry-specific metrics with sources cited inline, the leadership\'s public footprint, and watch-outs named honestly.',_crBuilt,()=>generateOpCompanyRead(),_crBusy?'Building…':_crBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
                   {opSectionErrors.companyRead&&<div style={{marginTop:10}}><ErrBox msg={opSectionErrors.companyRead}/></div>}
                   {_crBusy&&<div style={{marginTop:14}}><Loading msg="Building About This Company…" step="companyRead"/></div>}
                   {_crBuilt&&<div style={{marginTop:14}}><div style={S.out}><MD text={_sec.companyRead.content}/></div></div>}
@@ -18142,7 +18512,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                     <div style={{fontSize:15,color:C.gray,lineHeight:1.5,marginBottom:12}}>A tell-me-about-yourself answer written for this specific opportunity, sharper than your general one. This is the case above, in words you can say out loud.</div>
                     {opSectionErrors.p6&&<div style={{marginBottom:10}}><ErrBox msg={opSectionErrors.p6}/></div>}
                     {_busyP6&&<div style={{marginBottom:6}}><Loading msg="Finishing with your bridge story…" step="p6"/></div>}
-                    {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v);generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small prominent onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
+                    {_p6Built?<><OutPanel text={bridgeStoryToProse(_p6)} onCopy={copy} copied={copied}/>{!isDemo&&<RefineBox value={feedback.opP6||''} onChange={v=>setFb('opP6',v)} hint="Does this feel right for this specific role? Tell us what to adjust: the opening, how you connect to the company, or the forward move." placeholder="e.g. Lead with my mission alignment instead… name the specific product line… the close needs to reference their recent funding…" onRegenerate={v=>{recordCorrection('p6',v,{original:bridgeStoryToProse(_p6),recordId:currentSavedSlotIdRef.current||null});generateOpBridgeStory({refine:v})}}/>}</>:(!_busyP6&&!isDemo&&<Btn small prominent onClick={()=>generateOpBridgeStory()} disabled={!!opSectionBuilding}><Sparkles size={12}/>Build the bridge story</Btn>)}
                   </div>}
                   {_pfBuilt&&!isDemo&&<div style={{marginTop:16}}><Btn small secondary onClick={()=>openCoachWith(`Help me talk through how I fit and how to position myself for ${_rec.title||'this role'}.`,false,'p5')}><MessageCircle size={13}/>Talk it through with My Coach</Btn></div>}
                 </>,'section-p5')
@@ -18159,8 +18529,25 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
                 const _needBridge=!(_sec.p6&&bridgeStoryToProse(_sec.p6).trim())
                 const _needResume=!(_sec.p_res&&_sec.p_res.content&&_sec.p_res.content.trim())
                 const _needBrand=!(outputs.p3&&asText(outputs.p3).trim())
+                const _covPrefs=getOpCoverPrefs()
+                const _covPrefsLocked=_covBusy||_opAutoBuildPending
                 return _cardWrap(<>
                   {_head('Cover Letter','A short draft letter tuned to this posting: the same energy as your outreach, adapted for applying through a posting. Part of your application packet.',_covBuilt,()=>generateOpCoverLetter(),_covBusy?'Building…':_covBuilt?<><RotateCcw size={11}/>Rebuild</>:<><Sparkles size={12}/>Build</>)}
+                  <div style={{marginTop:14}}>
+                    <div style={{marginBottom:10}} role="radiogroup" aria-label="Cover letter length">
+                      <span style={S.label}>Length</span>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {OP_COVER_LENGTH_OPTIONS.map(o=>{const on=_covPrefs.length===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs({length:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label} <span style={{color:C.gray,fontWeight:400}}>({o.hint})</span></button>})}
+                      </div>
+                    </div>
+                    <div role="radiogroup" aria-label="Cover letter tone">
+                      <span style={S.label}>Tone</span>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {OP_COVER_REGISTER_OPTIONS.map(o=>{const on=_covPrefs.register===o.value;return <button key={o.value} type="button" role="radio" aria-checked={on} disabled={_covPrefsLocked} onClick={()=>updateOpCoverPrefs({register:o.value})} style={{fontFamily:'inherit',fontSize:16,fontWeight:on?700:500,padding:'8px 14px',minHeight:40,borderRadius:20,cursor:_covPrefsLocked?'default':'pointer',border:`1.5px solid ${on?C.gold:C.border}`,background:on?`${C.gold}14`:'#FFFFFF',color:'#1A2540',opacity:_covPrefsLocked?0.6:1}}>{o.label}</button>})}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={S.helperText}>This applies to every cover letter you build, not just this one.</div>
                   {!isDemo&&!_covBuilt&&(_needBridge||_needResume||_needBrand)&&<div style={{marginTop:12,background:`${C.gold}10`,border:`1px solid ${C.gold}33`,borderRadius:8,padding:'12px 14px',fontSize:15,color:'#1A2540',lineHeight:1.55}}>
                     Building these first makes this cover letter stronger. It will still generate without them.
                     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
@@ -18905,11 +19292,11 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
     <CookieBanner/>
   </>
 
-  return <>
+  return <CorrectionActionsContext.Provider value={hasCorrectionActions}>
     <Analytics/>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet"/>
     {isDemo&&<style>{`.demo-content { pointer-events: none; } .demo-content button[data-expand], .demo-content [data-demo-click], .demo-content button[data-checkbox], .demo-content button[data-lane-tab] { pointer-events: auto; cursor: pointer; }`}</style>}
-    {/* One-time Support Reimagine announcement. Every signed-in account sees it
+    {/* One-time Pay It Forward announcement. Every signed-in account sees it
         once -- it is how a person learns voluntary support exists, not a
         what's-new note -- but only after a completed phase, so the ask never
         arrives before the value. Waits for hydration so it cannot flash before
@@ -18929,7 +19316,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       </div>
     </div>}
     {!isDemo&&!isIndependent&&signedInUser&&hydrationStable&&(hasProgress||done.length>0)&&!seenSupportAnnounce&&!showMoveAnnounce&&<div data-print="hide" onClick={dismissSupportAnnounce} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Support Reimagine announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+      <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Pay It Forward announcement" style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:480,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
         <button onClick={dismissSupportAnnounce} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
         <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 14px',paddingRight:24,lineHeight:1.35}}>{SUPPORT_ANNOUNCEMENT_COPY.header}</h2>
         <p style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 22px'}}>{SUPPORT_ANNOUNCEMENT_COPY.body}</p>
@@ -18962,7 +19349,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         <p style={{fontSize:18,color:'#4A5568',lineHeight:1.65,marginBottom:22}}>You changed your {INPUT_STEP_LABEL[inputStaleModal.from]||'inputs'}. Your Personal Brand won't reflect this until you refresh it. When you do, your current version is saved automatically, so you can restore it if you prefer it.</p>
         <div style={{display:'flex',gap:10,justifyContent:'flex-end',flexWrap:'wrap'}}>
           <Btn secondary onClick={()=>setInputStaleModal(null)}>Later</Btn>
-          <Btn onClick={()=>{setInputStaleModal(null);nav('p3');generateChain()}}>Update Personal Brand now</Btn>
+          <Btn onClick={()=>{setInputStaleModal(null);skipNextViewRef.current=true;nav('p3');generateChain()}}>Update Personal Brand now</Btn>
         </div>
       </div>
     </div>}
@@ -19061,6 +19448,29 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <div style={{display:'flex',gap:10,marginTop:18}}>
               <Btn disabled={feedbackSending||!feedbackText.trim()} onClick={sendFeedback}>{feedbackSending?'Sending…':'Send'}</Btn>
             </div>
+            {/* Send diagnostics (2026-09-08 observability brief, part C). Sits
+                below the note rather than beside it: a note is what most people
+                came here to write, and this is for the narrower case where
+                something broke and the technical details would help. Nothing
+                leaves the browser until the exact payload has been read. */}
+            <div style={{marginTop:20,paddingTop:18,borderTop:`1px solid ${C.border}`}}>
+              {!diagOpen&&!diagSent&&<>
+                <div style={{fontSize:16,color:C.gray,lineHeight:1.6,marginBottom:10}}>Something acting up? You can send us the technical details of what the app was doing.</div>
+                <Btn small secondary onClick={openDiagnostics}>Send diagnostics</Btn>
+              </>}
+              {diagOpen&&!diagSent&&<>
+                <CoachingCallout>
+                  This sends Career Club a record of what the app was doing when it ran into trouble: the screen you were on, the kind of error, and the version you were running. It does not include your resume, your profile, your playbooks, or anything you have said to My Coach. Here is exactly what will be sent.
+                </CoachingCallout>
+                <pre style={{background:'#F2F4F7',border:`1px solid ${C.border}`,borderRadius:8,padding:'14px 16px',margin:0,maxHeight:220,overflow:'auto',fontSize:15,lineHeight:1.5,color:'#1A2540',fontFamily:'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{JSON.stringify(diagPayload,null,2)}</pre>
+                {diagError&&<div role="alert" style={{fontSize:16,color:C.err,lineHeight:1.5,margin:'12px 0 0',padding:'10px 14px',background:`${C.err}10`,border:`1px solid ${C.err}40`,borderRadius:8}}>{diagError}</div>}
+                <div style={{display:'flex',gap:10,marginTop:14,flexWrap:'wrap'}}>
+                  <Btn small prominent disabled={diagSending} onClick={sendDiagnostics}>{diagSending?'Sending…':'Send to Career Club'}</Btn>
+                  <Btn small secondary onClick={()=>setDiagOpen(false)}>Cancel</Btn>
+                </div>
+              </>}
+              {diagSent&&<div style={{fontSize:16,color:C.gray,lineHeight:1.6}}>Sent. If you emailed support@career.club, mention the time and we&rsquo;ll match it up.</div>}
+            </div>
           </>:<div style={{textAlign:'center',padding:'12px 4px 4px'}}>
             <h2 style={{fontFamily:'Georgia,serif',fontSize:23,fontWeight:700,color:'#1A2540',margin:'0 0 18px',lineHeight:1.45}}>Feedback is a gift, thanks for sharing yours.</h2>
             <Btn onClick={closeFeedback}>Back to work</Btn>
@@ -19145,13 +19555,13 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           the pe_v4 localStorage mirror), so it never returns on any device. */}
       {signedInUser&&!isDemo&&done.includes('p3')&&step!=='myCoach'&&!seenCoachIntro&&<div data-print="hide" role="region" aria-label="My Coach announcement" style={{background:C.gold,color:'#FFFFFF',padding:'10px 16px',textAlign:'center',fontSize:16,fontWeight:500,display:'flex',alignItems:'center',justifyContent:'center',gap:12,flexWrap:'wrap',flexShrink:0}}>
         <span><strong>New: My Coach.</strong> Ask anything about your search — networking, interviews, your resume, or just a tough day — and get guidance built on your profile.</span>
-        <button onClick={()=>{setSeenCoachIntro(true);nav('myCoach')}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
+        <button onClick={()=>{setSeenCoachIntro(true);openMyCoachPanel()}} style={{background:'#FFFFFF',color:C.gold,border:'none',borderRadius:4,padding:'4px 14px',fontSize:15,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Try it</button>
         <button onClick={()=>setSeenCoachIntro(true)} aria-label="Dismiss" style={{background:'transparent',color:'#FFFFFF',border:'1px solid rgba(255,255,255,0.4)',borderRadius:4,padding:'3px 10px',fontSize:15,cursor:'pointer',fontFamily:'inherit'}}>×</button>
       </div>}
       <div style={{display:'flex',flex:1,minHeight:0,position:'relative'}}>
         {isMobile&&drawerOpen&&<div data-print="hide" onClick={closeDrawer} aria-hidden="true" style={{position:'absolute',inset:0,zIndex:20,background:'rgba(15,26,48,0.5)'}}/>}
-        {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
-        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();return to==='op'?addNewOpportunity():nav(to)}} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {isDemo&&<Sidebar step={step} done={done} onNav={()=>{}} coachActive={false} isDemo={true} prog={prog} mobile={isMobile} drawerOpen={drawerOpen}/>}
+        {!isDemo&&<Sidebar step={step} done={done} onNav={(to)=>{closeDrawer();if(to==='op')return addNewOpportunity();if(to==='myCoach')return openMyCoachPanel();return nav(to)}} coachActive={conciergeEmbedded?coachPresence==='open':(coachOpen&&coachMaximized)} prog={prog} selectedLane={selectedLane} chosen={chosen} openSupportReq={supportOpenReq} signedIn={!!signedInUser} userId={signedInUser?.id||null} hasPipeline={hasPipeline} hasNextStep={hasNextStep} pipelineOverdue={pipelineOverdueCount} brandExists={!!outputs.p3} isIndependent={isIndependent} mobile={isMobile} drawerOpen={drawerOpen}/>}
         <div ref={contentColumnRef} data-print="content" style={{flex:1,minWidth:0,...(isMobile?null:S.pageMax),padding:isMobile?'22px 16px 24px':'40px 56px 28px',overflowY:'auto'}}>
           {isDemo&&step!=='welcome'&&demoGuide?.desc&&<div style={{...S.card,marginBottom:24,background:'#FAFBFC',padding:'32px 38px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
@@ -19161,14 +19571,9 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
             <p style={{fontSize:18,color:'#2D3748',lineHeight:1.75,margin:0}}>{demoGuide.desc}</p>
           </div>}
           {isDemo&&step!=='welcome'?<div className="demo-content">{rStep()}</div>:rStep()}
-          {/* Footer sits on ONE horizontal row: guide button, its one-line
-              explainer, then Privacy/Terms. flexWrap lets it fall to a second
-              row on narrow columns rather than stacking three deep. The
-              explainer is desktop-only — on mobile the row is button +
-              Privacy/Terms, which fits without wrapping. */}
+          {/* Footer sits on ONE horizontal row: Privacy/Terms, centered.
+              flexWrap lets it fall to a second row on narrow columns. */}
           <footer data-print="hide" style={{marginTop:isMobile?16:24,padding:isMobile?'10px 12px':'12px 24px',borderTop:`1px solid ${C.border}`,background:'#FAFBFC',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:isMobile?'8px 14px':'8px 20px'}}>
-            <a href="/reimagine-user-guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',background:'#FFFFFF',border:`1px solid ${C.gold}`,borderRadius:8,color:C.gold,fontWeight:600,fontSize:17,textDecoration:'none'}}>Read the full User Guide (PDF)</a>
-            {!isMobile&&<span style={{fontSize:15,color:'#718096'}}>Everything Reimagine does, explained in plain English.</span>}
             <span style={{display:'inline-flex',alignItems:'center',fontSize:15,color:'#718096'}}>
               <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{color:'#718096',textDecoration:'underline'}}>Privacy</a>
               <span style={{margin:'0 8px'}}>·</span>
@@ -19233,7 +19638,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           padding:coachPresence==='minimized'?0:'40px 56px 28px 24px',
           transition:'width 0.25s ease, min-width 0.25s ease, padding 0.25s ease',
         }}>
-          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
+          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
         </div>}
       </div>
     </div>
@@ -19246,7 +19651,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         concierge embedded panel above (2026-09-07) is the same exclusion for
         the same reason -- suppressed here too, or the floating bubble would
         mount right alongside it, showing the same conversation twice. */}
-    {signedInUser&&step!=='myCoach'&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
+    {signedInUser&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {offerDisclaimerGate&&<OfferDisclaimerGate onAccepted={()=>{setSignedInUser(u=>u?{...u,offer_disclaimer_version:OFFER_DISCLAIMER_VERSION,offer_disclaimer_accepted_at:new Date().toISOString()}:u);const _pending=offerDisclaimerGate;setOfferDisclaimerGate(null);generateOpOfferNegotiation(_pending.correctionText,_pending.overrideOffer,_pending.overrideValueCase,true)}} onCancel={()=>setOfferDisclaimerGate(null)}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -19339,5 +19744,5 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
       )
     })()}
     <CookieBanner/>
-  </>
+  </CorrectionActionsContext.Provider>
 }

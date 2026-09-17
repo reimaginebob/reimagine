@@ -10,6 +10,8 @@ Career Paths opens on a screen headed **Three directions to consider.** You pick
 
 **Industry Insider.** Your industry expertise, in more places than you might think. Employers consistently prefer candidates who already understand their industry, so the wider set of organizations around your current role holds more options than you may realize: clients, vendors, consultants, regulators, adjacent players. Same insider knowledge, broader spectrum of seats.
 
+Choosing Industry Insider opens its own way of exploring rather than a generated role list: pick a category of organization first, see the roles that come up inside it, then see specific companies for whichever role catches your eye. Familiar Ground and Work That Matters both work the way described below, a focused set of roles you open straight into a playbook.
+
 **Work That Matters.** A real pivot toward meaning. Built on the intersection of what you love, what you are good at, what the world needs, and what you can be paid for. The biggest move of the three, and the one that most often stretches beyond your current title.
 
 A note on the screen adds that Familiar Ground is the lowest-risk place to start if you are unsure: your track record speaks immediately, so you can move through those roles quickly and get a real sense of your market before choosing toward something bigger.

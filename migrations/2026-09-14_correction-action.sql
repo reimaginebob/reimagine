@@ -1,0 +1,25 @@
+-- Correction action (launch capture foundation, 2026-09-14,
+-- Output/handoff/2026-09-14_launch-capture-foundation.md, PR 4).
+--
+-- What the person wanted to happen when they corrected a section, in their
+-- own terms, from the optional "What should happen?" choice in the "Does this
+-- feel right?" box (correction_actions pilot):
+--   fact     Fix a fact
+--   add      Add something
+--   wording  Change how it reads
+--   omit     Leave this out of what I show employers
+-- NULL when they skipped the choice or were not shown it.
+--
+-- Why actions and not categories: people cannot reliably say whether a claim
+-- about them is a wrong fact or a wrong inference ("that's just not true"
+-- covers both), but they do know what they want done about it. Today
+-- correctionsBlock (src/App.jsx) sorts every correction on a negation regex,
+-- which files a disclosure preference ("I wouldn't use that in an interview")
+-- and a tone request ("less formal, 75 words") as ground-truth facts about
+-- the person. This column is the capture that makes routing on the person's
+-- intent possible later. Nothing reads it for routing yet.
+--
+-- Written by api/profile/save.js from profile.corrections[].action; unknown
+-- values are dropped there. Forward-only, idempotent.
+
+ALTER TABLE corrections ADD COLUMN IF NOT EXISTS action text;

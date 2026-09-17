@@ -1,6 +1,7 @@
 import { sql } from '../_lib/db.js'
 import { requireAuth } from '../_lib/session.js'
 import { stripNul } from '../_lib/strip-nul.js'
+import { recordSupportEvent } from '../_lib/support-events.js'
 
 // Validates the client's claimed profile_updated_at (finding #2.5). Absent
 // or unparsable is deliberately treated the same as "no precondition" --
@@ -11,10 +12,32 @@ export function parseIncomingUpdatedAt(raw) {
   return typeof raw === 'string' && raw && !Number.isNaN(Date.parse(raw)) ? raw : null
 }
 
+// The three ways a save can fail on the SERVER, recorded per account so "my
+// work stopped saving" is answerable without a console search (2026-09-08
+// observability brief). Byte counts and status codes only -- the profile
+// itself never goes near this row. The two failures the server never sees
+// (the browser being offline, and localStorage being full) are posted by the
+// client to api/support/client-event.js instead, so the trail covers both
+// halves without either side double-counting the other's.
+async function recordSaveFailure(req, errorClass, httpStatus, detail, startedAt) {
+  const buildSha = typeof req.headers['x-reimagine-build'] === 'string' && req.headers['x-reimagine-build'].trim()
+    ? req.headers['x-reimagine-build'].trim()
+    : null
+  await recordSupportEvent(req.user && req.user.id, 'save_failed', {
+    error_class: errorClass,
+    http_status: httpStatus,
+    duration_ms: Date.now() - startedAt,
+    build_sha: buildSha,
+    user_agent: req.headers['user-agent'],
+    detail,
+  })
+}
+
 async function handler(req, res) {
   if (req.method !== 'PUT' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+  const startedAt = Date.now()
   const rawBody = req.body
   if (!rawBody || typeof rawBody !== 'object') {
     return res.status(400).json({ error: 'Invalid profile' })
@@ -53,6 +76,7 @@ async function handler(req, res) {
       bodyBytes: serialized.length,
       ceiling: MAX_PROFILE_BYTES,
     })
+    await recordSaveFailure(req, 'too_large', 413, `${serialized.length} bytes over the ${MAX_PROFILE_BYTES} ceiling`, startedAt)
     return res.status(413).json({ error: 'Profile too large', bytes: serialized.length, ceiling: MAX_PROFILE_BYTES })
   }
 
@@ -95,11 +119,64 @@ async function handler(req, res) {
       bodyBytes: serialized.length,
       message: err?.message || String(err),
     })
+    // pgCode, not err.message: the driver's message can quote the offending
+    // value back, and the offending value here is the user's own profile.
+    await recordSaveFailure(req, 'server', 500, `postgres ${(err && err.code) || 'error'}`, startedAt)
     return res.status(500).json({ error: 'Save failed' })
   }
 
   if (rows.length === 0) {
+    await recordSaveFailure(req, 'stale', 409, 'staleness precondition rejected the save', startedAt)
     return res.status(409).json({ error: 'stale', message: 'Newer changes already exist on the server' })
+  }
+
+  // Corrections replaced the "Reimagine Corrections Log" Google Sheet (dead
+  // since 2026-08-20 -- an Apps Script deployment drifted from the URL baked
+  // into the client, silently, and the fire-and-forget client POST had no way
+  // to notice). profile.corrections already lands here on every accepted
+  // autosave, so capture becomes a byproduct of this already-proven path
+  // instead of a second, independently-fragile one: upsert every entry
+  // present, id is the client-generated natural key, ON CONFLICT DO NOTHING
+  // makes re-sends of the same array a no-op. Best-effort -- a failure here
+  // must never fail the profile save the user is waiting on.
+  //
+  // original_inference (2026-09-14) is NOT carried in the blob -- the section
+  // text is too large to ride every autosave. The client posts it separately
+  // to api/correction-context.js; if that landed first, the subselect below
+  // picks it up here, and if it lands second, that endpoint fills the column.
+  // action (2026-09-14, correction_actions pilot): the person's own answer to
+  // "What should happen?", one of four codes, or NULL when they skipped it or
+  // the choice was not shown. Anything else a client sends is dropped.
+  const CORRECTION_ACTION_CODES = ['fact', 'add', 'wording', 'omit']
+  if (Array.isArray(profile.corrections) && profile.corrections.length) {
+    const userName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ').trim() || null
+    try {
+      for (const c of profile.corrections) {
+        if (!c || !c.id) continue
+        await sql`
+          INSERT INTO corrections (
+            id, user_id, user_email, user_name, step, step_display_name,
+            section_output_length, correction_text, app_version, browser, created_at,
+            personal_brand_relevant, personal_brand_confirmed, conflict_phrase,
+            original_inference, action
+          ) VALUES (
+            ${c.id}, ${req.user.id}, ${req.user.email || null}, ${userName},
+            ${c.step || null}, ${c.stepDisplayName || null}, ${c.sectionOutputLength ?? null},
+            ${c.text || c.correctionText || ''}, ${c.appVersion || null}, ${c.browser || null},
+            ${c.created_at || null},
+            ${c.personalBrandRelevant === true}, ${c.personalBrandConfirmed === true}, ${c.conflictPhrase || null},
+            (SELECT original_text FROM correction_context WHERE correction_id = ${c.id} AND user_id = ${req.user.id}),
+            ${CORRECTION_ACTION_CODES.includes(c.action) ? c.action : null}
+          )
+          ON CONFLICT (id) DO NOTHING
+        `
+      }
+    } catch (err) {
+      console.error('profile/save corrections-capture failed (non-blocking)', {
+        userId: req.user?.id,
+        message: err?.message || String(err),
+      })
+    }
   }
 
   return res.status(200).json({ ok: true, updatedAt: rows[0].profile_updated_at })

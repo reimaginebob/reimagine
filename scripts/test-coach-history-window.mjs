@@ -15,7 +15,11 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
 
-check(coach.includes('...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: m.content }))'),
+// Content is wrapped in clipOlderHistoryMessage (2026-09-17 follow-up to the
+// 300,000-byte paste cap) rather than passed through bare -- checked here as
+// a shape, not a literal, so this test guards the window size without
+// re-breaking every time that wrapper's own name changes.
+check(/conversationalHistory\.slice\(-50\)\.map\(m => \(\{ role: m\.role, content: /.test(coach),
   `${COACH}: history window is not raised to 50 messages`)
 check(!coach.includes('history.slice(-10)'),
   `${COACH}: the old 10-message cap is still present somewhere`)

@@ -22,10 +22,14 @@ const flags = fs.readFileSync(FLAGS, 'utf8')
 
 check(flags.includes("export const ORIENTATION_CAPTURE_FLAG = 'orientation_capture'"),
   `${FLAGS}: ORIENTATION_CAPTURE_FLAG is missing`)
-check(/export function hasOrientationCapture\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasOrientationCapture does not auto-grant internal accounts like its sibling pilot flags`)
-check(flags.includes("[ORIENTATION_CAPTURE_FLAG]: { label:"),
-  `${FLAGS}: ORIENTATION_CAPTURE_FLAG has no GRANTABLE_FLAGS entry, so it cannot be granted to a named outside tester from the admin dashboard`)
+// GA 2026-09-13 (Coach as Concierge): orientation_capture is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasOrientationCapture\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasOrientationCapture no longer has GA's plain signed-in body`)
+check(!flags.includes("[ORIENTATION_CAPTURE_FLAG]: { label:"),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired orientation_capture entry`)
 
 const COACH = 'api/coach.js'
 const coach = fs.readFileSync(COACH, 'utf8')
@@ -63,7 +67,7 @@ check(coach.includes("const reputationCaptureNote = orientationCaptureOn ? REPUT
   `${COACH}: reputationCaptureNote is not gated on orientationCaptureOn`)
 check(coach.includes("const skillsCaptureNote = orientationCaptureOn ? SKILLS_CAPTURE_NOTE : ''"),
   `${COACH}: skillsCaptureNote is not gated on orientationCaptureOn`)
-check(coach.includes('${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}${ORIENTATION_LISTENING_NOTE}`'),
+check(coach.includes('${VALUES_CAPTURE_NOTE}${ASSESSMENT_CAPTURE_NOTE}${reputationCaptureNote}${skillsCaptureNote}${prioritiesCaptureNote}${lifeStoryCaptureNote}`'),
   `${COACH}: reputationCaptureNote/skillsCaptureNote are not appended in the empty-profile template`)
 check(/\$\{VALUES_CAPTURE_NOTE\}\$\{ASSESSMENT_CAPTURE_NOTE\}\$\{reputationCaptureNote\}\$\{skillsCaptureNote\}\$\{prioritiesCaptureNote\}\$\{lifeStoryCaptureNote\}\$\{searchIntakeNoteThisTurn\}/.test(coach),
   `${COACH}: reputationCaptureNote/skillsCaptureNote are not appended in the main profile-slice template`)
@@ -100,14 +104,15 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(/const hasOrientationCapture=/.test(app),
   `${APP}: hasOrientationCapture client-side flag mirror is missing`)
-// Three mounts as of 2026-09-07 (myCoach embedded, the floating bubble, and
-// the concierge orientation-flow embedded panel).
+// Two mounts as of 2026-09-13 (One Coach consolidation retired the
+// dedicated myCoach embedded mount): the floating bubble and the concierge
+// orientation-flow embedded panel.
 const reputationMountHits = (app.match(/reputationCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(reputationMountHits === 3,
-  `${APP}: expected reputationCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${reputationMountHits}`)
+check(reputationMountHits === 2,
+  `${APP}: expected reputationCaptureActive={!isDemo&&hasOrientationCapture} at both remaining <Chat> mount sites, found ${reputationMountHits}`)
 const skillsMountHits = (app.match(/skillsCaptureActive=\{!isDemo&&hasOrientationCapture\}/g) || []).length
-check(skillsMountHits === 3,
-  `${APP}: expected skillsCaptureActive={!isDemo&&hasOrientationCapture} at all three <Chat> mount sites, found ${skillsMountHits}`)
+check(skillsMountHits === 2,
+  `${APP}: expected skillsCaptureActive={!isDemo&&hasOrientationCapture} at both remaining <Chat> mount sites, found ${skillsMountHits}`)
 
 const repBranchIdx = app.indexOf("checkinKey==='reputation-capture'")
 check(repBranchIdx !== -1, `${APP}: the checkinKey==='reputation-capture' branch is missing from handleEmploymentQuickReply`)

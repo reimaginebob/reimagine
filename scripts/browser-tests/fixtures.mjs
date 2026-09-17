@@ -145,7 +145,7 @@ export const DOOR2_RECORD = {
 // records ride in savedPlaybooks either way -- the app just uses whichever
 // one chosen/selectedLane/step point it at, matching the real app's own
 // "many saved directions, one open at a time" shape.
-export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPlaybooksOverride, chosenOverride, widenSearchState } = {}) {
+export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPlaybooksOverride, chosenOverride, widenSearchState, outputsOverride } = {}) {
   const forOp = step === 'op' || step === 'pipeline'
   return {
     updatedAt: '2026-09-01T12:00:00.000Z',
@@ -161,7 +161,15 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPl
       // a slot is explicitly restored. Both carry the same content here so
       // neither shape is a lie, but this top-level one is what the fixture
       // actually needs to get right for anything to render as built.
-      outputs: forOp ? {} : DOOR1_RECORD.outputs,
+      //
+      // outputsOverride (2026-09-16, pipeline-aware widen-the-search
+      // rotation): merges on top of DOOR1_RECORD.outputs rather than
+      // replacing it wholesale, same reasoning as chosenOverride/
+      // savedPlaybooksOverride -- a caller building the Go-to-Market
+      // candidate (Bridge Story built, p7 unbuilt) needs to flip one key
+      // without also having to restate every other section's fixture
+      // content.
+      outputs: forOp ? {} : (outputsOverride ? { ...DOOR1_RECORD.outputs, ...outputsOverride } : DOOR1_RECORD.outputs),
       done: forOp ? [] : DOOR1_RECORD.done,
       profile: {},
       // Live-side brief PR 2 (2026-09-10): savedPlaybooksOverride lets a
@@ -184,7 +192,7 @@ export function buildProfileLoadResponse({ step = 'focus', coachMoments, savedPl
   }
 }
 
-export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false } = {}) {
+export function buildMeResponse({ flagged = false, employmentStatus = 'employed', onboardingConcierge = false, nextStep = false, chatClearedAt = null } = {}) {
   return {
     user: {
       // Deliberately NOT an @career.club address: that domain auto-grants
@@ -211,6 +219,13 @@ export function buildMeResponse({ flagged = false, employmentStatus = 'employed'
       employment_status: employmentStatus,
       search_going_well: '',
       search_focus: '',
+      // Cross-device Clear (2026-09-16 follow-up): chatClearedAt stands in
+      // for users.chat_cleared_at (api/_lib/session.js's SELECT), which a
+      // caller sets to simulate "this account was cleared on another
+      // device" -- App.jsx compares it against reimagine_chat_cleared_at_
+      // applied in localStorage and resets a stale local transcript when
+      // it is newer. null (the default) means no clear has happened.
+      chat_cleared_at: chatClearedAt,
       // 'coach_presence' (COACH_PRESENCE_FLAG, api/_lib/feature-flags.js)
       // is what App.jsx's hasCoachPresence/conciergeEmbedded read -- see the
       // comment above. 'onboarding_concierge' (ONBOARDING_CONCIERGE_FLAG) is

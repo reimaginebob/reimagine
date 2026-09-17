@@ -71,10 +71,14 @@ const FLAGS = 'api/_lib/feature-flags.js'
 const flags = fs.readFileSync(FLAGS, 'utf8')
 check(flags.includes("export const CLOSE_REASON_CAPTURE_FLAG = 'close_reason_capture'"),
   `${FLAGS}: CLOSE_REASON_CAPTURE_FLAG is missing`)
-check(/export function hasCloseReasonCapture\(user\) \{\s*if \(isInternalAccount\(user\)\) return true/.test(flags),
-  `${FLAGS}: hasCloseReasonCapture does not auto-grant internal accounts like its sibling pilot flags`)
-check(flags.includes('[CLOSE_REASON_CAPTURE_FLAG]: { label:'),
-  `${FLAGS}: CLOSE_REASON_CAPTURE_FLAG has no GRANTABLE_FLAGS entry`)
+// GA 2026-09-13 (Coach as Concierge): close_reason_capture is one of the ten
+// flags that moved to on for every signed-in account -- isInternalAccount/
+// feature_flags are no longer consulted, and GRANTABLE_FLAGS no longer
+// lists it since there is nothing left to grant.
+check(/export function hasCloseReasonCapture\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasCloseReasonCapture no longer has GA's plain signed-in body`)
+check(!flags.includes('[CLOSE_REASON_CAPTURE_FLAG]: { label:'),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired close_reason_capture entry`)
 
 // --- API endpoint ---
 const ENDPOINT = 'api/pursuit-close-reason.js'
@@ -163,11 +167,13 @@ const app = fs.readFileSync(APP, 'utf8')
 
 check(/const hasCloseReasonCapture=/.test(app),
   `${APP}: hasCloseReasonCapture client-side flag mirror is missing`)
-// 3, not 2, since Phase 1b (2026-09-08) gave the concierge embedded mount
-// the same capture props the other two mounts already carried.
+// 2, not 3: Phase 1b (2026-09-08) gave the concierge embedded mount the
+// same capture props the other mounts already carried, and One Coach
+// (2026-09-13) then retired the dedicated myCoach embedded mount, leaving
+// the floating bubble and the concierge-embedded panel.
 const mountHits = (app.match(/closeReasonCaptureActive=\{hasPipeline&&!isIndependent&&hasCloseReasonCapture\}/g) || []).length
-check(mountHits === 3,
-  `${APP}: expected closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} at all 3 <Chat> mount sites, found ${mountHits}`)
+check(mountHits === 2,
+  `${APP}: expected closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} at both remaining <Chat> mount sites, found ${mountHits}`)
 
 // One-time disclosure: state+ref pair, both hydration paths, autosave blob
 // + dep array, and a distinct message from Notes' own disclosure.

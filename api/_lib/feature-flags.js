@@ -66,10 +66,12 @@ export function isInternalAccount(user) {
 // class: it decides who may mint a long-lived bearer token and let an outside
 // assistant write to a pipeline unattended. Issuing a credential should stay an
 // explicit, per-account act with a row behind it, staff or not.
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasPipelineCapture(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(PIPELINE_CAPTURE_FLAG)
+  return !!user
 }
 
 // PILOT -- Your Next Step, 2026-09-02. The staircase, the arrow and the one
@@ -78,10 +80,12 @@ export function hasPipelineCapture(user) {
 // front of it himself.
 export const NEXT_STEP_FLAG = 'next_step'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasNextStep(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(NEXT_STEP_FLAG)
+  return !!user
 }
 
 // PILOT -- Coach-as-Concierge, onboarding narration (2026-09-04). Coach talks a
@@ -95,23 +99,20 @@ export function hasNextStep(user) {
 // other.
 export const ONBOARDING_CONCIERGE_FLAG = 'onboarding_concierge'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasOnboardingConcierge(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(ONBOARDING_CONCIERGE_FLAG)
+  return !!user
 }
 
-// PILOT -- Pipeline board, 2026-09-05. The equal-width, stage-grouped visual
-// summary above the existing editable My Pipeline list. Gated because it is a
-// new rendering of live opportunity data on a screen every signed-in account
-// already uses, which is not a change to make to 145 accounts before Bob has
-// looked at it himself.
-export const PIPELINE_BOARD_FLAG = 'pipeline_board'
-
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasPipelineBoard(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(PIPELINE_BOARD_FLAG)
+  return !!user
 }
 
 // PILOT -- Save-to-notes agency, 2026-09-05. Coach mentions once, early, that
@@ -121,10 +122,12 @@ export function hasPipelineBoard(user) {
 // other pilots on this surface so it can be toggled independently.
 export const COACH_NOTE_AGENCY_FLAG = 'coach_note_agency'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasCoachNoteAgency(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(COACH_NOTE_AGENCY_FLAG)
+  return !!user
 }
 
 // PILOT -- Section rework from chat, 2026-09-05. Generalizes the correction
@@ -147,10 +150,12 @@ export function hasCoachNoteAgency(user) {
 // auto-grants either way).
 export const SECTION_REWORK_FLAG = 'section_rework'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasSectionRework(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(SECTION_REWORK_FLAG)
+  return !!user
 }
 
 // PILOT -- Milestone prompts, 2026-09-06. Phase 3 of the Opportunity Playbook
@@ -164,10 +169,12 @@ export function hasSectionRework(user) {
 // rather than inheriting an existing flag's staff-only pass/fail.
 export const MILESTONE_PROMPT_FLAG = 'milestone_prompt'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasMilestonePrompt(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(MILESTONE_PROMPT_FLAG)
+  return !!user
 }
 
 // PILOT -- Orientation field capture, 2026-09-06. Extends the same "settle it
@@ -181,10 +188,12 @@ export function hasMilestonePrompt(user) {
 // (an extra one-tap offer in a chat that already offers several).
 export const ORIENTATION_CAPTURE_FLAG = 'orientation_capture'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasOrientationCapture(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(ORIENTATION_CAPTURE_FLAG)
+  return !!user
 }
 
 // PILOT -- Close-reason capture, 2026-09-07. Coach may ask, once per
@@ -199,10 +208,12 @@ export function hasOrientationCapture(user) {
 // it, independent of whether pipeline capture generally is already open.
 export const CLOSE_REASON_CAPTURE_FLAG = 'close_reason_capture'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasCloseReasonCapture(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(CLOSE_REASON_CAPTURE_FLAG)
+  return !!user
 }
 
 // PILOT -- Coach situational grounding, 2026-09-08. Phase 1a of the
@@ -215,10 +226,12 @@ export function hasCloseReasonCapture(user) {
 // the old one, so there is nothing to revert if it needs to pause.
 export const COACH_SITUATION_FLAG = 'coach_situation'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasCoachSituation(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(COACH_SITUATION_FLAG)
+  return !!user
 }
 
 // PILOT -- Coach presence, 2026-09-08. Phase 1b of the Coach-as-Concierge
@@ -231,24 +244,43 @@ export function hasCoachSituation(user) {
 // reaches an outside account.
 export const COACH_PRESENCE_FLAG = 'coach_presence'
 
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasCoachPresence(user) {
-  if (isInternalAccount(user)) return true
-  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(COACH_PRESENCE_FLAG)
+  return !!user
 }
 
-// PILOT -- Industry Insider ecosystem view, 2026-09-10. Category -> Role ->
-// Company exploration that replaces p4's role-suggestion step for the
-// Industry Insider lane only (Familiar Ground and Work That Matters keep p4
-// exactly as today). Gated because it replaces an existing lane's entire
-// suggestion surface for every account that reaches it, which is not a change
-// to make to 145 accounts before Bob has QC'd it himself.
-export const INDUSTRY_ECOSYSTEM_VIEW_FLAG = 'industry_ecosystem_view'
-
+// GA 2026-09-13. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
 export function hasIndustryEcosystemView(user) {
-  if (isInternalAccount(user)) return true
+  return !!user
+}
+
+// PILOT -- Correction actions, 2026-09-14 (launch capture foundation, PR 4).
+// Gates the optional "What should happen?" choice in the "Does this feel
+// right?" box (Fix a fact / Add something / Change how it reads / Leave this
+// out of what I show employers), and the Coach knowledge that describes it.
+// Capture only: the choice is stored on corrections.action and changes nothing
+// about how corrections reach a prompt. The client mirror lives in src/App.jsx.
+export const CORRECTION_ACTIONS_FLAG = 'correction_actions'
+
+export function hasCorrectionActions(user) {
   const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
-  return flags.includes(INDUSTRY_ECOSYSTEM_VIEW_FLAG)
+  return flags.includes(CORRECTION_ACTIONS_FLAG) || isInternalAccount(user)
+}
+
+// GA 2026-09-17. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
+export const COACH_FILE_UPLOAD_FLAG = 'coach_file_upload'
+
+export function hasCoachFileUpload(user) {
+  return !!user
 }
 
 // The flags the admin dashboard may grant and revoke by email. A flag that is
@@ -261,15 +293,5 @@ export function hasIndustryEcosystemView(user) {
 // lives only in the database is the failure mode this file exists to prevent.
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
-  [PIPELINE_CAPTURE_FLAG]: { label: 'Coach next-step capture' },
-  [NEXT_STEP_FLAG]: { label: 'Your Next Step' },
-  [PIPELINE_BOARD_FLAG]: { label: 'Pipeline board' },
-  [COACH_NOTE_AGENCY_FLAG]: { label: 'Coach save-to-notes agency' },
-  [SECTION_REWORK_FLAG]: { label: 'Coach section rework from chat' },
-  [MILESTONE_PROMPT_FLAG]: { label: 'Coach milestone prompts' },
-  [ORIENTATION_CAPTURE_FLAG]: { label: 'Coach orientation field capture (Reputation, Skills)' },
-  [CLOSE_REASON_CAPTURE_FLAG]: { label: 'Coach close-reason capture' },
-  [COACH_SITUATION_FLAG]: { label: 'Coach situational grounding' },
-  [COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },
-  [INDUSTRY_ECOSYSTEM_VIEW_FLAG]: { label: 'Industry Insider ecosystem view' },
+  [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
 }

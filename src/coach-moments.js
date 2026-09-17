@@ -1,3 +1,7 @@
+// Plain `.js`, no JSX, so this stays importable from api/coach.js across
+// the api/* <-> src/* boundary (CLAUDE.md section 8; PR #76 / 940557b).
+import { WIDEN_ORDER_DEFAULT } from './widen-search.js'
+
 // Coach-as-Concierge Phase 2a (Output/handoff/2026-09-08_coach-concierge-
 // phase-2a-moments-core.md): the general catalog + evaluator the design
 // (Section 5) asks for, sized to what that phase shipped -- one entry, no
@@ -104,17 +108,12 @@ const widenSearchOnTap = (value, ctx) => {
 // thing deciding whether a widen-the-search row is eligible again.
 const widenSearchDedupeValue = () => new Date().toISOString()
 
-// Canonical rotation order (brief §2.6's own listed order). App.jsx's
-// pickNextWidenSearchRow call and lastOfferedKey derivation both walk
-// this same array, so a person who snoozed Recruiters hears about
-// LinkedIn contacts next, per the brief's own example.
-export const WIDEN_SEARCH_ROW_KEYS = [
-  'widen-recruiters',
-  'widen-linkedin-contacts',
-  'widen-networking-groups',
-  'widen-career-club-corner',
-  'widen-income-now',
-]
+// Canonical set + healthy-pipeline order (Bob, 2026-09-16: direct company
+// contact first, the heart of Making Your Own Weather). App.jsx's
+// pickWidenSearchRowForPipeline call and lastOfferedKey derivation both
+// walk this same array for a healthy pipeline; a thin one reorders via
+// WIDEN_ORDER_THIN (src/widen-search.js) instead, over the same set.
+export const WIDEN_SEARCH_ROW_KEYS = WIDEN_ORDER_DEFAULT
 
 export const MOMENT_CATALOG = [
   {
@@ -151,11 +150,9 @@ export const MOMENT_CATALOG = [
     // orientationCheckFields catch-up effect already gates on for the
     // identical reason (see its own comment there).
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.hydrationStable && ctx.done.length === 0 && !(ctx.outputs && ctx.outputs.p3),
-    // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3. One
-    // sentence added 2026-09-11 (offer-disclaimer-caveats brief, Tier 4b),
-    // which the brief calls out as a change to already-approved copy that
-    // needs Bob's sign-off again -- flag in the PR description, don't
-    // assume it here.
+    // Copy APPROVED by Bob 2026-09-10 (fifth pass) -- see brief 2.3.
+    // One sentence added 2026-09-11 (offer-disclaimer-caveats brief, Tier
+    // 4b); Bob re-approved the full message 2026-09-16.
     message: 'I\'m your coach, and I\'m with you for the whole search. We start with the groundwork: your resume, what people count on you for, what matters to you in the next job. I\'ll be right here while you put that in, and if you\'d rather tell me something than type it into a box, say it here and I\'ll put it where it belongs. Ask me anything along the way, about your search or about how any part of Reimagine works. One thing to know up front: I\'m an AI, so treat what I say as a starting point you check against your own judgment, and bring anything legal, financial, or medical to a professional. Let\'s start with where you are right now.',
     quickReplies: [{ label: 'Let\'s go', value: 'coach-intro-go' }],
     onTap: (value, ctx) => {
@@ -430,16 +427,15 @@ export const MOMENT_CATALOG = [
   // is Coach following up on its own initiative, not reacting live to
   // something the person just did. Not generated -- a fixed invitation, no
   // judged read of specific content, so no model call. No specific
-  // question is singled out as "weakest": the copy borrows the op-side
-  // precedent verbatim (opNextMoveTarget/opInterviewCloseTarget's own
-  // 'practice' pick, App.jsx), which already established that Coach's own
-  // judgment picks where to start once the conversation opens, not a
-  // client-side heuristic guessing from JSON it cannot actually judge.
-  // Copy reused verbatim from already-shipped op-side text, not new copy
-  // needing a fresh approval pass. Per CLAUDE.md's page-button rule, the
-  // page's own per-question Practice This Answer door (PracticeAnswerBox,
-  // App.jsx) stays in place until this row has fired on Bob's account and
-  // passed his read.
+  // question is singled out here as "weakest" and the fixed message does
+  // not name one either (corrected 2026-09-15, Bob): Coach's own judgment
+  // picks a real, specific to_strengthen note once the conversation opens,
+  // not a client-side heuristic guessing from JSON it cannot actually judge
+  // -- the seed below asks for it explicitly, prioritizing Thought Process
+  // and Result. Per CLAUDE.md's page-button rule, the page's own
+  // per-question Practice This Answer door (PracticeAnswerBox, App.jsx)
+  // stays in place until this row has fired on Bob's account and passed
+  // his read.
   {
     key: 'practice-p11-weakest',
     family: 'check',
@@ -450,10 +446,19 @@ export const MOMENT_CATALOG = [
     promptCode: 'practice_p11_weakest',
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.practiceP11Target,
     dedupeKey: (ctx) => `${ctx.selectedLane}::${ctx.chosen}`,
-    message: 'Interview Prep is built. Want to practice the answer that\'s weakest?',
+    message: 'Interview Prep is built — want to practice one of your answers?',
     quickReplies: [{ label: 'Practice it', value: 'practice-p11-go' }],
+    // Seed asks Coach to reach for a real to_strengthen note rather than the
+    // fixed message naming an abstract "weakest" answer (no client-side
+    // ranking, per the row's own design above) -- prioritizing Thought
+    // Process and Result, per Bob, 2026-09-15: those two carry the most
+    // weight in how an answer actually lands. Coach already carries the
+    // built p11 content, to_strengthen fields included, for an
+    // interview-intent turn on this record (buildPlaybookExpansion /
+    // detectIntent, api/coach.js), so this is a real, specific answer, not
+    // an instruction the model has to invent content to satisfy.
     onTap: (value, ctx) => {
-      if (value === 'practice-p11-go') ctx.openCoachWith(`I want to practice my interview answers for ${ctx.chosen || 'this role'}.`, false, 'p11')
+      if (value === 'practice-p11-go') ctx.openCoachWith(`I want to practice my interview answers for ${ctx.chosen || 'this role'}. Is there one that could use some work, especially the thinking behind it or the result?`, false, 'p11')
       return true
     },
   },
@@ -1038,18 +1043,20 @@ export const MOMENT_CATALOG = [
       return true
     },
   },
-  // Widen-the-search set (Phase 4 Part 2, brief §2.6). Five offers --
-  // Recruiters for This Path, Load your LinkedIn contacts, Networking
-  // Groups, Career Club Corner, Income Now -- that widen a person's
-  // surface area of opportunity, and that Bob's own usage data (14 days to
-  // 2026-09-10) shows nobody finds on their own. Unlike every row above,
-  // eligibility is NOT a condition on profile state: per the brief, "the
-  // evaluator's job for this set is the pacing and the snooze dates only."
-  // ctx.widenSearchTarget is computed ONCE in the evaluator (src/App.jsx)
-  // via pickNextWidenSearchRow (src/widen-search.js), which already
-  // encodes the snooze/retirement/pacing/rotation machinery (PR1) -- each
-  // row below just checks whether it is the one picked, so at most one of
-  // the five is ever eligible in a given pass.
+  // Widen-the-search set (Phase 4 Part 2, brief §2.6; pipeline-aware
+  // rotation and two new offers added 2026-09-16). Seven offers -- Go-to-
+  // Market, Recruiters for This Path, Load your LinkedIn contacts,
+  // Networking Groups, Job Search Resources, Career Club Corner, Income
+  // Now -- that widen a person's surface area of opportunity, and that
+  // Bob's own usage data (14 days to 2026-09-10) shows nobody finds on
+  // their own. Unlike every row above, eligibility is NOT a condition on
+  // profile state: per the brief, "the evaluator's job for this set is the
+  // pacing and the snooze dates only." ctx.widenSearchTarget is computed
+  // ONCE in the evaluator (src/App.jsx) via pickWidenSearchRowForPipeline
+  // (src/widen-search.js), which already encodes the snooze/retirement/
+  // pacing/rotation machinery (PR1) plus the pipeline-aware ordering
+  // (2026-09-16) -- each row below just checks whether it is the one
+  // picked, so at most one of the seven is ever eligible in a given pass.
   //
   // dismissible:false opts out of the shared Remind-me-later/Minimize
   // pair (same mechanism Row A/B use, fireStaticEntryMessage): the brief's
@@ -1064,6 +1071,26 @@ export const MOMENT_CATALOG = [
   // "remind later" / "not for me"), not the older shown/accepted/declined
   // triple every row above still uses.
   {
+    key: 'widen-go-to-market',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_go_to_market',
+    // App.jsx's candidate-key filter is what actually keeps this row off
+    // the table until the Bridge Story is built and Go-to-Market itself
+    // is not -- eligible() here only has to confirm it is the one picked.
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-go-to-market',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // the "Two new rows" section).
+    message: (ctx) => `Go-to-Market finds companies that hire for roles like ${ctx.chosen || 'this one'}, the people to contact inside them, and a first message you can send. Reaching out to companies directly is the heart of Making Your Own Weather. Want me to build it?`,
+    quickReplies: () => widenSearchQuickReplies('widen-go-to-market'),
+    onTap: widenSearchOnTap,
+  },
+  {
     key: 'widen-recruiters',
     family: 'check',
     // The main "in search" surfaces -- not tied to one Focus section the
@@ -1077,9 +1104,9 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-recruiters',
     shownOutcome: () => 'offer made',
     dedupeValue: widenSearchDedupeValue,
-    // DRAFT (Bob to read live and sign off; brief §2.6 gives the
-    // condition and the taps as approved, not this sentence).
-    message: (ctx) => `Recruiters for This Path builds a list of the recruiters who place people into roles like ${ctx.chosen || 'this one'}. Want it built?`,
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // item 1).
+    message: (ctx) => `Some recruiters specialize in placing people in roles like ${ctx.chosen || 'this one'}. I can put together a list of them for you. Want me to build it?`,
     quickReplies: () => widenSearchQuickReplies('widen-recruiters'),
     onTap: widenSearchOnTap,
   },
@@ -1094,8 +1121,9 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.widenSearchTarget === 'widen-linkedin-contacts',
     shownOutcome: () => 'offer made',
     dedupeValue: widenSearchDedupeValue,
-    // DRAFT (Bob to read live and sign off).
-    message: () => 'Loading your LinkedIn contacts lets Who You Know Here and Known Contacts find the people you already know at a company. Want to load them?',
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // item 2).
+    message: () => 'If you download your contacts from LinkedIn and load them here, I can show you who you already know at each company you\'re pursuing. Want to set that up?',
     quickReplies: () => widenSearchQuickReplies('widen-linkedin-contacts'),
     onTap: widenSearchOnTap,
   },
@@ -1110,9 +1138,27 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-networking-groups',
     shownOutcome: () => 'offer made',
     dedupeValue: widenSearchDedupeValue,
-    // DRAFT (Bob to read live and sign off).
-    message: () => 'Networking Groups builds a list of groups near you for people on this path. Want it built?',
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // item 3).
+    message: (ctx) => `I can put together a list of groups where people in roles like ${ctx.chosen || 'this one'} get together, so you're meeting people doing the work you want. Want me to build it?`,
     quickReplies: () => widenSearchQuickReplies('widen-networking-groups'),
+    onTap: widenSearchOnTap,
+  },
+  {
+    key: 'widen-job-search-resources',
+    family: 'check',
+    screen: ['focus', 'pipeline', 'op', 'twoDoors', 'mylib'],
+    significance: 'ordinary',
+    dismissible: false,
+    priority: 1,
+    promptCode: 'widen_job_search_resources',
+    eligible: (ctx) => !!ctx.hasOnboardingConcierge && ctx.widenSearchTarget === 'widen-job-search-resources',
+    shownOutcome: () => 'offer made',
+    dedupeValue: widenSearchDedupeValue,
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // the "Two new rows" section).
+    message: () => 'Job Search Resources finds free job-search groups where you live, like library programs and volunteer-run groups that meet every week. Want to see what\'s near you?',
+    quickReplies: () => widenSearchQuickReplies('widen-job-search-resources'),
     onTap: widenSearchOnTap,
   },
   {
@@ -1143,8 +1189,9 @@ export const MOMENT_CATALOG = [
     eligible: (ctx) => !!ctx.hasOnboardingConcierge && !!ctx.chosen && ctx.widenSearchTarget === 'widen-income-now',
     shownOutcome: () => 'offer made',
     dedupeValue: widenSearchDedupeValue,
-    // DRAFT (Bob to read live and sign off).
-    message: () => 'Income Now lays out ways to bring some money in while your search runs. Want it built?',
+    // APPROVED verbatim, Bob's own words (2026-09-16 draft-copy approval,
+    // item 4).
+    message: () => 'If it would help to have some income coming in while you search, Income Now lays out ways to earn that fit your background. Want me to build it?',
     quickReplies: () => widenSearchQuickReplies('widen-income-now'),
     onTap: widenSearchOnTap,
   },

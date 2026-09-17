@@ -22,6 +22,7 @@ import { getSessionUser } from './_lib/session.js'
 import { sendAccountHoldEmail, sendActivityAlertEmail } from './_lib/email.js'
 import { costFromUsage } from './_lib/usage-cost.js'
 import { classifyAnthropicError, operatorLine, operatorSubject, operatorImpactLine, systemErrorPayload, SYSTEM_ERROR_STATUS } from './_lib/anthropic-error.js'
+import { recordSupportEvent } from './_lib/support-events.js'
 import { alertOnce } from './_lib/ops-alerts.js'
 import { isAllowedOrigin } from './_lib/allowed-hosts.js'
 
@@ -133,6 +134,17 @@ async function reportUpstreamFailure(surface, status, body) {
     } catch { /* alerting must never take the request down */ }
   }
   return c
+}
+
+// The app build the browser was running when this request was made. The client
+// stamps its BUILD_SHA on every /api/claude and /api/coach call (src/App.jsx's
+// callClaude, src/components/Chat.jsx) precisely so a failure row can say which
+// bundle produced it -- "it broke for one user" and "it broke for everyone on
+// the build that shipped an hour ago" look identical without this. Absent on an
+// older cached bundle, which is itself the answer to the same question.
+function buildShaFromRequest(req) {
+  const raw = req.headers['x-reimagine-build']
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : null
 }
 
 export const config = {
@@ -809,7 +821,21 @@ export default async function handler(req, res) {
     // as an explicit error status, and it must not fall through as a success
     // with no content blocks.
     if (!response.ok || !data) {
-      await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', response.status, data)
+      const c = await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', response.status, data)
+      // generation_events stays untouched here, for the billing reason above.
+      // support_events is the OTHER ledger: it exists so a failure is
+      // answerable per account without becoming a billable generation or
+      // counting against the hourly cap. Awaited so it lands before the
+      // function can freeze; it cannot throw and cannot change this response.
+      await recordSupportEvent(sessionUser && sessionUser.id, 'generation_failed', {
+        step: reqBody.step,
+        error_class: c.kind,
+        http_status: response.status,
+        duration_ms: Date.now() - startedAt,
+        build_sha: buildShaFromRequest(req),
+        user_agent: req.headers['user-agent'],
+        detail: c.detail,
+      })
       return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
     }
     // Empty is never an answer. On Claude Sonnet 5 thinking shares max_tokens
@@ -867,6 +893,25 @@ export default async function handler(req, res) {
     if (data.stop_reason === 'max_tokens') {
       console.log(JSON.stringify({ evt: 'claude_truncated', step: reqBody.step, maxTokens: anthropicBody.max_tokens, hasText: hasText(data) }))
     }
+    // A 200 with no text in it is a failed generation from where the user sits:
+    // they asked for a Personal Brand and got a blank screen. It does not reach
+    // either failure path above (the HTTP call succeeded, and the low-effort
+    // retry above is the last recovery attempt), so without this the most
+    // confusing failure the product has -- "it just never came back" -- would
+    // be the one failure class the trail could not see. The generation IS
+    // billed, so its generation_events row still gets written below; this row
+    // is what makes the pair legible as "charged, produced nothing".
+    if (!hasText(data)) {
+      await recordSupportEvent(sessionUser && sessionUser.id, 'generation_failed', {
+        step: reqBody.step,
+        error_class: 'empty_output',
+        http_status: response.status,
+        duration_ms: Date.now() - startedAt,
+        build_sha: buildShaFromRequest(req),
+        user_agent: req.headers['user-agent'],
+        detail: `stop_reason=${data.stop_reason || 'unknown'}`,
+      })
+    }
     // Cache hit-rate telemetry: log usage (cache_creation_input_tokens /
     // cache_read_input_tokens) per surface. Serverless cannot count "first N
     // calls"; log every call (low volume at beta scale) and read manually.
@@ -878,7 +923,16 @@ export default async function handler(req, res) {
   } catch (error) {
     // Network-level throw (DNS, TLS, socket, function timeout on the fetch).
     // Same treatment: the message is for the log, not the browser.
-    await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', 0, error)
+    const c = await reportUpstreamFailure(reqBody.step ? `generation (${reqBody.step})` : 'generation', 0, error)
+    await recordSupportEvent(sessionUser && sessionUser.id, 'generation_failed', {
+      step: reqBody.step,
+      error_class: c.kind,
+      http_status: 0,
+      duration_ms: Date.now() - startedAt,
+      build_sha: buildShaFromRequest(req),
+      user_agent: req.headers['user-agent'],
+      detail: c.detail,
+    })
     return res.status(SYSTEM_ERROR_STATUS).json(systemErrorPayload())
   }
 }

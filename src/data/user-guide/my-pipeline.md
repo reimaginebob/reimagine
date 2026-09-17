@@ -8,7 +8,9 @@ Only opportunities appear here. The roles you explore from Career Paths stay und
 
 ## What is on the screen
 
-At the top, a one-line read on the whole search: how many opportunities are in play, how many need attention, how many are going quiet. "Going quiet" means an opportunity that is still open but has nothing scheduled ahead of it — no meeting, no next move. It is the thing easiest to miss and the thing most worth seeing.
+At the very top, a board lays out every opportunity still in play under its current stage — Researching, Applied, Phone Screen, Interviewing, Final Round, Offer — so you can see the shape of your search before reading anything else. Closed opportunities do not appear on it. Click any card on the board and it opens that opportunity, the same as clicking it further down the screen.
+
+Under the board, a one-line read on the whole search: how many opportunities are in play, how many need attention, how many are going quiet. "Going quiet" means an opportunity that is still open but has nothing scheduled ahead of it — no meeting, no next move. It is the thing easiest to miss and the thing most worth seeing.
 
 Under that, **Get My Coach's read on your pipeline** hands the whole picture to My Coach and asks where you are building momentum, where you are stalling, and where to put your energy now. It reads the real dates and stages, not a summary you have to write.
 
@@ -66,7 +68,7 @@ If a date is more than a year in the past or more than five years out, the card 
 
 Two ways.
 
-**Tell My Coach.** When you mention that something moved — a date shifted, an interview happened, an opportunity ended — the coach offers to save it, and one tap writes it here. The same works for interviewers: name the people you are meeting and the coach offers to add them to that opportunity's Interview Team.
+**Tell My Coach.** When you mention that something moved — a date shifted, an interview happened, an opportunity ended — the coach offers to save it, and one tap writes it here. When an opportunity ends, tell the coach how: that you accepted the offer, turned it down, were not selected, withdrew, or stopped hearing back. The offer shows the outcome it heard before you tap, and the card records it. The same works for interviewers: name the people you are meeting and the coach offers to add them to that opportunity's Interview Team.
 
 **Connect your own assistant.** If you use Claude with Gmail and Calendar connected, you can give it permission to watch for movement and update your pipeline for you. When it does, the card shows what it saw, in quotes, marked as coming from your assistant. Reimagine never reads your inbox — your assistant does the reading and sends back only the status.
 

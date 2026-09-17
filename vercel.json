@@ -8,7 +8,8 @@
     { "path": "/api/admin/ingest-feedback", "schedule": "30 7 * * *" },
     { "path": "/api/admin/activity-watchdog", "schedule": "0 * * * *" },
     { "path": "/api/admin/stage-snapshot", "schedule": "0 6 * * *" },
-    { "path": "/api/admin/profile-snapshot", "schedule": "0 5 * * *" }
+    { "path": "/api/admin/profile-snapshot", "schedule": "0 5 * * *" },
+    { "path": "/api/admin/cleanup", "schedule": "0 4 * * *" }
   ],
   "redirects": [
     { "source": "/demo", "destination": "/?demo=true", "statusCode": 302 }
@@ -25,17 +26,10 @@
     { "source": "/quick-start", "destination": "/index.html" },
     { "source": "/admin/dashboard", "destination": "/index.html" },
     { "source": "/admin/coach-insights", "destination": "/index.html" },
-    { "source": "/admin/desk", "destination": "/index.html" }
+    { "source": "/admin/desk", "destination": "/index.html" },
+    { "source": "/admin/support", "destination": "/index.html" }
   ],
   "headers": [
-    {
-      "source": "/reimagine-user-guide.pdf",
-      "headers": [
-        { "key": "Content-Type", "value": "application/pdf" },
-        { "key": "Content-Disposition", "value": "inline; filename=\"reimagine-user-guide.pdf\"" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
-      ]
-    },
     {
       "source": "/",
       "headers": [

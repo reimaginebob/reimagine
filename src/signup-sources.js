@@ -20,7 +20,17 @@
 
 export const SIGNUP_SOURCES = [
   { code: 'referral',   label: 'Someone I know recommended it', detailPrompt: 'Who, if you would like to say? (optional)' },
-  { code: 'outplacement', label: 'My outplacement firm referred me', detailPrompt: 'Which one? (optional)' },
+  // Competitor outplacement referrals, counted on their own on purpose
+  // (Bob, 2026-09-14): firms like LHH and Right Management send people to
+  // Reimagine for service delivery without paying for it, and this count is
+  // the evidence for approaching them. NextPlacement is Career Club's own and
+  // must NEVER be folded in here -- it is identified separately, by a routine
+  // that matches Career Club's participant emails, not by this form.
+  { code: 'outplacement', label: 'An outplacement firm referred me (e.g., LHH, Right Management)', detailPrompt: 'Which one? (optional)' },
+  // RETIRED from the form 2026-09-14, the same day it shipped, with zero
+  // accounts holding it (kept so the code stays valid). It mixed Career
+  // Club's own NextPlacement with competitor outplacement firms; see above.
+  { code: 'employer', label: 'My employer or outplacement firm provided it', detailPrompt: 'Which company or firm? (optional)' },
   { code: 'bob',        label: 'Bob Goodwin or Career Club' },
   { code: 'linkedin',   label: 'LinkedIn' },
   { code: 'media',      label: 'A newsletter, podcast, or article', detailPrompt: 'Which one? (optional)' },
@@ -29,9 +39,11 @@ export const SIGNUP_SOURCES = [
   { code: 'other',      label: 'Something else',                detailPrompt: 'Where did you come across it? (optional)' },
 ]
 
-// Codes currently offered on the form. Same as the full list today; the two are
-// separate so a code can be retired without orphaning the rows that hold it.
-export const ACTIVE_SIGNUP_SOURCES = SIGNUP_SOURCES
+// Codes currently offered on the form. Separate from the full list so a code
+// can be retired without orphaning the rows that hold it. The API still
+// accepts a retired code (a cached signup page may send one).
+const RETIRED_SIGNUP_SOURCES = ['employer']
+export const ACTIVE_SIGNUP_SOURCES = SIGNUP_SOURCES.filter(s => !RETIRED_SIGNUP_SOURCES.includes(s.code))
 
 export const SIGNUP_SOURCE_CODES = SIGNUP_SOURCES.map(s => s.code)
 

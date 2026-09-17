@@ -33,6 +33,10 @@ It has two halves, and they work differently on purpose.
 
 Short notes on what moved recently and what it means for you. **These entries roll off after about 30 days.** The table above is what remains, so anything worth keeping permanently belongs there, not here.
 
+**September 2026 — the User Guide is no longer a separate download.** The button that opened a downloadable PDF of this guide is gone. Everything in it is still here, and **My Coach** is now the way to ask about any of it: it has read every chapter, so a direct question gets a direct answer, in the context of your own work rather than a generic page.
+
+**September 2026 — My Coach opens where you are.** Reaching My Coach — from the sidebar, the corner button, or any **Ask My Coach about this** button — no longer takes you to a separate screen. It opens right there, over your work, so there's no "Back to" link to look for and nowhere to come back from.
+
 **September 2026 — Compensation Read is now part of your Focus Playbook.** It is section 4, between Industry Background and Interview Prep, so a sourced pay range for your direction sits with the rest of what you take into a conversation instead of only inside Income Now. It is the same read in both places: build it in one and the other shows it.
 
 **August 2026 — the guide matches the product again.** This guide was reorganized around the way Reimagine actually works today rather than the five-phase journey it used to describe. Three chapters became one (Your Focus Playbook), one became two (Put It to Work and Career Paths), and Focus Playbooks got the chapter it never had. If you ask My Coach about a feature, it is reading this version.

@@ -111,7 +111,7 @@ check(app.includes('const ctx={hasOnboardingConcierge,outputs,step,signedInUser,
 // momentReevalTick appended 2026-09-10 (live-side brief PR 1, item 1).
 // savedPlaybooks/activePlaybooks/pursuitStatus/connNetwork/connManual/
 // connSearch appended by live-side brief PR 2, same day.
-check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable])'),
+check(app.includes(',focusVisitCounts,stallIdleReached,coachDistressHold,coachMoodHold,momentReevalTick,savedPlaybooks,activePlaybooks,pursuitStatus,pursuitStatusLoaded,connNetwork,connManual,connSearch,activeSectionTick,hydrationStable,chatMessages])'),
   `${APP}: the evaluator effect's dependency array no longer includes focusVisitCounts and stallIdleReached -- a visit or an idle timeout would not cause it to reconsider`)
 
 // --- Prompt codes (derived from MOMENT_CATALOG -- check the real exported value) ---

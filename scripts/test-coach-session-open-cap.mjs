@@ -44,7 +44,11 @@ check(countSentences('No terminal punctuation here') === 1,
 // and fine outside this one turn shape).
 const retryIdx = coach.indexOf("// Regenerate-on-violation retry (the brief's deferred-optional item)")
 check(retryIdx !== -1, `${COACH}: could not find the voice-retry block`)
-const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 8000) : ''
+// Window widened 8000 -> 11000 (2026-09-16): the four repetition-cap checks
+// (countWorthHedge and its neighbors) added to this same block push the
+// tail markers this file checks further out -- see
+// test-coach-voice-retry-repetition-caps.mjs for those checks.
+const retryBlock = retryIdx !== -1 ? coach.slice(retryIdx, retryIdx + 11000) : ''
 
 check(retryBlock.includes("const sessionOpenTooLong = turnKind === 'session_open' && countSentences(strippedText) > 3"),
   `${COACH}: sessionOpenTooLong is not computed (or not gated on turnKind === 'session_open') ahead of the retry trigger`)
@@ -73,9 +77,14 @@ const scoreIdx = retryBlock.indexOf('const score = (f, hv')
 const scoreLine = scoreIdx !== -1 ? retryBlock.slice(scoreIdx, retryBlock.indexOf('\n', scoreIdx)) : ''
 check(scoreLine.includes('tooLong') && scoreLine.includes('saysINoticed'),
   `${COACH}: score() does not factor in the session-open sentence-count or "I noticed" checks -- a retry that is still too long could still win`)
-check(retryBlock.includes('score(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2)'),
+// Substring check on the call's leading args only (not a full-signature
+// match): score() legitimately grew a tail of repetition-cap args on
+// 2026-09-16 (test-coach-voice-retry-repetition-caps.mjs covers those) --
+// this only needs to confirm the session-open args are still passed, in
+// order, ahead of whatever comes after.
+check(retryBlock.includes('score(flags2, hardViolations2, sessionOpenTooLong2, sessionOpenSaysINoticed2,'),
   `${COACH}: the rewrite's score() call is not passed the re-checked session-open flags`)
-check(retryBlock.includes('score(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed)'),
+check(retryBlock.includes('score(flags, hardViolations, sessionOpenTooLong, sessionOpenSaysINoticed,'),
   `${COACH}: the original's score() call is not passed the session-open flags`)
 
 if (failures) {

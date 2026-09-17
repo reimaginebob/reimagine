@@ -82,16 +82,18 @@ check(chat.includes("sessionStorage.getItem('reimagine_session_recap_fired')") &
 
 const APP = 'src/App.jsx'
 const app = fs.readFileSync(APP, 'utf8')
-// 3, not 2, since Phase 1b (Coach-as-Concierge presence, 2026-09-08): the
-// concierge embedded mount used to deliberately omit this (and every other
-// pipeline/session prop) on the reasoning that it only ever rendered during
-// onboarding, where none of them could fire. That reasoning no longer holds
-// now that the same mount also covers Put It to Work / Career Paths / My
-// Pipeline, so it carries the same props the other two mounts (floating,
-// and the dedicated My Coach page's own embedded view) already did.
+// 2, not 3: Phase 1b (Coach-as-Concierge presence, 2026-09-08) widened the
+// concierge embedded mount to carry this (it used to omit it on the
+// reasoning that it only ever rendered during onboarding, where it couldn't
+// fire -- no longer true once the same mount also covers Put It to Work /
+// Career Paths / My Pipeline). One Coach (2026-09-13) then retired the
+// THIRD mount entirely (the dedicated My Coach step's own embedded view) --
+// the sidebar now opens the floating or concierge-embedded panel in place
+// instead of navigating to a separate page -- so two mounts is the correct,
+// current count, not a regression back toward the old omission.
 const sessionOpenPropCount = (app.match(/sessionOpenEligible=\{hasNextStep\}/g) || []).length
-check(sessionOpenPropCount === 3,
-  `${APP}: expected sessionOpenEligible={hasNextStep} on all 3 <Chat> mounts (floating, dedicated My Coach embedded, and the widened concierge embedded), found ${sessionOpenPropCount}`)
+check(sessionOpenPropCount === 2,
+  `${APP}: expected sessionOpenEligible={hasNextStep} on both remaining <Chat> mounts (floating and concierge embedded; the dedicated My Coach mount was retired), found ${sessionOpenPropCount}`)
 
 if (failures) {
   console.error(`test-coach-session-open: ${failures} check(s) failed`)

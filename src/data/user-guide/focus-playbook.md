@@ -313,15 +313,17 @@ A hiring manager reads top to bottom. They meet the Highlight first, then the ro
 
 When a win is a single number with no story behind it, Reimagine keeps it in the Career Highlights only and gives the job a different bullet, so nothing reads as a reworded copy. The result is a resume that rewards a second read instead of repeating itself.
 
-### Two versions: one for a person, one for the software
+### Three versions: one for a person, one for a traditional read, one for the software
 
-Some applications go to a person first. Many go through applicant tracking software (names you may see: Workday, Greenhouse, iCIMS) that reads your resume into fields and scores it for keywords before any human sees it. The two readers reward different things, so Resume Refresh gives you both from the same content, behind a toggle above the resume preview.
+Some applications go to a person first. Some go to a person who expects the resume format they already know, no highlights block up front. Many go through applicant tracking software (names you may see: Workday, Greenhouse, iCIMS) that reads your resume into fields and scores it for keywords before any human sees it. Resume Refresh gives you all three from the same content, behind a toggle above the resume preview.
 
 The **Human version** is tuned for the recruiter: your strongest wins in a Career Highlights block up top, bold drawing the eye, a polished layout. Use it for a referral, a direct hand-off, or walking into an interview.
 
+The **Traditional version** is a classic, no-frills layout: your summary, then your skills, then straight into your work history in date order — no separate highlights block up front. Use it when you want the plainest, most familiar resume shape, or when a reader has told you they prefer one.
+
 The **ATS version** is tuned for the software: your skills promoted to a Core Competencies list near the top where the parser weights them, standard section headings the software recognizes, and plain type that parses cleanly. Your strongest wins are placed inside the roles where they happened, so the keywords sit in the context the software scores rather than in a separate block it may skip. Use it when you apply through a company's online portal.
 
-Nothing is invented for either one. Every number, employer, and date is identical. The ATS version re-arranges the same true record for the machine reader, and the download follows whichever version you have selected.
+Nothing is invented for any of the three. Every number, employer, and date is identical. The Traditional and ATS versions re-arrange the same true record — the download follows whichever version you have selected.
 
 ### Held several roles at one company? Reimagine groups them
 
@@ -334,6 +336,8 @@ If you were promoted or changed roles at the same employer, Resume Refresh keeps
 - "Lead with my operations experience instead of my product experience."
 - "The summary doesn't capture my pivot from finance to product."
 - "Add the migration project I led at my second company."
+
+**Don't want the Key Accomplishments block at all?** Switch to the Traditional version instead of asking Reimagine to remove it — same content, laid out as a classic reverse-chronological resume with no highlights section up top.
 
 **If the download looks off,** regenerate the section. The output usually lands right the second time.
 
@@ -448,7 +452,7 @@ Before the flag shows, Reimagine opens the posting page itself and confirms it i
 
 ### Learn more about a company
 
-Each company carries a full-width amber button anchored to the bottom of its card, labeled **Learn more about [Company Name]**. Click it for a focused read on that company beyond what you would find on Glassdoor: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
+Each company carries a full-width amber button anchored to the bottom of its card, labeled **Learn more about [Company Name]**. Click it for a focused read on the company: news from the last 90 days, the employee voice, industry-specific signal (CMS Star Ratings for hospital systems, GitHub cadence for tech, FINRA filings for financial services, and similar by sector), the leadership's public footprint, and watch-outs named honestly. Every numeric or named factual claim cites its source URL inline. The card uses live web search, so it takes roughly 30 to 60 seconds per click.
 
 The button is deliberately prominent because the read is one of the most useful things you can pull from this page. Once you have built it, the content takes the place of the button inline within the same company card; a smaller **Rebuild** button at the bottom right lets you refresh against newer signal if the original is more than a few weeks old.
 

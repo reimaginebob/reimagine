@@ -47,10 +47,22 @@ check(resolveConciergeEmbedded({ ...base, hasCoachPresence: true, isMobile: true
 // --- Source-presence: the fix is actually wired the way the logic above assumes ---
 check(flags.includes("export const COACH_PRESENCE_FLAG = 'coach_presence'"), `${FLAGS}: COACH_PRESENCE_FLAG is missing`)
 check(flags.includes('export function hasCoachPresence(user) {'), `${FLAGS}: hasCoachPresence is missing`)
-check(flags.includes("[COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },"), `${FLAGS}: GRANTABLE_FLAGS entry is missing`)
+// GA 2026-09-13 (Coach as Concierge): coach_presence is one of the ten flags
+// that moved from a per-account grant to on for every signed-in account, so
+// it must no longer be grantable from the dashboard -- a live toggle for a
+// flag nothing reads is exactly the failure mode this file's own header warns
+// about.
+check(!flags.includes("[COACH_PRESENCE_FLAG]: { label: 'Coach presence (embedded panel beyond onboarding)' },"),
+  `${FLAGS}: GRANTABLE_FLAGS still lists the retired coach_presence entry -- GA removed it since there is no longer a stored value that changes behavior`)
+check(/export function hasCoachPresence\(user\) \{\s*return !!user\s*\}/.test(flags),
+  `${FLAGS}: hasCoachPresence no longer has GA's plain signed-in body -- did isInternalAccount/feature_flags creep back in?`)
 
-check(app.includes("const hasCoachPresence=(!!signedInUser&&/@career\\.club$/i.test(signedInUser.email||''))||(Array.isArray(signedInUser?.feature_flags)&&signedInUser.feature_flags.includes('coach_presence'))"),
-  `${APP}: client-side hasCoachPresence mirror is missing or has drifted`)
+// GA 2026-09-13 (Coach as Concierge): hasCoachPresence's old one-directional
+// "onboarding_concierge implies presence" special case is moot now that both
+// flags are simply !!signedInUser -- presence alone (the resolveConciergeEmbedded
+// cases above) is still exercised the same way regardless.
+check(app.includes('const hasCoachPresence=!!signedInUser'),
+  `${APP}: client-side hasCoachPresence mirror is missing or has drifted from GA's plain signed-in check`)
 check(app.includes("const conciergeEmbedded=!isMobile&&!isDemo&&!isTest&&!!signedInUser&&(hasCoachPresence?(step!=='welcome'&&step!=='myCoach'):(hasOnboardingConcierge&&CONCIERGE_ORIENTATION_STEPS.includes(step)))"),
   `${APP}: conciergeEmbedded's widened gate is missing or has drifted from the re-derived logic above`)
 check(app.includes("const[coachPresence,setCoachPresence]=useState('open')"), `${APP}: coachPresence state is missing`)
