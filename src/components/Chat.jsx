@@ -93,7 +93,7 @@ const clearChatServerSide = () => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null, onActivity = null, canFireUnprompted = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null, onActivity = null, canFireUnprompted = null, coachSummaryCaptureActive = false, coachSummaryTargetTitle = null, onSummaryOffered = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -932,6 +932,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const acHeader = res.headers.get('X-Coach-Activity') || null
         const siHeader = res.headers.get('X-Coach-Search-Intake') || null
         const noteHeader = res.headers.get('X-Coach-Note-Offer') || null
+        const summaryHeader = res.headers.get('X-Coach-Summary') || null
         const distressHeader = res.headers.get('X-Coach-Distress') || null
         const moodHeader = res.headers.get('X-Coach-Mood') || null
         const whHeader = res.headers.get('X-Coach-Widen-Search') || null
@@ -1190,6 +1191,29 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // the text already sitting in fullText.
         if (notesCaptureActive && noteHeader === '1' && fullText.trim()) {
           mergeOfferOntoReply("Want me to add this to the opportunity's notes?", 'coach-note-save', [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }])
+        }
+        // Summary to notes (COACHSUMMARY, 2026-09-17). 'save' means they asked
+        // for it; 'offer' means Coach read the thread as closed and offered.
+        // The two differ only in the confirm's wording -- both end in a tap,
+        // because the one thing that writes is the person's tap, on the
+        // asked-for version exactly as much as on the offered one (the user
+        // guide's "the only things it writes are the ones you tap to accept"
+        // is a promise, not a description of the common case). The summary
+        // itself is this reply's own text, same as the notes offer above.
+        //
+        // onSummaryOffered fires whichever way it went and BEFORE any tap:
+        // what the 24-hour window counts is offers made, so an ignored one
+        // closes it exactly like a declined one. It also retires the one-time
+        // "you can just ask" line, which the server appended to this very
+        // reply.
+        if (coachSummaryCaptureActive && (summaryHeader === 'save' || summaryHeader === 'offer') && fullText.trim()) {
+          const where = coachSummaryTargetTitle ? `${coachSummaryTargetTitle}'s notes` : "this opportunity's notes"
+          mergeOfferOntoReply(
+            summaryHeader === 'save' ? `Save this summary to ${where}?` : `Want me to keep this as a summary in ${where}?`,
+            'coach-summary-save',
+            [{ label: 'Save it', value: fullText }, { label: 'Not now', value: 'dismiss' }],
+          )
+          if (onSummaryOffered) onSummaryOffered()
         }
         // Values capture: the server extracted what this turn settled for Values
         // and/or Passions & Causes onto X-Coach-Values. Show it back in full — the
