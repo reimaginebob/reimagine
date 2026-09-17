@@ -9,11 +9,13 @@
 // Three things this file exists to hold still, because each has a specific way
 // of going wrong:
 //
-//  1. THE FLAG. coach_note_agency -- the obvious flag to reuse, and the one the
-//     brief named -- went GA on 2026-09-13 (hasCoachNoteAgency is now `!!user`).
-//     Gating this on it would have shipped an un-QC'd capability to every
-//     signed-in account the moment it merged, which CLAUDE.md section 8 forbids
-//     without exception. Hence coach_summary, its own pilot flag.
+//  1. THE FLAG. GA 2026-09-17, same day it shipped, on Bob's call -- it was a
+//     per-account pilot (coach_summary) for one afternoon. The checks below
+//     moved with it: what they now hold still is that every signed-in account
+//     has it and nobody signed out does. The pilot's own reason for existing is
+//     worth keeping in view if this is ever re-gated: coach_note_agency, the
+//     obvious flag to reuse and the one the brief named, had gone GA on
+//     2026-09-13, so riding it would have meant no gate at all.
 //  2. THE TAP. The shipped user guide promises "the only things it writes or
 //     builds are the ones you tap to accept." Both COACHSUMMARY kinds end in a
 //     tap, including the one the person explicitly asked for -- Bob confirmed
@@ -41,21 +43,23 @@ const { hasCoachSummary, hasCoachNoteAgency, COACH_SUMMARY_FLAG, GRANTABLE_FLAGS
 // --- 1. The flag ---------------------------------------------------------
 
 check(COACH_SUMMARY_FLAG === 'coach_summary', `feature-flags: COACH_SUMMARY_FLAG is not 'coach_summary'`)
+check(hasCoachSummary({ email: 'someone@example.com', feature_flags: [] }) === true,
+  'feature-flags: an ordinary signed-in account does not have summary-to-notes -- this went GA 2026-09-17')
 check(hasCoachSummary({ email: 'bob@career.club', feature_flags: [] }) === true,
-  'feature-flags: an internal @career.club account is not auto-granted the summary pilot -- Bob has to be able to QC it on production without granting himself')
-check(hasCoachSummary({ email: 'someone@example.com', feature_flags: ['coach_summary'] }) === true,
-  'feature-flags: a named outside tester holding the flag does not get the pilot')
-check(hasCoachSummary({ email: 'someone@example.com', feature_flags: [] }) === false,
-  'feature-flags: an ordinary signed-in account gets the summary pilot -- this is the whole reason it does not ride coach_note_agency')
-check(hasCoachSummary(null) === false, 'feature-flags: a signed-out visitor gets the pilot')
-// The trap this guards: coach_note_agency is GA, so `hasCoachNoteAgency` is
-// true for everybody. If the two ever collapse into one gate again, the pilot
-// silently becomes GA with no commit that says so.
-check(hasCoachNoteAgency({ email: 'someone@example.com', feature_flags: [] }) === true &&
-      hasCoachSummary({ email: 'someone@example.com', feature_flags: [] }) === false,
-  'feature-flags: the summary pilot now tracks coach_note_agency, which is GA -- every account would get it')
-check(!!GRANTABLE_FLAGS[COACH_SUMMARY_FLAG],
-  'feature-flags: coach_summary is not in GRANTABLE_FLAGS -- it could not be granted to a named tester from the admin dashboard, which is the case that wants a record')
+  'feature-flags: an internal account does not have summary-to-notes')
+check(hasCoachSummary(null) === false,
+  'feature-flags: a signed-out visitor has summary-to-notes -- every gate on this surface is signed-in-only, since a summary has to land in a saved opportunity')
+check(hasCoachSummary(undefined) === false, 'feature-flags: an undefined user resolves truthy')
+// GA means the flag string is no longer consulted at all. A grant that still
+// mattered would mean some accounts silently lack this.
+check(hasCoachSummary({ email: 'someone@example.com', feature_flags: ['coach_summary'] }) ===
+      hasCoachSummary({ email: 'someone@example.com', feature_flags: [] }),
+  'feature-flags: holding the coach_summary flag still changes the answer -- after GA it must not be consulted')
+check(!GRANTABLE_FLAGS[COACH_SUMMARY_FLAG],
+  'feature-flags: coach_summary is still listed as grantable from the admin dashboard -- after GA there is nothing left to grant, and leaving it there invites a grant that reads as meaningful and is not')
+// Kept as a live reference so the two stay comparable if either is re-gated.
+check(hasCoachNoteAgency({ email: 'someone@example.com', feature_flags: [] }) === true,
+  'feature-flags: coach_note_agency is no longer GA -- summary-to-notes assumes the notes path it writes through is available to everyone it is')
 
 // --- 2. The prompt instruction the model actually receives ---------------
 
@@ -174,30 +178,34 @@ check(inFocusIdx !== -1 && summaryCallIdx > inFocusIdx,
 const gateIdx = coach.lastIndexOf('if (hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) {', summaryCallIdx)
 check(gateIdx !== -1 && gateIdx < summaryCallIdx,
   `${APIC}: the summary instruction is not behind hasCoachSummary -- every account would be told it can do this`)
-check(coach.includes('if (!generalMode && hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(COACH_SUMMARY_KNOWLEDGE)'),
-  `${APIC}: the pilot knowledge block is not injected, or is not gated on the flag`)
 
-// --- 7. Pilot docs are partitioned, not in the GA guide ------------------
-// CLAUDE.md section 8: a chapter in ORDER.json becomes Coach grounding for
-// EVERY account on every turn, so a pilot documented there has Coach telling
-// the other 144 accounts about something they cannot use.
-const KNOW = 'src/data/coach-summary-knowledge.js'
-check(fs.existsSync(KNOW), `${KNOW}: the pilot knowledge file is missing`)
-const know = fs.existsSync(KNOW) ? fs.readFileSync(KNOW, 'utf8') : ''
-check(/tap is the only thing that writes/i.test(know),
-  `${KNOW}: the knowledge block does not tell Coach the tap is the only write -- it could answer a question about this capability by overstating it`)
-check(/pilot most users do not have/i.test(know),
-  `${KNOW}: the knowledge block does not mark itself as a limited pilot`)
-const order = JSON.parse(fs.readFileSync('src/data/user-guide/ORDER.json', 'utf8'))
-const orderNames = JSON.stringify(order)
-check(!/coach-summary/.test(orderNames),
-  'src/data/user-guide/ORDER.json: the summary pilot was added to the GA user guide -- that is Coach grounding for all 145 accounts, including the 144 who do not have it')
+// --- 7. GA docs: in the guide, and the pilot file retired ---------------
+// The mirror image of what this section checked during the pilot. While it was
+// flagged, documenting it in my-coach.md would have had Coach describing it to
+// the accounts that did not have it (a chapter in ORDER.json is grounding for
+// everyone, every turn). Now that everyone has it, the reverse is the failure:
+// a capability nobody is told about, and a second copy of its description
+// drifting in a file only some code paths read.
+check(!fs.existsSync('src/data/coach-summary-knowledge.js'),
+  'src/data/coach-summary-knowledge.js: the pilot knowledge file survived GA -- its content belongs in my-coach.md now, and two descriptions of one capability will drift')
+check(!coach.includes('COACH_SUMMARY_KNOWLEDGE'),
+  `${APIC}: the retired pilot-knowledge block is still imported or injected`)
 const guide = fs.readFileSync('src/data/user-guide/my-coach.md', 'utf8')
-check(!/COACHSUMMARY|conversation summary/i.test(guide),
-  'src/data/user-guide/my-coach.md: the summary pilot is documented in the GA chapter -- move it to the pilot knowledge file until GA')
+check(/summar/i.test(guide),
+  'src/data/user-guide/my-coach.md: summary-to-notes is not documented in the GA chapter -- Coach would tell people it cannot do something it can')
+// The three things the guide paragraph has to get right, because Coach answers
+// questions about this capability from it.
+check(/opportunity's notes|that opportunity's notes/i.test(guide),
+  'src/data/user-guide/my-coach.md: the guide does not say where a summary lands')
+check(/once a day per opportunity|once per day per opportunity/i.test(guide),
+  'src/data/user-guide/my-coach.md: the guide does not mention the daily cap -- someone who declines once should be able to tell it is not going to keep asking')
+check(/conclusions, not a transcript/i.test(guide),
+  'src/data/user-guide/my-coach.md: the guide does not say a summary keeps conclusions rather than a transcript -- that is what sets expectations for what gets saved')
 // The promise this whole design is built around has to still be in the guide.
 check(/only things it writes or builds are the ones you tap to accept/i.test(guide),
   'src/data/user-guide/my-coach.md: the "only what you tap" promise is gone -- if that changed, this capability\'s design changed with it')
+check(/your tap is what saves it|tap is what saves/i.test(guide),
+  'src/data/user-guide/my-coach.md: the summary paragraph does not repeat that the tap is the write -- this is the one capability where Coach proposes the write itself, so it is worth saying in place')
 
 // --- 8. Client wiring ----------------------------------------------------
 
@@ -238,10 +246,10 @@ check(propCount === 2,
   `${APP}: expected both <Chat> mounts gated on hasCoachSummary AND an opportunity in focus, found ${propCount}`)
 check((app.match(/onSummaryOffered=\{noteCoachSummaryOffered\}/g) || []).length === 2,
   `${APP}: both <Chat> mounts must report a rendered offer back, or the window never closes on one surface`)
-check(app.includes("const hasCoachSummary=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('coach_summary'))||/@career\\.club$/i.test(signedInUser.email||''))"),
-  `${APP}: the client mirror of hasCoachSummary is missing or has drifted from api/_lib/feature-flags.js`)
-check(!/coachSummaryCaptureActive=\{hasCoachNoteAgency/.test(app),
-  `${APP}: the summary pilot is gated on hasCoachNoteAgency, which is GA -- all 145 accounts would get it`)
+check(app.includes('const hasCoachSummary=!!signedInUser'),
+  `${APP}: the client mirror of hasCoachSummary is missing or has drifted from api/_lib/feature-flags.js (GA: !!signedInUser)`)
+check(!/coach_summary/.test(app),
+  `${APP}: the client still reads the coach_summary flag string -- after GA the server does not consult it, so a client that does would disagree with the server for anyone holding a stale flag`)
 
 // State persistence: a one-time-ever flag that is not saved fires forever.
 check(app.includes('const[seenCoachSummaryMention,setSeenCoachSummaryMention]=useState(false)'),
@@ -256,5 +264,5 @@ if (failures) {
   console.error(`test-coach-summary: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-summary: OK (its own pilot flag rather than GA coach_note_agency, internal accounts auto-granted and grantable to a named tester; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; and the pilot is documented outside the GA user guide)')
+  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; and the capability is documented in the GA user-guide chapter with the pilot knowledge file retired)')
 }
