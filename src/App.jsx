@@ -8360,9 +8360,10 @@ export default function PivotEngine(){
   // PILOT -- correction actions (2026-09-14). Mirror of hasCorrectionActions in
   // api/_lib/feature-flags.js: the flag, or any internal account.
   const hasCorrectionActions=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('correction_actions'))||/@career\.club$/i.test(signedInUser.email||''))
-  // PILOT -- Coach file upload (2026-09-17). Mirror of hasCoachFileUpload in
-  // api/_lib/feature-flags.js: the flag, or any internal account.
-  const hasCoachFileUpload=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('coach_file_upload'))||/@career\.club$/i.test(signedInUser.email||''))
+  // GA 2026-09-17. Was a per-account pilot mirror; every signed-in account
+  // now has this. Server-side truth is api/_lib/feature-flags.js, which
+  // made the identical change.
+  const hasCoachFileUpload=!!signedInUser
   // Go Independent (2026-08-27). The account's own track wins the moment there
   // is an account; the URL parameter only speaks for a visitor who has not
   // signed in yet, which is exactly the sign-up screens. Deriving it in that
