@@ -8523,11 +8523,10 @@ export default function PivotEngine(){
   // now has this. Server-side truth is api/_lib/feature-flags.js, which
   // made the identical change.
   const hasIndustryEcosystemView=!!signedInUser
-  // PILOT -- summary to notes (2026-09-17). Mirror of hasCoachSummary in
-  // api/_lib/feature-flags.js: the flag, or any internal account. Deliberately
-  // NOT hasCoachNoteAgency, which went GA on 2026-09-13 -- riding it would
-  // have handed this to all 145 accounts on merge.
-  const hasCoachSummary=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('coach_summary'))||/@career\.club$/i.test(signedInUser.email||''))
+  // GA 2026-09-17. Was a per-account pilot mirror; every signed-in account now
+  // has this. Server-side truth is api/_lib/feature-flags.js, which made the
+  // identical change.
+  const hasCoachSummary=!!signedInUser
   // PILOT -- correction actions (2026-09-14). Mirror of hasCorrectionActions in
   // api/_lib/feature-flags.js: the flag, or any internal account.
   const hasCorrectionActions=!!signedInUser&&((Array.isArray(signedInUser.feature_flags)&&signedInUser.feature_flags.includes('correction_actions'))||/@career\.club$/i.test(signedInUser.email||''))

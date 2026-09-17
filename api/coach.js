@@ -19,7 +19,6 @@ import { PIPELINE_CAPTURE_KNOWLEDGE } from '../src/data/pipeline-capture-knowled
 import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { INDUSTRY_ECOSYSTEM_KNOWLEDGE } from '../src/data/industry-ecosystem-knowledge.js'
 import { CORRECTION_ACTIONS_KNOWLEDGE } from '../src/data/correction-actions-knowledge.js'
-import { COACH_SUMMARY_KNOWLEDGE } from '../src/data/coach-summary-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
 import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation, hasCoachSummary } from './_lib/feature-flags.js'
 import { hasCorrectionActions } from './_lib/feature-flags.js'
@@ -2150,7 +2149,6 @@ On money, tax, entity structure, insurance, and retirement accounts specifically
 ${GO_INDEPENDENT_KNOWLEDGE}`)
   }
   if (!generalMode && hasPipelineCapture({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(PIPELINE_CAPTURE_KNOWLEDGE)
-  if (!generalMode && hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(COACH_SUMMARY_KNOWLEDGE)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
   if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
