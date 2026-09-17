@@ -112,8 +112,17 @@ check(sanitizeSupportEvent(42, {}) === null, 'a non-string kind must return null
 for (const kind of SUPPORT_EVENT_KINDS) {
   check(sanitizeSupportEvent(kind, {}) !== null, `${kind} is in SUPPORT_EVENT_KINDS but sanitizeSupportEvent rejects it`)
 }
-check(SUPPORT_EVENT_KINDS.length === 4 && ['generation_failed', 'coach_failed', 'client_crash', 'save_failed'].every(k => SUPPORT_EVENT_KINDS.includes(k)),
-  'SUPPORT_EVENT_KINDS drifted from the four kinds the brief specifies')
+// The brief's original four, plus coach_summary_scope_bleed (2026-09-18): a
+// conversation summary about to be filed against one opportunity while naming
+// another, suppressed rather than saved. Checked as an exact set rather than a
+// count, because what matters is that this stays a short, deliberate allowlist
+// -- a kind that is not here cannot be written at all, which is the property
+// that keeps this table from becoming a general log.
+check(SUPPORT_EVENT_KINDS.length === 5,
+  `SUPPORT_EVENT_KINDS has ${SUPPORT_EVENT_KINDS.length} kinds -- adding one is a deliberate act, so update this test along with it`)
+for (const k of ['generation_failed', 'coach_failed', 'client_crash', 'save_failed', 'coach_summary_scope_bleed']) {
+  check(SUPPORT_EVENT_KINDS.includes(k), `SUPPORT_EVENT_KINDS is missing ${k}`)
+}
 
 // The browser-postable subset must stay a STRICT subset. If generation_failed
 // ever became client-postable, a browser could invent failures the server
@@ -167,8 +176,19 @@ const coach = fs.readFileSync('api/coach.js', 'utf8')
 check(/import \{ recordSupportEvent \} from '\.\/_lib\/support-events\.js'/.test(coach),
   'api/coach.js: recordSupportEvent is not imported')
 const coachCalls = (coach.match(/recordSupportEvent\(/g) || []).length
-check(coachCalls === 2,
-  `api/coach.js: expected 2 recordSupportEvent calls (the upstream-error branch and the 429 turn-cap branch), found ${coachCalls}`)
+check(coachCalls === 3,
+  `api/coach.js: expected 3 recordSupportEvent calls (the upstream-error branch, the 429 turn-cap branch, and the suppressed cross-opportunity summary), found ${coachCalls}`)
+// The new one is not a failure the person saw, so it must not claim to be one.
+check(/'coach_summary_scope_bleed'/.test(coach),
+  'api/coach.js: the suppressed-summary event does not use its own kind')
+{
+  // No user content in the row: the name that matched is a company from this
+  // person's own pipeline (CLAUDE.md section 8, no exceptions).
+  const i = coach.indexOf("'coach_summary_scope_bleed'")
+  const block = i === -1 ? '' : coach.slice(i, i + 700)
+  check(!/\$\{bleed\}|\$\{name\}|\$\{inFocus/.test(block),
+    'api/coach.js: the suppressed-summary event interpolates pipeline content into detail -- this table carries no user content')
+}
 check(/error_class: 'rate_limited'/.test(coach),
   "api/coach.js: the 429 turn-cap branch is not recorded with error_class 'rate_limited' -- from the user's side a cap and an outage look identical")
 

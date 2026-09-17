@@ -260,9 +260,202 @@ const blobIdx = app.indexOf('const stateForSave={')
 check(app.slice(blobIdx, blobIdx + 900).includes('seenCoachSummaryMention'),
   `${APP}: seenCoachSummaryMention is not in the autosave blob -- it would never reach the server and the sentence would return every session`)
 
+
+// --- 9. Cross-opportunity scope (2026-09-18 live finding) ---------------
+// Reported on bob+lindsey@career.club, production: a real Deloitte exchange,
+// then ONE unrelated question on GoGuardian in the same thread with no Clear.
+// Coach offered a summary (correctly labelled GoGuardian) and the note that
+// landed in GoGuardian's own Notes opened with a paragraph about Deloitte --
+// the 50% travel dealbreaker, Deloitte contacts by name. Two failures in one:
+// the content was scoped to the whole transcript rather than to the
+// opportunity, and the unprompted offer fired on a single first question that
+// the instruction already excluded in words.
+//
+// Everything below runs the real functions. The scope boundary is computed in
+// code precisely because the previous version asked the model to infer it.
+
+const { scopeHistoryToRecord, otherOpportunityNames, summaryNamesOtherOpportunity, COACH_SUMMARY_MIN_TURNS } =
+  await import('../api/coach.js')
+
+const DELOITTE = 'rec-deloitte'
+const GOGUARDIAN = 'rec-goguardian'
+
+// The reported transcript: three Deloitte turns, then the first GoGuardian one
+// is the message being answered (not yet in history).
+const reportedHistory = [
+  { role: 'user', content: 'The 50% travel on the Deloitte role is a dealbreaker.', rid: DELOITTE },
+  { role: 'assistant', content: 'Understood -- that is worth naming early.' },
+  { role: 'user', content: 'Should I confirm it with Julie or Susan?', rid: DELOITTE },
+  { role: 'assistant', content: 'Yes, and here is how to raise it.' },
+  { role: 'user', content: 'Can you summarize this conversation and save it to the notes?', rid: DELOITTE },
+  { role: 'assistant', content: '- Travel is the blocker...', checkinKey: 'coach-summary-save' },
+]
+
+{
+  const sc = scopeHistoryToRecord(reportedHistory, GOGUARDIAN)
+  check(sc.attributable === true, 'scope: a transcript carrying rid is reported as unattributable')
+  check(sc.boundary === 4, `scope: boundary should be the LAST turn belonging to another opportunity (got ${sc.boundary})`)
+  check(sc.inScopeUserTurns === 0,
+    `scope: the reported case has NO prior GoGuardian turns; got ${sc.inScopeUserTurns}. This is the number the proactive floor keys on`)
+  check(sc.otherRecordIds.length === 1 && sc.otherRecordIds[0] === DELOITTE,
+    'scope: the other opportunity in the transcript is not identified')
+  // +1 for the turn being answered: 1 total, below the floor.
+  check((sc.inScopeUserTurns + 1) < COACH_SUMMARY_MIN_TURNS,
+    'scope: the reported single-question case would still clear the proactive turn floor -- this is finding B, unfixed')
+}
+
+{
+  // Same thread, two turns later: still below the floor at 2, clears it at 3.
+  const two = [...reportedHistory, { role: 'user', content: 'What about the layoffs?', rid: GOGUARDIAN }]
+  const three = [...two, { role: 'assistant', content: '...' }, { role: 'user', content: 'And the leadership team?', rid: GOGUARDIAN }]
+  check((scopeHistoryToRecord(two, GOGUARDIAN).inScopeUserTurns + 1) < COACH_SUMMARY_MIN_TURNS,
+    'scope: two turns on an opportunity already clears the floor -- too eager')
+  check((scopeHistoryToRecord(three, GOGUARDIAN).inScopeUserTurns + 1) >= COACH_SUMMARY_MIN_TURNS,
+    'scope: three turns on an opportunity does not clear the floor -- too strict, a real exchange would never get an offer')
+  const sc = scopeHistoryToRecord(three, GOGUARDIAN)
+  check(sc.firstInScopeOpening === 'What about the layoffs?',
+    `scope: the in-scope anchor should be the FIRST turn after the boundary (got ${JSON.stringify(sc.firstInScopeOpening)})`)
+}
+
+{
+  // Back and forth: the boundary is the most recent switch, not the first.
+  const h = [
+    { role: 'user', content: 'a', rid: DELOITTE },
+    { role: 'user', content: 'b', rid: GOGUARDIAN },
+    { role: 'user', content: 'c', rid: DELOITTE },
+    { role: 'user', content: 'd', rid: GOGUARDIAN },
+  ]
+  const sc = scopeHistoryToRecord(h, GOGUARDIAN)
+  check(sc.boundary === 2 && sc.inScopeUserTurns === 1,
+    'scope: after switching away and back, the boundary is not the most recent switch')
+}
+
+{
+  // A transcript from before rid shipped. Cannot be attributed, so the caller
+  // must NOT claim a boundary it does not have.
+  const legacy = [{ role: 'user', content: 'older turn' }, { role: 'assistant', content: 'reply' }]
+  const sc = scopeHistoryToRecord(legacy, GOGUARDIAN)
+  check(sc.attributable === false, 'scope: an un-stamped legacy transcript is reported as attributable')
+  check(sc.boundary === -1, 'scope: a legacy transcript should claim no boundary')
+}
+check(scopeHistoryToRecord(null, GOGUARDIAN).attributable === false, 'scope: a null history throws or misreports')
+check(scopeHistoryToRecord([], '').inScopeUserTurns === 0, 'scope: an empty history throws or misreports')
+
+// --- the names used for the negative instruction and the backstop --------
+{
+  const saved = [
+    { id: GOGUARDIAN, source: 'door2', title: 'GoGuardian · Director, Human Resources', company: 'GoGuardian' },
+    { id: DELOITTE, source: 'door2', title: 'Deloitte · Manager, Organization', company: 'Deloitte' },
+    { id: 'rec-hope', source: 'door2', title: 'HOPE · Director', company: 'HOPE' },
+    { id: 'rec-d1', source: 'door1', title: 'Head of People', company: '' },
+    { id: 'rec-short', source: 'door2', title: 'BP · Lead', company: 'BP' },
+  ]
+  const inFocus = saved[0]
+  const names = otherOpportunityNames(saved, inFocus)
+  check(names.includes('Deloitte') && names.includes('HOPE'), 'names: other open opportunities are not listed')
+  check(!names.includes('GoGuardian'), 'names: the in-focus opportunity is listed as an "other"')
+  check(!names.some(n => n === 'Head of People'), 'names: a Career Paths (door1) record is treated as an opportunity')
+  check(!names.includes('BP'), 'names: a two-letter company is included -- it would match ordinary prose and suppress good summaries')
+}
+{
+  // Two roles at the same company must not suppress each other.
+  const saved = [
+    { id: 'a', source: 'door2', title: 'Deloitte · Manager', company: 'Deloitte' },
+    { id: 'b', source: 'door2', title: 'Deloitte · Senior Manager', company: 'Deloitte' },
+  ]
+  check(otherOpportunityNames(saved, saved[0]).length === 0,
+    'names: a second role at the SAME company is flagged as a different opportunity -- every summary there would be suppressed')
+}
+
+// --- the backstop itself -------------------------------------------------
+check(summaryNamesOtherOpportunity('- Travel at Deloitte is the blocker\n- Confirm with Julie', ['Deloitte', 'HOPE']) === 'Deloitte',
+  'backstop: the reported contaminated summary is not caught')
+check(summaryNamesOtherOpportunity('- Six rounds of layoffs\n- Authority of the HR seat', ['Deloitte', 'HOPE']) === null,
+  'backstop: a correctly-scoped GoGuardian summary is flagged -- false positives suppress good summaries')
+check(summaryNamesOtherOpportunity('hopefully this lands well', ['HOPE']) === null,
+  'backstop: "HOPE" matched inside "hopefully" -- the match must be word-bounded')
+check(summaryNamesOtherOpportunity('spoke to deloitte today', ['Deloitte']) === 'Deloitte',
+  'backstop: the match is case-sensitive and misses a lowercased mention')
+check(summaryNamesOtherOpportunity('', ['Deloitte']) === null, 'backstop: an empty reply reports contamination')
+check(summaryNamesOtherOpportunity('anything', []) === null, 'backstop: with no other opportunities open, nothing can contaminate')
+
+// --- the instruction the model actually receives -------------------------
+{
+  const reported = scopeHistoryToRecord(reportedHistory, GOGUARDIAN)
+  const note = buildCoachSummaryCaptureNote({
+    opportunityTitle: 'GoGuardian · Director, Human Resources',
+    proactiveAllowed: false,
+    firstFire: false,
+    otherNames: ['Deloitte'],
+    scope: reported,
+  })
+  check(/SCOPE/.test(note), 'instruction: no scope section at all when the transcript spans two opportunities')
+  check(note.includes('NOT only about'), 'instruction: does not tell the model the conversation covers more than this opportunity')
+  check(note.includes('Deloitte'), 'instruction: does not name the opportunity that must be kept out')
+  check(/Nothing earlier in this conversation is about/.test(note),
+    'instruction: with no prior in-scope turns, does not say so -- the model would still treat the Deloitte turns as fair game')
+  check(!/the conversation you are having about/.test(note),
+    'instruction: still opens by calling the whole transcript "the conversation you are having about" this opportunity -- the false premise the bug came from')
+}
+{
+  const note = buildCoachSummaryCaptureNote({
+    opportunityTitle: 'GoGuardian',
+    proactiveAllowed: false,
+    firstFire: false,
+    otherNames: ['Deloitte'],
+    scope: { inScopeUserTurns: 2, firstInScopeOpening: 'Looking at the GoGuardian watch-outs' },
+  })
+  check(note.includes('Looking at the GoGuardian watch-outs'),
+    'instruction: does not anchor where this opportunity\'s part of the conversation begins')
+}
+{
+  // A single-opportunity conversation must read exactly as before: no scope
+  // section, nothing to warn about.
+  const note = buildCoachSummaryCaptureNote({ opportunityTitle: 'GoGuardian', proactiveAllowed: true, firstFire: false, otherNames: [], scope: { inScopeUserTurns: 5 } })
+  check(!/SCOPE/.test(note),
+    'instruction: a conversation about ONE opportunity gets a scope warning about nothing -- noise in the common case')
+  check(/natural close/.test(note) && /sit with it|have what they need/.test(note),
+    'instruction: the proactive half no longer gives concrete examples of what a close sounds like -- the under-firing half of the report')
+}
+
+// --- the three gates, in source -----------------------------------------
+check(/const enoughTurns = \(scope\.inScopeUserTurns \+ 1\) >= COACH_SUMMARY_MIN_TURNS/.test(coach),
+  `${APIC}: the proactive turn floor is missing -- a first-ever question could still draw an unprompted offer`)
+check(/proactiveAllowed: withinWindow && enoughTurns && scopeTrusted/.test(coach),
+  `${APIC}: the unprompted offer is not gated on all three of the cooldown, the turn floor, and an attributable transcript`)
+check(/const scopeTrusted = scope\.attributable \|\| summaryOtherNames\.length === 0/.test(coach),
+  `${APIC}: an un-attributable transcript with other opportunities open can still draw an unprompted offer -- the boundary there is a guess`)
+check(coach.includes('summaryNamesOtherOpportunity(strippedText, summaryOtherNames)'),
+  `${APIC}: the contamination backstop does not run against the reply`)
+check(/if \(bleed\) \{\s*\n\s*coachSummaryOffer = null/.test(coach),
+  `${APIC}: a contaminated summary is not suppressed -- it would still be offered, and a tap would file it`)
+// The log line must carry no user content: the matched name is a company from
+// this person's own pipeline (CLAUDE.md section 8, no exceptions).
+const bleedLogIdx = coach.indexOf("'coach_summary_scope_bleed'")
+check(bleedLogIdx !== -1, `${APIC}: the suppression is not recorded at all`)
+{
+  const logBlock = coach.slice(bleedLogIdx, bleedLogIdx + 700)
+  check(!/\$\{bleed\}/.test(logBlock),
+    `${APIC}: the support_events detail interpolates the matched company name -- that is the person's own pipeline data, which never goes in this table`)
+}
+const SE = 'api/_lib/support-events.js'
+check(fs.readFileSync(SE, 'utf8').includes("'coach_summary_scope_bleed'"),
+  `${SE}: the new kind is not in SUPPORT_EVENT_KINDS -- recordSupportEvent refuses unknown kinds, so the suppression would never be recorded`)
+
+// --- the client stamp ----------------------------------------------------
+check(/rid: coachSaveTarget\.id/.test(chat),
+  `${CHAT}: typed turns no longer carry the opportunity that was in focus -- the server has nothing to compute a scope boundary from`)
+{
+  const stampIdx = chat.indexOf("const userMsg = { role: 'user'")
+  const stampLine = chat.slice(stampIdx, stampIdx + 300)
+  check(stampLine.includes('coachSaveTarget && coachSaveTarget.id'),
+    `${CHAT}: the rid stamp is not guarded for the no-opportunity-in-focus case`)
+}
+
+
 if (failures) {
   console.error(`test-coach-summary: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; and the capability is documented in the GA user-guide chapter with the pilot knowledge file retired)')
+  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; the capability is documented in the GA user-guide chapter with the pilot knowledge file retired; and a conversation spanning two opportunities scopes the summary to one of them, floors the unprompted offer at three turns, and suppresses any summary that names another open opportunity)')
 }

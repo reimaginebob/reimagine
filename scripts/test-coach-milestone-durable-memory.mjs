@@ -68,11 +68,15 @@ check(/profileBlock \+= buildAlreadyMentionedBlock\(inFocus\.id, milestoneMentio
 // milestoneMentions is still a parameter, not where it sits in the list.
 check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,200}\}\) \{/.test(coach),
   `${COACH}: buildCoachRequest does not accept milestoneMentions as a parameter`)
-check(coach.includes("return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }"),
+// Checked as a member of the return list rather than as the whole literal
+// (2026-09-18): pinning the exact string meant every later field added to the
+// return broke a test about inFocusRecordId specifically.
+check(/return \{ system, messages,[^}]*\binFocusRecordId\b[^}]*\}/.test(coach),
   `${COACH}: buildCoachRequest does not return inFocusRecordId`)
 // Window widened 2026-09-09 (engine guardrails brief, rule 4): the
 // situationBlockChars comment/declaration sits between the two anchors now.
-check(/let inFocusRecordId = null[\s\S]{0,950}inFocusRecordId = inFocus\.id/.test(coach),
+// Bounded by the assignment itself rather than a byte count, same reasoning.
+check(/let inFocusRecordId = null[\s\S]{0,2000}inFocusRecordId = inFocus\.id/.test(coach),
   `${COACH}: inFocusRecordId is not set from the resolved in-focus record`)
 
 // Handler: reads existing mentions gated on the same flag as the note itself,
