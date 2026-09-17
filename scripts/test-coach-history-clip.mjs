@@ -31,8 +31,13 @@ check(clipOlderHistoryMessage('a'.repeat(HISTORY_MESSAGE_CLIP_CHARS)) === 'a'.re
 {
   const clipped = clipOlderHistoryMessage('a'.repeat(HISTORY_MESSAGE_CLIP_CHARS + 1))
   check(clipped.startsWith('a'.repeat(HISTORY_MESSAGE_CLIP_CHARS)), 'a clipped message must keep its first 8,000 characters intact')
-  check(clipped.includes('document shared earlier in the conversation'), 'a clipped message must explain the rest was a document shared earlier')
-  check(clipped.length < HISTORY_MESSAGE_CLIP_CHARS + 100, 'the clip notice must be short, not another large block')
+  // The note's wording became two variants on 2026-09-17 (see
+  // test-coach-document-context.mjs, which covers which variant is chosen):
+  // one pointing at the DOCUMENTS THEY SHARED RECENTLY block, one saying
+  // plainly that only the beginning survives. Both still identify the content
+  // as a long document, which is what this check is really for.
+  check(/[Ll]ong document/.test(clipped), 'a clipped message must say that what was cut was a long document')
+  check(clipped.length < HISTORY_MESSAGE_CLIP_CHARS + 200, 'the clip notice must be short, not another large block')
 }
 check(clipOlderHistoryMessage(null) === null && clipOlderHistoryMessage(undefined) === undefined,
   'a non-string content (null/undefined) must pass through unchanged rather than throw')
@@ -78,7 +83,7 @@ check(clipOlderHistoryMessage(null) === null && clipOlderHistoryMessage(undefine
   const [olderUserMsg, assistantMsg, currentUserMsg] = messages
   check(!olderUserMsg.content.includes(olderPaste), 'the older 250,000-byte paste must not survive in full into the messages sent to the model')
   check(olderUserMsg.content.length < 8200, 'the older paste must be clipped down to roughly 8,000 characters')
-  check(olderUserMsg.content.includes('document shared earlier in the conversation'), 'the clipped older paste must carry the explanatory notice')
+  check(/[Ll]ong document/.test(olderUserMsg.content), 'the clipped older paste must carry the explanatory notice')
   check(assistantMsg.content === history[1].content, 'a short assistant turn between the two pastes must be untouched')
   check(currentUserMsg.content.includes(currentPaste), 'the current turn\'s 250,000-byte paste must be sent to the model in full, not clipped')
 }

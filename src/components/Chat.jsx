@@ -157,6 +157,19 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const [fileBusy, setFileBusy] = useState(false)
   const [fileErr, setFileErr] = useState(null)
   const fileInputRef = useRef()
+  // The exact text blocks this turn's attachments contributed to the input
+  // box, so send() can subtract them and tell the server which part of the
+  // message the PERSON actually typed. That distinction only matters for one
+  // thing, and it matters a lot: the crisis-safety scan. The trigger list is
+  // narrow, but a document can carry it in someone else's words -- the
+  // clearest real case being a job posting for a crisis line or a
+  // mental-health nonprofit, where "suicide prevention" is the employer's
+  // own copy. Someone attaching that and typing "can you summarize this"
+  // should not get a mental-health pointer plus a session-long hold on
+  // Coach's own offers. Pasted text is deliberately NOT tracked here -- it is
+  // indistinguishable from typing, so it keeps being scanned exactly as it
+  // is today. Over-reacting to a paste is the safer error.
+  const attachedBlocksRef = useRef([])
   // Save-to-opportunity (PR-5, item I): transient per-reply UI state for the Copy
   // and "Save to this opportunity" actions. The save itself goes through the app
   // (onSaveNote -> setSavedPlaybooks); this component never writes.
@@ -706,6 +719,17 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     if (isSilentTurn) { if (loading || sendLockRef.current) return } else if (!text || loading || sendLockRef.current) return
     sendLockRef.current = true
     const userMsg = { role: 'user', content: text }
+    // What the person typed around this turn's attachments, for the
+    // crisis-safety scan only (see attachedBlocksRef). Sent ONLY when this
+    // turn actually carries an attachment; otherwise the field is absent and
+    // the server scans the whole message exactly as it does today. An empty
+    // string is meaningful and must still be sent: it says they attached a
+    // file and typed nothing, which is not the same as not attaching at all.
+    const attachedBlocks = attachedBlocksRef.current
+    const typedText = attachedBlocks.length
+      ? attachedBlocks.reduce((acc, b) => acc.split(b).join(''), text).trim()
+      : null
+    attachedBlocksRef.current = []
     // (sendRef is refreshed just below so the seed effect can call the latest send.)
     const historyAtSend = messages
     if (isSilentTurn) {
@@ -732,6 +756,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         signal: controller.signal,
         body: JSON.stringify({
           ...(postCaptureUpdate ? { postCaptureUpdate } : (silent ? { sessionOpen: true } : { message: userMsg.content })),
+          ...(typedText === null || isSilentTurn ? {} : { typedText }),
           history: historyAtSend,
           currentStep,
           // The person's own local timezone offset (My Coach review, finding
@@ -1640,7 +1665,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             setFileBusy(true); setFileErr(null)
             try {
               const t = await extractText(f)
-              setInput(prev => (prev ? prev.trim() + '\n\n' : '') + t)
+              // "Attached: <filename>" leads the block so the person's own
+              // words for it ("my Deloitte notes") are in the text Coach
+              // reads, rather than a wall of transcript with no title.
+              const block = `Attached: ${f.name}\n${t}`
+              attachedBlocksRef.current = [...attachedBlocksRef.current, block]
+              setInput(prev => (prev ? prev.trim() + '\n\n' : '') + block)
             } catch (err) {
               setFileErr(`Could not read ${f.name}: ${err.message}`)
             } finally {

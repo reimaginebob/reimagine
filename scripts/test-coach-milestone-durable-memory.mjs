@@ -60,7 +60,13 @@ check(/profileBlock \+= buildAlreadyMentionedBlock\(inFocus\.id, milestoneMentio
 // -- both needed by the handler to read history in and write a new mention
 // back out, scoped to the SAME record the prompt was actually built for
 // (not re-derived, which could drift from what buildCoachRequest resolved).
-check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,60}\}\) \{/.test(coach),
+// The trailing window was 60 characters when this was written and the
+// signature ended two parameters after milestoneMentions. It has grown since
+// (turnKind, tzOffsetMinutes, then recentDocuments/nowMs for the 2026-09-17
+// documents block), so the bound is widened rather than the signature
+// reshaped to fit it -- what this check is actually for is that
+// milestoneMentions is still a parameter, not where it sits in the list.
+check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,200}\}\) \{/.test(coach),
   `${COACH}: buildCoachRequest does not accept milestoneMentions as a parameter`)
 check(coach.includes("return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }"),
   `${COACH}: buildCoachRequest does not return inFocusRecordId`)
