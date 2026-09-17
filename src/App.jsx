@@ -45,6 +45,7 @@ import { recordLocalFailure, buildDiagnosticsPayload } from "./support-trail.js"
 import { useVersionCheck } from "./version-check"
 import { useIsMobile } from "./use-is-mobile.js"
 import { extractText } from "./extract-text.js"
+import { clipChatHistoryForStorage } from "./chat-history-clip.js"
 import Staircase from "./components/Staircase"
 import { STEPS, nextSteps as computeNextSteps, activeOpportunities, stepPosition } from "./step-position.js"
 import Chat, { INTRO_MSG } from "./components/Chat"
@@ -10075,7 +10076,7 @@ export default function PivotEngine(){
   // grandfathered users are not force-re-accepted on an unrelated document).
   useEffect(()=>{if(!signedInUser)return;const needsPrivacy=signedInUser.privacy_version!==PRIVACY_VERSION_MATERIAL;const needsTerms=signedInUser.terms_version!=null&&signedInUser.terms_version!==TOS_VERSION_MATERIAL;if(needsPrivacy||needsTerms)setReaccept({needsPrivacyReaccept:needsPrivacy,needsTermsReaccept:needsTerms})},[signedInUser])
   useEffect(()=>{if(isDemo||isTest)return;try{if(localStorage.getItem('pe_has_signed_in_before')==='true')return;const dismissed=localStorage.getItem('pe_migration_dismissed')==='true';const r=localStorage.getItem('pe_v4');if(!dismissed&&r){const d=JSON.parse(r);const hasProgress=d&&((d.profile&&d.profile.resume&&d.profile.resume.length>0)||(d.outputs&&Object.values(d.outputs).some(v=>v&&v.length>0)));if(hasProgress)setMigrationOpen(true)}}catch{}},[])
-  useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(chatMessages.slice(-50)))}catch{}},[chatMessages])
+  useEffect(()=>{try{localStorage.setItem('reimagine_chat_history',JSON.stringify(clipChatHistoryForStorage(chatMessages.slice(-50))))}catch{}},[chatMessages])
   useEffect(()=>{setShowPulse(false);const t=setTimeout(()=>setShowPulse(true),90000);return()=>clearTimeout(t)},[step])
   // Coach-as-Concierge onboarding narration (2026-09-04, next_step-adjacent
   // pilot gated on its own flag — see hasOnboardingConcierge above), first
