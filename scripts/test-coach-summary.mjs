@@ -453,9 +453,131 @@ check(/rid: coachSaveTarget\.id/.test(chat),
 }
 
 
+
+// --- 10. Cross-opportunity PERSON reference (2026-09-18, second finding) --
+// Same live test session: three turns into a GoGuardian conversation, an
+// ordinary reply -- not a summary -- referred to "the framing we worked
+// through for Susan". Susan is the recruiter on DELOITTE's interview team,
+// and appears exactly once in that account's data, nowhere near GoGuardian.
+//
+// Different input from finding 9, and worth being precise about: Susan does
+// not reach the model through the transcript. MY PIPELINE -- CURRENT STATUS
+// is rebuilt on every turn from the pipeline records and carries EVERY open
+// opportunity's interview team, names and all, with an instruction to use a
+// person's name without being told again. That instruction is deliberate (a
+// coach that asks "who is Marisol?" about someone you already described is
+// worse than one that does not), and it is why Clear would not have fixed
+// this: a brand-new conversation still has Susan in the prompt.
+//
+// So the fix is a binding rule in that same block, and this measures whether
+// it holds. Measurement only -- nothing alters the reply.
+
+const { opportunityPeopleByRecord, replyNamesOtherOpportunityPerson } = await import('../api/coach.js')
+
+const SAVED_WITH_PEOPLE = [
+  {
+    id: GOGUARDIAN, source: 'door2', title: 'GoGuardian · Director, Human Resources', company: 'GoGuardian',
+    panel: { interviewers: [{ name: 'Marcus Webb', title: 'VP People' }] },
+  },
+  {
+    id: DELOITTE, source: 'door2', title: 'Deloitte · Manager, Organization', company: 'Deloitte',
+    panel: { interviewers: [{ name: 'Susan Reyes', title: 'Recruiter' }, { name: 'Julie Tran', title: 'Hiring Manager' }] },
+  },
+  { id: 'rec-d1', source: 'door1', title: 'Head of People', panel: { interviewers: [{ name: 'Nobody Here' }] } },
+]
+
+{
+  const groups = opportunityPeopleByRecord(SAVED_WITH_PEOPLE)
+  check(groups.length === 2, `people: expected two door2 rosters, got ${groups.length} -- a Career Paths record has no interview team to speak of`)
+  const del = groups.find(g => g.id === DELOITTE)
+  check(!!del && del.names.includes('Susan Reyes'), 'people: Deloitte\'s roster does not carry Susan')
+  check(!groups.some(g => g.id === 'rec-d1'), 'people: a door1 record was included')
+}
+{
+  const groups = opportunityPeopleByRecord(SAVED_WITH_PEOPLE)
+  // The reported reply, on GoGuardian.
+  check(replyNamesOtherOpportunityPerson('That builds on the framing we worked through for Susan.', groups, GOGUARDIAN) === 'Susan',
+    'cross-ref: the reported Susan reference on a GoGuardian turn is not detected')
+  // The same sentence while Deloitte IS in focus is correct, not a leak.
+  check(replyNamesOtherOpportunityPerson('That builds on the framing we worked through for Susan.', groups, DELOITTE) === null,
+    'cross-ref: naming Susan while Deloitte is in focus is flagged -- that is the whole point of carrying the roster')
+  check(replyNamesOtherOpportunityPerson('Marcus will want to see that.', groups, GOGUARDIAN) === null,
+    'cross-ref: naming GoGuardian\'s own interviewer on a GoGuardian turn is flagged')
+  check(replyNamesOtherOpportunityPerson('Six rounds of layoffs is the thing to ask about.', groups, GOGUARDIAN) === null,
+    'cross-ref: a reply naming nobody is flagged')
+  check(replyNamesOtherOpportunityPerson('', groups, GOGUARDIAN) === null, 'cross-ref: an empty reply reports a match')
+  check(replyNamesOtherOpportunityPerson('anything', [], GOGUARDIAN) === null, 'cross-ref: no rosters, no possible match')
+}
+{
+  // A person on BOTH rosters is not a cross-reference -- the same recruiter
+  // can genuinely be on two loops.
+  const shared = [
+    { id: 'a', source: 'door2', title: 'A', panel: { interviewers: [{ name: 'Susan Reyes' }] } },
+    { id: 'b', source: 'door2', title: 'B', panel: { interviewers: [{ name: 'Susan Reyes' }] } },
+  ]
+  check(replyNamesOtherOpportunityPerson('Susan said so', opportunityPeopleByRecord(shared), 'a') === null,
+    'cross-ref: a person on both opportunities is flagged as a leak -- they are legitimately on both')
+}
+{
+  // Precision guards. This number is only useful if it is not inflated.
+  const stop = [
+    { id: 'a', source: 'door2', title: 'A', panel: { interviewers: [{ name: 'Bob Smith' }] } },
+    { id: 'b', source: 'door2', title: 'B', panel: { interviewers: [{ name: 'Grace Hall' }, { name: 'Mark Lee' }, { name: 'Jo Diaz' }] } },
+  ]
+  const groups = opportunityPeopleByRecord(stop)
+  check(replyNamesOtherOpportunityPerson('that role is a real grace note', groups, 'a') === null,
+    'cross-ref: "Grace" matched an ordinary word -- the rate would be inflated by false positives')
+  check(replyNamesOtherOpportunityPerson('worth a mark against it', groups, 'a') === null,
+    'cross-ref: "Mark" matched an ordinary word')
+  check(replyNamesOtherOpportunityPerson('jo is not enough to go on', groups, 'a') === null,
+    'cross-ref: a name under four characters is matched -- far too loose')
+}
+
+// --- the wiring, in source ----------------------------------------------
+check(/EVERY PERSON NAMED ABOVE BELONGS TO THE ONE OPPORTUNITY THEY ARE LISTED UNDER/.test(coach),
+  `${APIC}: the pipeline block does not bind a person to the opportunity they are listed under -- the instruction still tells the model to use names freely with nothing saying a name cannot travel`)
+check(/a name never travels between them/.test(coach),
+  `${APIC}: the binding rule does not forbid carrying a name across opportunities`)
+// The names must STAY. Stripping them would reintroduce the failure that
+// block exists to prevent (a coach asking who someone is).
+check(/interview team they have already told you about/.test(coach),
+  `${APIC}: interview-team names were removed from the pipeline block -- that brings back the "who is Marisol?" failure, which is worse than the leak`)
+check(coach.includes("replyNamesOtherOpportunityPerson(strippedText, peopleByRecord, inFocusRecordId)"),
+  `${APIC}: the cross-reference measurement does not run against the reply`)
+check(coach.includes("'coach_person_cross_reference'"),
+  `${APIC}: the cross-reference is not recorded, so its rate is invisible and there is no evidence to escalate on`)
+{
+  // Measured, never corrected: this must not touch the reply.
+  const i = coach.indexOf("'coach_person_cross_reference'")
+  const block = coach.slice(Math.max(0, i - 900), i + 500)
+  check(!/strippedText =|coachSummaryOffer = null/.test(block),
+    `${APIC}: the cross-reference measurement alters the reply -- it is a measurement, and suppressing or rewriting a whole chat turn over one name is far too blunt`)
+  check(!/\$\{named\}|\$\{first\}/.test(block),
+    `${APIC}: the cross-reference log interpolates the person's name -- that is somebody this person typed onto their own interview team, which never goes in support_events`)
+}
+check(fs.readFileSync(SE, 'utf8').includes("'coach_person_cross_reference'"),
+  `${SE}: the new kind is not registered, so recordSupportEvent refuses the write and the rate is never collected`)
+
+// --- 11. The read-only scan for notes written before the fix -------------
+const SCAN = 'api/admin/note-scope-scan.js'
+check(fs.existsSync(SCAN), `${SCAN}: the stale-note scan is missing`)
+const scan = fs.existsSync(SCAN) ? fs.readFileSync(SCAN, 'utf8') : ''
+check(/checkAdminAuth/.test(scan) && /adminLoginEmailsMissing/.test(scan),
+  `${SCAN}: not behind the same admin auth every other admin control uses`)
+check(/req\.method !== 'GET'/.test(scan), `${SCAN}: missing the GET-only method guard`)
+// The whole point: it reports, it never edits.
+check(!/UPDATE |DELETE |INSERT /.test(scan),
+  `${SCAN}: the scan writes to the database -- it must be read-only. These notes are content the person accepted with a tap, a match is a signal rather than a verdict, and a wrong delete cannot be undone`)
+check(/summaryNamesOtherOpportunity/.test(scan) && /otherOpportunityNames/.test(scan),
+  `${SCAN}: the scan does not reuse the same detector that now gates this at write time -- two copies would drift into disagreeing about what counts`)
+check(/source === 'door2'/.test(scan), `${SCAN}: the scan does not restrict to opportunities`)
+check(/< 2/.test(scan),
+  `${SCAN}: the scan does not skip accounts with fewer than two opportunities -- one opportunity cannot cross-reference anything`)
+
+
 if (failures) {
   console.error(`test-coach-summary: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; the capability is documented in the GA user-guide chapter with the pilot knowledge file retired; and a conversation spanning two opportunities scopes the summary to one of them, floors the unprompted offer at three turns, and suppresses any summary that names another open opportunity)')
+  console.log('test-coach-summary: OK (GA to every signed-in account and nobody signed out, with the flag string no longer consulted on either side; the proactive half of the instruction exists only while the 24-hour window is open and the model is never asked to compute that window itself; the one-time "you can just ask" sentence rides the first firing only; both kinds end in a tap and the instruction forbids claiming the write; the offer sits in the pipeline-fact arbitration tier; a rendered offer closes the window whether it is accepted, declined or ignored; the write reuses the existing notes path; the capability is documented in the GA user-guide chapter with the pilot knowledge file retired; and a conversation spanning two opportunities scopes the summary to one of them, floors the unprompted offer at three turns, and suppresses any summary that names another open opportunity; a reply naming a person from a different opportunity\'s interview team is measured without altering the reply; and the read-only scan for notes written before the fix reuses the same detector and never writes)')
 }

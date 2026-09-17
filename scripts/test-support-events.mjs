@@ -118,9 +118,9 @@ for (const kind of SUPPORT_EVENT_KINDS) {
 // count, because what matters is that this stays a short, deliberate allowlist
 // -- a kind that is not here cannot be written at all, which is the property
 // that keeps this table from becoming a general log.
-check(SUPPORT_EVENT_KINDS.length === 5,
+check(SUPPORT_EVENT_KINDS.length === 6,
   `SUPPORT_EVENT_KINDS has ${SUPPORT_EVENT_KINDS.length} kinds -- adding one is a deliberate act, so update this test along with it`)
-for (const k of ['generation_failed', 'coach_failed', 'client_crash', 'save_failed', 'coach_summary_scope_bleed']) {
+for (const k of ['generation_failed', 'coach_failed', 'client_crash', 'save_failed', 'coach_summary_scope_bleed', 'coach_person_cross_reference']) {
   check(SUPPORT_EVENT_KINDS.includes(k), `SUPPORT_EVENT_KINDS is missing ${k}`)
 }
 
@@ -176,11 +176,13 @@ const coach = fs.readFileSync('api/coach.js', 'utf8')
 check(/import \{ recordSupportEvent \} from '\.\/_lib\/support-events\.js'/.test(coach),
   'api/coach.js: recordSupportEvent is not imported')
 const coachCalls = (coach.match(/recordSupportEvent\(/g) || []).length
-check(coachCalls === 3,
-  `api/coach.js: expected 3 recordSupportEvent calls (the upstream-error branch, the 429 turn-cap branch, and the suppressed cross-opportunity summary), found ${coachCalls}`)
+check(coachCalls === 4,
+  `api/coach.js: expected 4 recordSupportEvent calls (the upstream-error branch, the 429 turn-cap branch, the suppressed cross-opportunity summary, and the cross-opportunity person reference), found ${coachCalls}`)
 // The new one is not a failure the person saw, so it must not claim to be one.
 check(/'coach_summary_scope_bleed'/.test(coach),
   'api/coach.js: the suppressed-summary event does not use its own kind')
+check(/'coach_person_cross_reference'/.test(coach),
+  'api/coach.js: the cross-opportunity person reference does not use its own kind -- it is a measurement, not a failure, and must not be counted as one')
 {
   // No user content in the row: the name that matched is a company from this
   // person's own pipeline (CLAUDE.md section 8, no exceptions).

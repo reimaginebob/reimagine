@@ -583,6 +583,69 @@ export function otherOpportunityNames(activeSaved, inFocus) {
   return out
 }
 
+// Every person this account has named on an interview team, grouped by the
+// opportunity they belong to (2026-09-18). Used ONLY to measure how often a
+// reply about one opportunity names somebody from another -- see
+// replyNamesOtherOpportunityPerson.
+export function opportunityPeopleByRecord(activeSaved) {
+  const out = []
+  for (const r of (Array.isArray(activeSaved) ? activeSaved : [])) {
+    if (!r || !r.id || r.source !== 'door2') continue
+    const ivs = (r.panel && Array.isArray(r.panel.interviewers)) ? r.panel.interviewers : []
+    const names = []
+    for (const iv of ivs) {
+      const nm = (iv && typeof iv.name === 'string') ? iv.name.trim() : ''
+      if (nm) names.push(nm)
+    }
+    if (names.length) out.push({ id: r.id, names })
+  }
+  return out
+}
+
+// First names that are also ordinary English words. Matching on these would
+// turn "that role is a real grace note" into a cross-reference, and since the
+// point of this detector is a RATE Bob can act on, a number inflated by
+// false positives is worse than a number that misses a few. Precision over
+// recall, deliberately.
+const PERSON_NAME_STOPWORDS = new Set([
+  'will', 'mark', 'bill', 'grace', 'hope', 'rose', 'april', 'may', 'june',
+  'art', 'dawn', 'faith', 'joy', 'drew', 'frank', 'rich', 'sky', 'summer',
+  'autumn', 'chance', 'chase', 'penny', 'rusty', 'sunny', 'daisy', 'holly',
+])
+
+// Is this reply, written while ONE opportunity is in focus, naming a person
+// who belongs to a different one? Structured-data check: interview-team names
+// are typed per opportunity, so this needs no guessing about what the reply
+// meant -- only whether a name that belongs elsewhere turned up here.
+//
+// A name shared by both opportunities is never a cross-reference: two rosters
+// can legitimately contain the same person, and flagging that would be wrong.
+export function replyNamesOtherOpportunityPerson(text, peopleByRecord, inFocusId) {
+  const body = typeof text === 'string' ? text : ''
+  if (!body.trim()) return null
+  const groups = Array.isArray(peopleByRecord) ? peopleByRecord : []
+  const mine = new Set()
+  for (const g of groups) {
+    if (!g || g.id !== inFocusId) continue
+    for (const n of g.names) for (const tok of n.toLowerCase().split(/\s+/)) mine.add(tok)
+  }
+  for (const g of groups) {
+    if (!g || !g.id || g.id === inFocusId) continue
+    for (const name of g.names) {
+      // The distinctive token: the full name when it is one word, otherwise
+      // the first name, which is what a coach actually says out loud.
+      const first = name.split(/\s+/)[0] || ''
+      const key = first.toLowerCase()
+      if (first.length < 4) continue
+      if (PERSON_NAME_STOPWORDS.has(key)) continue
+      if (mine.has(key)) continue
+      const re = new RegExp(`(^|[^A-Za-z0-9])${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9]|$)`, 'i')
+      if (re.test(body)) return first
+    }
+  }
+  return null
+}
+
 // Does this reply name an opportunity it has no business naming? The last line
 // of defence behind the scope instruction: a summary is about to be written
 // into ONE opportunity's notes, so another opportunity's name appearing in it
@@ -1328,7 +1391,7 @@ function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
   const mapNote = detailed
     ? ` Each opportunity also lists what is BUILT on it and what is NOT BUILT YET, by the name the card carries. Use those names exactly -- a section called something else sends them hunting for a card that is not there. Answer "how am I set up for X" from this: what exists, what does not, and what would help most next, without asking them what they have built. NEVER turn it into a number: no "two of six", no fraction, no percentage, no "halfway", no ranking of one opportunity against another, and never call an opportunity incomplete or behind. An unbuilt section is something available to them, never something they failed to do. Offer the one that would actually help the situation in front of them rather than listing everything absent.`
     : ''
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. EVERY PERSON NAMED ABOVE BELONGS TO THE ONE OPPORTUNITY THEY ARE LISTED UNDER, and a name never travels between them: while you are talking about one opportunity, do not name, allude to, or reason from a person listed under a different one, and never describe something worked through on one opportunity as though it happened on another. Two opportunities can look alike -- same seniority, same kind of team, overlapping worries -- and that is exactly when a name slides across and lands the person's recruiter from one company inside a conversation about a different one. If you cannot place which opportunity a person belongs to, leave the name out and say the thing without it. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
 }
 
 // FOCUS PLAYBOOKS — what is built in each (Your Next Step pilot, 2026-09-02).
@@ -2339,6 +2402,10 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // Other opportunities' names, for the post-hoc summary contamination check
   // in the handler. Resolved here because this is where activeSaved lives.
   let summaryOtherNames = []
+  // Interview-team names grouped by opportunity, for the cross-reference
+  // measurement in the handler. Same reason as summaryOtherNames: activeSaved
+  // lives here.
+  let peopleByRecord = []
   // Coach engine guardrails, rule 4: the Situation block's own footprint,
   // tracked separately from profileBlock's total (which also carries
   // capture notes and other content that is not Situation). Accumulates
@@ -2356,6 +2423,9 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
       if (expansion) { profileBlock += '\n\n' + expansion; situationBlockChars += expansion.length }
       profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
       profileBlock += buildCloseReasonAlreadyLoggedBlock(inFocus.id, closeReasons)
+      // Not gated on the summary feature: this measures ordinary replies, and
+      // the leak it looks for predates summaries entirely.
+      peopleByRecord = opportunityPeopleByRecord(activeSaved)
       // Summary to notes (COACHSUMMARY, 2026-09-17). Lives here rather than
       // beside the other capture notes in buildCoachProfileSlice for one
       // reason: it only makes sense with a specific opportunity resolved, and
@@ -2549,7 +2619,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
         { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
       ]
 
-  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames }
+  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames, peopleByRecord }
 }
 
 export default async function handler(req, res) {
@@ -2880,7 +2950,7 @@ export default async function handler(req, res) {
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
   // known here at write-time — no classifier. Classified attributes are NOT
   // computed here; the nightly job (api/admin/classify-coach.js) fills those.
-  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames } = buildCoachRequest({
+  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames, peopleByRecord } = buildCoachRequest({
     message, history, currentStep, surface, returnSection,
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     situation: req.body && req.body.situation && typeof req.body.situation === 'object' ? req.body.situation : null,
@@ -3136,6 +3206,32 @@ export default async function handler(req, res) {
   // declining to file it. The person can ask again, and nothing wrong gets
   // saved in the meantime. Logged per account so the rate is visible -- if
   // this fires often, the instruction needs work rather than the guard.
+  // Cross-opportunity person reference (2026-09-18, second live finding).
+  // A reply about one opportunity naming somebody from another opportunity's
+  // interview team -- reported live, where a GoGuardian turn referred to
+  // "the framing we worked through for Susan", Deloitte's recruiter.
+  //
+  // Measured, not corrected. The names themselves are in the prompt on
+  // purpose (MY PIPELINE carries every opportunity's team so the coach never
+  // has to ask who someone is), and the fix is the binding rule in that same
+  // block. This says how often the rule fails to hold. A chat reply is
+  // ephemeral and plainly wrong to the person reading it, unlike a note that
+  // gets written -- so nothing here alters the reply. If this rate turns out
+  // to be meaningful, the escalation is the regenerate-once path the voice
+  // gate already runs, decided on the evidence rather than ahead of it.
+  if (inFocusRecordId && Array.isArray(peopleByRecord) && peopleByRecord.length > 1) {
+    try {
+      if (replyNamesOtherOpportunityPerson(strippedText, peopleByRecord, inFocusRecordId)) {
+        await recordSupportEvent(user.id, 'coach_person_cross_reference', {
+          step: currentStep || null,
+          build_sha: turnBuildSha,
+          // Content-free: the name that matched is somebody this person typed
+          // onto their own interview team (CLAUDE.md section 8).
+          detail: 'reply named a person from a different opportunity',
+        })
+      }
+    } catch { /* measurement must never cost the reply */ }
+  }
   if (coachSummaryOffer && Array.isArray(summaryOtherNames) && summaryOtherNames.length) {
     const bleed = summaryNamesOtherOpportunity(strippedText, summaryOtherNames)
     if (bleed) {
