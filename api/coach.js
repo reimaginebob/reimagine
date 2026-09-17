@@ -570,6 +570,23 @@ export function sanitizeHistoryForModel(history) {
   })
 }
 
+// Follow-up to the 300,000-byte paste cap (PR #968) and the file-upload GA
+// (PR #969): raising what a single turn can send did nothing to limit how
+// long that content keeps riding along afterward. A large paste or an
+// attached document's extracted text lands in one user turn, and from then
+// on it sits in `history` at full size on every subsequent turn until it
+// ages out of the 50-message window -- repeatedly re-sending the same large
+// block of text long after the conversation has moved on. This clips any
+// message already in `history` (the turns preceding the one being answered
+// right now, which is built and appended separately, always in full) down
+// to its first 8,000 characters plus a short notice once it is no longer
+// the most recent thing said.
+export const HISTORY_MESSAGE_CLIP_CHARS = 8000
+export function clipOlderHistoryMessage(content) {
+  if (typeof content !== 'string' || content.length <= HISTORY_MESSAGE_CLIP_CHARS) return content
+  return content.slice(0, HISTORY_MESSAGE_CLIP_CHARS) + '\n\n[The rest of this message was a document shared earlier in the conversation.]'
+}
+
 // Prelaunch audit, finding #2.2: a Coach message had no length limit at all.
 // Measured in bytes (not characters), since a multi-byte-heavy paste could be
 // well within a character-count cap while still being a multi-megabyte
@@ -2133,7 +2150,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // is unaffected by what the model itself is shown.
   const conversationalHistory = sanitizeHistoryForModel(history)
   const messages = [
-    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: m.content })),
+    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: clipOlderHistoryMessage(m.content) })),
     { role: 'user', content: message + contextNote },
   ]
 
