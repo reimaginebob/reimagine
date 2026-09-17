@@ -1,16 +1,24 @@
-// Read-only view of direct Career Club donations for the "Direct donations
-// (Stripe)" block of the Economics tab (/admin/dashboard). Deliberately a
-// separate endpoint from api/admin/economics.js -- donations (career.club
-// Stripe account, acct_1IQLNEK4uJoqzRSd) are a different revenue stream from
-// NextPlacement and the paying-customer economics numbers (users.paying_since,
-// economics_inputs), and CLAUDE.md's "never blend two measurements into one
-// number" rule applies here the same as everywhere else.
-// See Output/handoff/2026-09-16_direct-donation-tracking.md.
+// Read-only view of direct Career Club donations for the "Direct donations"
+// block of the Economics tab (/admin/dashboard). Deliberately a separate
+// endpoint from api/admin/economics.js -- donations (career.club Stripe
+// account, acct_1IQLNEK4uJoqzRSd, plus PayPal since 2026-09-17) are a
+// different revenue stream from NextPlacement and the paying-customer
+// economics numbers (users.paying_since, economics_inputs), and CLAUDE.md's
+// "never blend two measurements into one number" rule applies here the same
+// as everywhere else.
+// See Output/handoff/2026-09-16_direct-donation-tracking.md and
+// Output/handoff/2026-09-17_paypal-commerce-integration.md.
 //
-// Data comes from the `donations` table (migrations/2026-09-16_donations.sql),
-// written by api/webhooks/stripe.js as Stripe events arrive. Nothing here
-// calls Stripe directly, and there is no snapshot table -- computed live on
-// each request, same as economics.js.
+// Data comes from the `donations` table (migrations/2026-09-16_donations.sql,
+// migrations/2026-09-17_donations-paypal-provider.sql), written by
+// api/webhooks/stripe.js and api/webhooks/paypal.js as events arrive from
+// each provider. Nothing here calls either provider's API directly, and
+// there is no snapshot table -- computed live on each request, same as
+// economics.js. A donor's `providers` lists every provider they have ever
+// given through (usually one); `lifetime_cents`/`donation_count` are still
+// blended across providers, same as they were blended across one-time and
+// recurring Stripe gifts before this change -- that was already true and
+// is not a new blend this brief introduces.
 //
 // Auth: same as economics.js (api/_lib/admin-auth.js).
 
@@ -68,14 +76,15 @@ async function loadPayload() {
   const donorRows = await sql`
     WITH first_donation AS (
       SELECT reimagine_user_id,
-             MIN(donated_at)           AS first_donated_at,
-             SUM(amount_cents)::bigint AS lifetime_cents,
-             COUNT(*)::int             AS donation_count
+             MIN(donated_at)             AS first_donated_at,
+             SUM(amount_cents)::bigint   AS lifetime_cents,
+             COUNT(*)::int               AS donation_count,
+             array_agg(DISTINCT provider) AS providers
       FROM donations
       WHERE reimagine_user_id IS NOT NULL
       GROUP BY reimagine_user_id
     )
-    SELECT u.email, u.created_at, fd.first_donated_at, fd.lifetime_cents, fd.donation_count,
+    SELECT u.email, u.created_at, fd.first_donated_at, fd.lifetime_cents, fd.donation_count, fd.providers,
            GREATEST(0, EXTRACT(EPOCH FROM (fd.first_donated_at - u.created_at)))::float8 AS gap_seconds
     FROM first_donation fd
     JOIN users u ON u.id = fd.reimagine_user_id
@@ -103,6 +112,7 @@ async function loadPayload() {
       gap_days: gapDays,
       lifetime_cents: num(d.lifetime_cents),
       donation_count: num(d.donation_count),
+      providers: Array.isArray(d.providers) ? d.providers : [],
     }
   })
 

@@ -4,9 +4,11 @@
 // not want who gave or what they were doing on the site beforehand.
 //
 // No new capture. The donor-matching decision (PR #954, 2026-09-16 --
-// migrations/2026-09-16_donations.sql) already ties a Stripe gift to
-// `donations.reimagine_user_id`, and `users.created_at` already exists for
-// every account. This is a query against data already sitting there.
+// migrations/2026-09-16_donations.sql) already ties a gift to
+// `donations.reimagine_user_id` the same way regardless of provider
+// (Stripe, or PayPal since 2026-09-17 -- Output/handoff/2026-09-17_
+// paypal-commerce-integration.md), and `users.created_at` already exists
+// for every account. This is a query against data already sitting there.
 //
 // Deliberately a SEPARATE endpoint from api/admin/donations.js rather than
 // an extra field on it: donations.js's job is the per-donor ledger (email,
