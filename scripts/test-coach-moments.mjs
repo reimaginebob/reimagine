@@ -92,7 +92,14 @@ check(evalIdx !== -1, `${APP}: the Moments evaluator loop is missing`)
 // Interview-close, direction-resume-jump targets) sits between stallEligible
 // and the ctx object itself, ahead of evalIdx -- pushing the backward edge
 // well past the old -2400 edge.
-const evalBlock = evalIdx !== -1 ? app.slice(evalIdx - 12500, evalIdx + 5600) : ''
+// The FORWARD edge is now bounded by the evaluator's own dependency array
+// rather than a byte count (2026-09-17): it had been widened three times
+// already, and every comment added inside the effect broke it again. The
+// backward edge is still a count -- it covers ctx computation that has no
+// single reliable start marker.
+const evalEnd = evalIdx === -1 ? -1 : app.indexOf('},[step,signedInUser,hasOnboardingConcierge,hasIndustryEcosystemView', evalIdx)
+check(evalIdx === -1 || evalEnd > evalIdx, `${APP}: could not find the Moments evaluator's closing dependency array`)
+const evalBlock = evalIdx !== -1 && evalEnd > evalIdx ? app.slice(evalIdx - 12500, evalEnd) : ''
 // The old quiet-states early return is retired (batch item 1.1.4/1.1.7,
 // 2026-09-10): it used to block the WHOLE evaluator from running, which was
 // also the significance bug (observed B4, confirmed L8/L9) -- an ordinary

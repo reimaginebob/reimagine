@@ -23,8 +23,12 @@ check(chat.includes('signal: controller.signal,'),
 // connection and overwrite the partial reply with an apology.
 check(chat.includes("} catch (err) {\n      if (err && err.name === 'AbortError') {"),
   `${CHAT}: the catch block no longer distinguishes AbortError from a real failure`)
-check(chat.includes('if (last && last.role === \'assistant\' && !last.content) return m.slice(0, -1)'),
-  `${CHAT}: the abort branch no longer cleans up an empty placeholder -- stopping before any text streamed back would leave a blank bubble forever`)
+// Addressed by turnId since 2026-09-17 (the conversation-hold PR): dropping
+// "the last message" would delete an unprompted Coach message that happened to
+// arrive between the Stop click and this cleanup, instead of this turn's own
+// empty bubble. See scripts/test-coach-conversation-hold.mjs.
+check(chat.includes("const i = m.findIndex(x => x && x.turnId === turnId)\n          if (i === -1) return m\n          const last = m[i]\n          if (last.role === 'assistant' && !last.content) return [...m.slice(0, i), ...m.slice(i + 1)]"),
+  `${CHAT}: the abort branch no longer cleans up its own empty placeholder by turnId -- stopping before any text streamed back would leave a blank bubble forever, or would drop somebody else's message`)
 check(chat.includes("} else if (!isSilentTurn) {\n        // A silent turn (session-open or post-capture) never pushed a"),
   `${CHAT}: the real-failure branch (the pre-existing fallback message) is no longer gated behind the AbortError check`)
 check(chat.includes('abortRef.current = null\n      setLoading(false)'),

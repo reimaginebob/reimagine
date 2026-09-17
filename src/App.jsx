@@ -8193,6 +8193,100 @@ export default function PivotEngine(){
   const[coachMoments,setCoachMoments]=useState({})
   const momentFiredRef=useRef(new Set())
   const momentFetchingRef=useRef({}) // Phase 2b: in-flight guard for generated (model-reaction) moments, keyed the same way as coachMoments' sub-keys -- see fireMoment below.
+  // --- The conversation hold (2026-09-17, Bob live-test finding) -----------
+  // Unprompted Coach messages -- per-step narration, the check-ins, catalog
+  // moments, the thinness prompts, the disclosures -- used to land in the
+  // middle of a live back-and-forth and read as Coach talking over the person
+  // instead of listening to them. The Moments evaluator's own turn-pacing
+  // gate below was satisfied by ANY typed message, so one real answer
+  // re-opened the floodgate for every unprompted surface at once.
+  //
+  // Two gates, both applied through claimUnpromptedSlot:
+  //
+  //   1. THE HOLD. Stay quiet while the person is mid-conversation: a reply
+  //      still streaming, text sitting half-typed in the composer, or a real
+  //      message sent inside the last ACTIVE_CONVERSATION_WINDOW_MS. "Real"
+  //      means a typed turn -- a quick-reply tap is synthetic and carries no
+  //      `at` stamp, so tapping an offer does not itself buy silence. A
+  //      message with no `at` at all is pre-fix history and counts as NOT
+  //      active, so an old transcript can never hold Coach silent forever.
+  //
+  //   2. THE PER-VISIT CAP. At most UNPROMPTED_PER_VISIT_CAP unprompted
+  //      messages per arrival at a screen, so nobody is walked through a
+  //      queue of everything that was waiting for them the moment they land.
+  //      A "visit" is one `step` arrival (the counter resets below), the same
+  //      unit focusVisitCounts already uses -- not the whole login session,
+  //      which would silence the Moments engine for anyone working for an
+  //      hour across many screens.
+  //
+  // Held means DROPPED, not queued. Every call site checks this BEFORE
+  // writing its own fired/seen flag, so nothing one-shot is burned on a
+  // message that never arrived and the next pass -- a navigation, a section
+  // change, the next evaluator tick, the next time the panel is opened --
+  // gets to make the same decision again. There is deliberately NO timer that
+  // releases a held message on its own: a message that arrives because a
+  // clock ran out is the same interruption arriving late. The one thing this
+  // really does drop for good is a per-field orientation reaction
+  // (fireOrientationCheck, called from doAdvance and nowhere else) -- a
+  // reaction to a screen the person has already left is worth less than the
+  // silence, so that is the intended trade, not an oversight.
+  //
+  // Exempt from BOTH gates, by key: the three panel-lifecycle entries that
+  // EXPLAIN a gesture the person just made (coach-intro on first arrival,
+  // coach-minimize-intro on the first minimize, coach-self-open-explained on
+  // the first self-open). Those answer an action rather than interrupting a
+  // conversation, and swallowing them would leave the panel behaving
+  // unexplainably.
+  //
+  // Exempt from the CAP only (the hold still applies): the per-step
+  // orientation narration and the per-field orientation reaction. Both are
+  // direct responses to the screen the person just acted on, and the
+  // onboarding walkthrough is a RUN of them by design -- capping those at two
+  // would quietly un-ship "Coach talks you through onboarding."
+  const ACTIVE_CONVERSATION_WINDOW_MS=5*60*1000
+  const UNPROMPTED_PER_VISIT_CAP=2
+  const UNPROMPTED_EXEMPT_KEYS=['coach-intro','coach-minimize-intro','coach-self-open-explained']
+  const UNPROMPTED_CAP_EXEMPT_KEYS=['orientation-narration','orientation-quality']
+  // What the person is doing inside the coach panel right now, reported up
+  // from Chat.jsx (its onActivity effect). A REF, not state, deliberately:
+  // `composer` changes on every keystroke, and routing that through App state
+  // would re-render this whole file on each one. Read LIVE at the instant a
+  // message is about to fire, never snapshotted at render time -- and every
+  // field in it comes from Chat's own props/state rather than being recomputed
+  // here, so no dependency array can leave it stale (CLAUDE.md section 8).
+  const coachActivityRef=useRef({composer:'',loading:false,lastUserAt:null})
+  const reportCoachActivity=useRef(a=>{coachActivityRef.current=a||{composer:'',loading:false,lastUserAt:null}}).current
+  const unpromptedThisVisitRef=useRef(0)
+  const claimUnpromptedSlotRef=useRef(null)
+  const canFireUnprompted=useRef(k=>claimUnpromptedSlotRef.current?claimUnpromptedSlotRef.current(k):true).current
+  const inActiveConversation=()=>{
+    const a=coachActivityRef.current||{}
+    if(a.loading)return true
+    if(typeof a.composer==='string'&&a.composer.trim())return true
+    const at=typeof a.lastUserAt==='string'?Date.parse(a.lastUserAt):NaN
+    if(!Number.isFinite(at))return false
+    return Date.now()-at<ACTIVE_CONVERSATION_WINDOW_MS
+  }
+  // Call at every unprompted-message site, BEFORE any fired/seen write.
+  // True means "say it" (and spends one of this visit's slots); false means
+  // stay quiet this pass.
+  const claimUnpromptedSlot=(key)=>{
+    if(UNPROMPTED_EXEMPT_KEYS.includes(key))return true
+    if(inActiveConversation())return false
+    if(UNPROMPTED_CAP_EXEMPT_KEYS.includes(key))return true
+    if(unpromptedThisVisitRef.current>=UNPROMPTED_PER_VISIT_CAP)return false
+    unpromptedThisVisitRef.current+=1
+    return true
+  }
+  // Chat.jsx holds the session-open recap behind the same gate; it gets the
+  // check as a prop rather than a copy of the rule. Stable identity (so
+  // Chat's own effects do not re-run on every App render) over a ref that
+  // always points at this render's claim function.
+  claimUnpromptedSlotRef.current=claimUnpromptedSlot
+  // One visit = one arrival at a screen. Resetting here rather than in the
+  // claim function itself keeps the rule in one place and makes a reload
+  // (which lands on a screen) a fresh visit, same as walking into one.
+  useEffect(()=>{unpromptedThisVisitRef.current=0},[step])
   // Widen-the-search set engine (Phase 4 Part 2, §2.6; src/widen-search.js).
   // Per-row snooze-until/retired-until dates, synced like coachMoments
   // above -- persisted across devices so a snooze set on one browser holds
@@ -8726,9 +8820,14 @@ export default function PivotEngine(){
     // independent of the hub_arrival variant's own one-shot flag above, and
     // only while the field is still actually thin.
     if(hasOnboardingConcierge&&value!=='dismiss'&&!LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(checkinKey)&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP&&!chatMessages.some(mm=>mm&&LIFE_EVENTS_THIN_CHECKIN_KEYS.includes(mm.checkinKey)&&Array.isArray(mm.quickReplies)&&mm.quickReplies.length)){
+      // Conversation hold: a quick-reply tap is not itself a turn that buys
+      // silence, but it is also no reason to pile a second, unrelated ask on
+      // top of a live conversation -- see claimUnpromptedSlot above.
+      if(claimUnpromptedSlot('life-events-thin-tap')){
       setLifeEventsThinTopicCloseCount(c=>c+1)
       logPromptEngagement('life_events_thin','topic_close_tap','shown')
       setChatMessages(m=>[...m,lifeEventsThinPromptMessage('life-events-thin-tap')])
+      }
     }
     // Recognition check at brand delivery (2026-09-14). Handled here rather
     // than left to Chat's fall-through POST, because only a handled tap
@@ -10242,6 +10341,12 @@ export default function PivotEngine(){
     const line=ORIENTATION_NARRATION[step]
     if(!line)return
     if(narratedOrientationSteps.includes(step)||narratedOrientationStepsFiredRef.current.has(step))return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    // Cap-exempt: the walkthrough is a run of these by design. Dropped (not
+    // queued) if held, and this step's line is not re-offered after they move
+    // on -- narration for a screen they have already left is worth less than
+    // the silence.
+    if(!claimUnpromptedSlot('orientation-narration'))return
     narratedOrientationStepsFiredRef.current.add(step)
     setNarratedOrientationSteps(prev=>prev.includes(step)?prev:[...prev,step])
     setChatMessages(m=>[...m,{role:'assistant',banner:true,content:line}])
@@ -10283,6 +10388,10 @@ export default function PivotEngine(){
     if(step!=='p3'||loading)return
     if(!(outputs&&outputs.p3))return
     if(seenBrandDeliveryMoment||brandDeliveryFiredRef.current)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    // Checked before the flags below so a hold costs nothing permanently:
+    // this effect re-runs on the next arrival at the Personal Brand screen.
+    if(!claimUnpromptedSlot('personal-brand-delivery'))return
     brandDeliveryFiredRef.current=true
     setSeenBrandDeliveryMoment(true)
     const askRecognition=!seenPbCheckin
@@ -10320,6 +10429,8 @@ export default function PivotEngine(){
     if(step!=='twoDoors'||!signedInUser)return
     if(seenPbCheckin||pbCheckinFiredRef.current)return
     if(!(outputs&&outputs.p3))return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('personal-brand'))return
     pbCheckinFiredRef.current=true
     setSeenPbCheckin(true)
     const yesFollow='Good. Head into Put it to Work whenever you\'re ready — and remember each output has a "Does this feel right?" box you can use to sharpen it anytime.'
@@ -10954,6 +11065,14 @@ export default function PivotEngine(){
     const lastMomentIdx=chatMessages.reduce((acc,mm,i)=>(mm&&typeof mm.checkinKey==='string'&&mm.checkinKey.startsWith('moment:'))?i:acc,-1)
     if(lastMomentIdx!==-1&&!chatMessages.slice(lastMomentIdx+1).some(mm=>mm&&mm.role==='user'&&!mm.synthetic))return
     const{entry,subKey,dedupeValue}=picked
+    // Conversation hold (2026-09-17): the turn-pacing guard above only asks
+    // whether ONE real turn has happened since the last moment -- it is
+    // satisfied the instant someone answers, which is exactly when they are
+    // most likely to still be talking. claimUnpromptedSlot (above) asks
+    // whether they are talking NOW. Checked before the dedupe write below so
+    // a held moment does not burn its own one-shot; this effect re-runs on
+    // the next navigation, section change or evaluator tick.
+    if(!claimUnpromptedSlot(entry.key))return
     momentFiredRef.current.add(`${entry.key}:${subKey}`)
     setCoachMoments(m=>({...m,[entry.key]:{...m[entry.key],[subKey]:{value:dedupeValue,firedAt:new Date().toISOString()}}}))
     // Widen-the-search pacing (brief §2.6): flip synchronously, not via
@@ -11016,6 +11135,12 @@ export default function PivotEngine(){
     if(!f||!f.combined)return
     if(qualityCheckedFields[f.step]===f.combined)return
     if(orientationCheckFiredRef.current[f.step]===f.combined)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    // Cap-exempt (a reaction to the screen they just left, and there is a run
+    // of them through orientation), hold-applied. Checked before the fired-ref
+    // write AND before setCoachThinkingCount, so a held reaction neither burns
+    // its dedupe nor leaves Continue waiting on a turn that never started.
+    if(!claimUnpromptedSlot('orientation-quality'))return
     orientationCheckFiredRef.current={...orientationCheckFiredRef.current,[f.step]:f.combined}
     const stepId=f.step,combinedText=f.combined,sendText=f.text
     ;(async()=>{
@@ -11120,6 +11245,8 @@ export default function PivotEngine(){
     let sessionOpenerFired=false
     try{sessionOpenerFired=sessionStorage.getItem('reimagine_session_recap_fired')==='1'||sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'}catch{}
     if(sessionOpenerFired)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('employment-status'))return
     employmentPromptFiredRef.current=true
     setSeenEmploymentPrompt(true)
     logPromptEngagement('employment_status','hub_arrival','shown')
@@ -11151,6 +11278,8 @@ export default function PivotEngine(){
     // Yield to both prompts that can share these surfaces.
     if(employmentPromptFiredRef.current||(!employmentStatus&&!seenEmploymentPrompt))return
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('search-intake'))return
     searchIntakePromptFiredRef.current=true
     setSeenSearchIntakePrompt(true)
     // 'shown' only -- see PROMPT_ENGAGEMENT_META_BY_CHECKIN's comment for why
@@ -11183,6 +11312,8 @@ export default function PivotEngine(){
     if(searchIntakePromptFiredRef.current||(!searchGoingWell&&!searchFocus&&!seenSearchIntakePrompt))return
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
     if(notesCapabilityFiredRef.current||closeReasonMentionFiredRef.current)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('life-events-thin-hub'))return
     lifeEventsThinHubFiredRef.current=true
     setSeenLifeEventsThinHub(true)
     logPromptEngagement('life_events_thin','hub_arrival','shown')
@@ -11209,6 +11340,8 @@ export default function PivotEngine(){
     if(step==='twoDoors'&&(pbCheckinFiredRef.current||(!seenPbCheckin&&outputs&&outputs.p3)))return
     if(notesCapabilityFiredRef.current||closeReasonMentionFiredRef.current)return
     if(lifeEventsThinHubFiredRef.current||(wc(profile.lifeEvents)<THIN_MIN.life&&!seenLifeEventsThinHub))return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('values-thin-hub'))return
     valuesThinHubFiredRef.current=true
     setSeenValuesThinHub(true)
     logPromptEngagement('values_thin','hub_arrival','shown')
@@ -11230,6 +11363,8 @@ export default function PivotEngine(){
     if(step!=='resume-builder'||!profile.builder||profile.builder.phase!=='draft')return
     if(!profile.baselineResume||!(profile.baselineResume.experience&&profile.baselineResume.experience[0]))return
     if(seenResumeBuilderDraftInvite||resumeBuilderDraftInviteFiredRef.current)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('resume-builder-draft-invite'))return
     resumeBuilderDraftInviteFiredRef.current=true
     setSeenResumeBuilderDraftInvite(true)
     logPromptEngagement('resume_builder_draft_invite','hub_arrival','shown')
@@ -11260,6 +11395,8 @@ export default function PivotEngine(){
     if(seenNotesCapabilityMention||notesCapabilityFiredRef.current)return
     if(!coachSaveTarget())return
     if(employmentPromptFiredRef.current||searchIntakePromptFiredRef.current)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('notes-capability'))return
     notesCapabilityFiredRef.current=true
     setSeenNotesCapabilityMention(true)
     setChatMessages(m=>[...m,notesCapabilityMessage()])
@@ -11278,6 +11415,8 @@ export default function PivotEngine(){
     if(seenCloseReasonMention||closeReasonMentionFiredRef.current)return
     if(!coachSaveTarget())return
     if(employmentPromptFiredRef.current||searchIntakePromptFiredRef.current||notesCapabilityFiredRef.current)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('close-reason-capability'))return
     closeReasonMentionFiredRef.current=true
     setSeenCloseReasonMention(true)
     setChatMessages(m=>[...m,closeReasonCapabilityMessage()])
@@ -11305,6 +11444,8 @@ export default function PivotEngine(){
     let already=false
     try{already=sessionStorage.getItem('reimagine_pipeline_checkin_fired')==='1'||sessionStorage.getItem('reimagine_session_recap_fired')==='1'}catch{}
     if(already)return
+    // Conversation hold (2026-09-17): see claimUnpromptedSlot above.
+    if(!claimUnpromptedSlot('pipeline-checkin'))return
     pipelineCheckinFiredRef.current=true
     try{sessionStorage.setItem('reimagine_pipeline_checkin_fired','1')}catch{}
     setChatMessages(m=>[...m,pipelineCheckinOpener()])
@@ -19638,7 +19779,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
           padding:coachPresence==='minimized'?0:'40px 56px 28px 24px',
           transition:'width 0.25s ease, min-width 0.25s ease, padding 0.25s ease',
         }}>
-          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>
+          <Chat embedded currentStep={step} C={C} presence={coachPresence} setPresence={setCoachPresence} outerRef={coachPanelBoxRef} onMinimize={beginCoachMinimize} messages={chatMessages} setMessages={setChatMessages} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} getSituation={computeSituation} coachSaveTarget={coachSaveTarget()} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen} onActivity={reportCoachActivity} canFireUnprompted={canFireUnprompted}/>
         </div>}
       </div>
     </div>
@@ -19651,7 +19792,7 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         concierge embedded panel above (2026-09-07) is the same exclusion for
         the same reason -- suppressed here too, or the floating bubble would
         mount right alongside it, showing the same conversation twice. */}
-    {signedInUser&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen}/>}
+    {signedInUser&&!conciergeEmbedded&&<Chat currentStep={step} C={C} showPulse={showPulse} onDismissPulse={()=>setShowPulse(false)} messages={chatMessages} setMessages={setChatMessages} openRequest={pbCheckinOpenReq} open={coachOpen} setOpen={setCoachOpen} maximized={coachMaximized} setMaximized={setCoachMaximized} seed={coachSeed} seedAuto={coachSeedAuto} onSeedConsumed={()=>{setCoachSeed('');setCoachSeedAuto(false)}} coachSaveTarget={coachSaveTarget()} getSituation={computeSituation} onSaveNote={saveCoachNoteToOpportunity} onQuickReply={handleEmploymentQuickReply} onOpen={()=>setCoachOpenTick(x=>x+1)} employmentCaptureActive={!isIndependent&&!employmentStatus} employmentOfferMessage={employmentPromptMessage('Sounds like you just touched on your work situation — want me to save it so it carries across every session? ')} pursuitCaptureActive={hasPipeline&&!!coachSaveTarget()} pursuitOfferMessage={coachSaveTarget()?pursuitOfferMessage(coachSaveTarget().title,coachSaveTarget().id):null} lifeEventsThinTriggerActive={hasOnboardingConcierge&&!isIndependent&&wc(profile.lifeEvents)<THIN_MIN.life&&lifeEventsThinTopicCloseCount<LIFE_EVENTS_THIN_TOPIC_CLOSE_CAP} lifeEventsThinOfferMessage={hasOnboardingConcierge?lifeEventsThinPromptMessage('life-events-thin-lang'):null} onLifeEventsThinTopicClose={()=>setLifeEventsThinTopicCloseCount(c=>c+1)} opportunityUpdateCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityContextCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} opportunityArchiveCaptureActive={hasPipeline&&!isIndependent&&hasPipelineCapture} closeReasonCaptureActive={hasPipeline&&!isIndependent&&hasCloseReasonCapture} opCardReworkCaptureActive={hasPipeline&&!isIndependent&&hasSectionRework} notesCaptureActive={hasCoachNoteAgency&&!!coachSaveTarget()} widenSearchHintCaptureActive={hasOnboardingConcierge} chosen={chosen} widenSearchState={widenSearchState} activityCaptureActive={hasNextStep} sessionOpenEligible={hasNextStep} valuesCaptureActive={!isDemo} assessmentCaptureActive={!isDemo} reputationCaptureActive={!isDemo&&hasOrientationCapture} skillsCaptureActive={!isDemo&&hasOrientationCapture} prioritiesCaptureActive={!isDemo&&hasOrientationCapture} lifeStoryCaptureActive={!isDemo&&hasOrientationCapture} brandReworkCaptureActive={hasOnboardingConcierge&&step==='p3'} sectionReworkTarget={sectionReworkTarget} thinking={coachThinkingCount>0} hasCoachFileUpload={hasCoachFileUpload} allowGeneralMode={!!signedInUser&&/@career\.club$/i.test(signedInUser.email||'')} onVoiceViolation={handleCoachVoiceViolation} onDistressDetected={handleCoachDistressDetected} onMoodLow={handleCoachMoodLow} onSessionOpen={handleCoachSessionOpen} onActivity={reportCoachActivity} canFireUnprompted={canFireUnprompted}/>}
     {reaccept&&<LegalReacceptanceModal needsPrivacyReaccept={reaccept.needsPrivacyReaccept} needsTermsReaccept={reaccept.needsTermsReaccept} onAccepted={()=>setReaccept(null)} onDecline={signOut}/>}
     {offerDisclaimerGate&&<OfferDisclaimerGate onAccepted={()=>{setSignedInUser(u=>u?{...u,offer_disclaimer_version:OFFER_DISCLAIMER_VERSION,offer_disclaimer_accepted_at:new Date().toISOString()}:u);const _pending=offerDisclaimerGate;setOfferDisclaimerGate(null);generateOpOfferNegotiation(_pending.correctionText,_pending.overrideOffer,_pending.overrideValueCase,true)}} onCancel={()=>setOfferDisclaimerGate(null)}/>}
     {accountSuspended&&<div data-print="hide" role="dialog" aria-modal="true" style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(26,37,64,0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>

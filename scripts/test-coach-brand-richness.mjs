@@ -114,7 +114,10 @@ check(entryBlock.includes('Raw material this was built from'),
 // The delivery-moment effect no longer pushes a static message, but still
 // opens the panel on the big reveal.
 const deliveryIdx = app.indexOf("if(step!=='p3'||loading)return")
-const deliveryBlock = deliveryIdx !== -1 ? app.slice(deliveryIdx, deliveryIdx + 900) : ''
+// Bounded by the effect's own dependency array rather than a byte count
+// (2026-09-17): a fixed window broke the moment the effect gained a comment.
+const deliveryEnd = deliveryIdx === -1 ? -1 : app.indexOf('},[step,signedInUser,hasOnboardingConcierge,outputs,loading,', deliveryIdx)
+const deliveryBlock = deliveryIdx !== -1 && deliveryEnd > deliveryIdx ? app.slice(deliveryIdx, deliveryEnd) : ''
 check(!deliveryBlock.includes('Your story just came together above'),
   `${APP}: the delivery-moment effect still pushes the old static line instead of deferring to the brand-richness reaction`)
 check(deliveryBlock.includes('setPbCheckinOpenReq(x=>x+1)'),

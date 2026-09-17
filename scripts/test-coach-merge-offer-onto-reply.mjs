@@ -25,6 +25,18 @@ const check = (ok, msg) => { if (!ok) { failures++; console.error(`  FAIL ${msg}
 const CHAT = 'src/components/Chat.jsx'
 const chat = fs.readFileSync(CHAT, 'utf8')
 
+// 2026-09-17 (the conversation-hold PR): mergeOfferOntoReply now goes through
+// writeTurn, which addresses THIS turn's own bubble by turnId instead of
+// whatever happens to be last in the array. Both are extracted and run
+// together below, and case 3 covers the reason: an unprompted Coach message
+// that lands between the reply and the offer used to steal the merge.
+const writeTurnMarker = 'const writeTurn = (fn) => setMessages(m => {'
+const writeTurnStart = chat.indexOf(writeTurnMarker)
+check(writeTurnStart !== -1, `${CHAT}: writeTurn is missing`)
+const writeTurnEnd = writeTurnStart === -1 ? -1 : chat.indexOf('\n    })', writeTurnStart)
+check(writeTurnEnd !== -1, `${CHAT}: could not find writeTurn's closing brace`)
+const writeTurnSrc = writeTurnStart !== -1 && writeTurnEnd !== -1 ? chat.slice(writeTurnStart, writeTurnEnd + '\n    })'.length) : ''
+
 const startMarker = 'const mergeOfferOntoReply = (content, checkinKey, quickReplies) => {'
 const startIdx = chat.indexOf(startMarker)
 check(startIdx !== -1, `${CHAT}: mergeOfferOntoReply is missing`)
@@ -32,25 +44,26 @@ const endIdx = chat.indexOf('\n        }', startIdx)
 check(endIdx !== -1, `${CHAT}: could not find mergeOfferOntoReply's closing brace`)
 const src = startIdx !== -1 && endIdx !== -1 ? chat.slice(startIdx, endIdx + '\n        }'.length) : ''
 
-if (src) {
+if (src && writeTurnSrc) {
   // Build a standalone mergeOfferOntoReply bound to a mock setMessages that
   // just records the updater function it was called with.
   let capturedUpdater = null
   const setMessages = (updater) => { capturedUpdater = updater }
-  const mergeOfferOntoReply = new Function('setMessages', `${src}\nreturn mergeOfferOntoReply`)(setMessages)
+  const TURN = 'turn-under-test'
+  const mergeOfferOntoReply = new Function('setMessages', 'turnId', `${writeTurnSrc}\n${src}\nreturn mergeOfferOntoReply`)(setMessages, TURN)
 
   // Case 1: the just-streamed reply has real text -- the offer leads, the
   // reply's own text trails, and the array length is unchanged (one bubble
   // merged onto, not a second one pushed).
   const before1 = [
     { role: 'user', content: 'I just had an interview with Deloitte, went well.' },
-    { role: 'assistant', content: 'Got it -- logged.', id: 'msg-1' },
+    { role: 'assistant', content: 'Got it -- logged.', id: 'msg-1', turnId: TURN },
   ]
   mergeOfferOntoReply('Anything else, or is that everything?', 'opportunity-update', [{ label: 'Save it', value: 'x' }])
   check(typeof capturedUpdater === 'function', 'mergeOfferOntoReply did not call setMessages with an updater function')
   const after1 = capturedUpdater(before1)
   check(after1.length === before1.length, 'mergeOfferOntoReply changed the message count -- it should merge onto the existing bubble, not push a new one')
-  check(after1[0] === before1[0], 'mergeOfferOntoReply touched a message other than the last one')
+  check(after1[0] === before1[0], 'mergeOfferOntoReply touched a message other than its own')
   check(after1[1].content === 'Anything else, or is that everything?\n\nGot it -- logged.',
     'the offer text does not lead with the model\'s own reply trailing after it')
   check(after1[1].checkinKey === 'opportunity-update', 'checkinKey was not attached to the merged bubble')
@@ -63,11 +76,38 @@ if (src) {
   capturedUpdater = null
   const before2 = [
     { role: 'user', content: 'Save this for me.' },
-    { role: 'assistant', content: '', id: 'msg-2' },
+    { role: 'assistant', content: '', id: 'msg-2', turnId: TURN },
   ]
   mergeOfferOntoReply('Want me to save this?', 'values-capture', [])
   const after2 = capturedUpdater(before2)
   check(after2[1].content === 'Want me to save this?', 'an empty streamed reply should leave the offer text standing alone, with no stray separator')
+
+  // Case 3 (2026-09-17): an unprompted Coach message lands after the reply
+  // while the offer header is still being parsed. The merge must find its own
+  // bubble by turnId, not take whatever is last -- taking the last one both
+  // destroyed the unprompted message and hung the offer's quick replies off
+  // the wrong text.
+  capturedUpdater = null
+  const before3 = [
+    { role: 'user', content: 'That interview went fine.' },
+    { role: 'assistant', content: 'Good to hear.', id: 'msg-3', turnId: TURN },
+    { role: 'assistant', content: 'While you are here -- want to talk through Go-to-Market?', banner: true, checkinKey: 'moment:widen-go-to-market' },
+  ]
+  mergeOfferOntoReply('Want me to save this?', 'opportunity-update', [{ label: 'Save it', value: 'x' }])
+  const after3 = capturedUpdater(before3)
+  check(after3.length === 3, 'the merge changed the message count when an unprompted message was present')
+  check(after3[1].content === 'Want me to save this?\n\nGood to hear.' && after3[1].checkinKey === 'opportunity-update',
+    'the offer did not merge onto the turn\'s own bubble')
+  check(after3[2] === before3[2],
+    'the merge overwrote an unprompted Coach message that arrived after the reply -- this is the bug turnId exists to prevent')
+
+  // And a turn whose bubble is gone entirely (cleared mid-flight) is a no-op,
+  // not a write to somebody else's message.
+  capturedUpdater = null
+  const before4 = [{ role: 'assistant', content: 'Hi, I am your coach.' }]
+  mergeOfferOntoReply('Want me to save this?', 'opportunity-update', [])
+  check(capturedUpdater(before4) === before4,
+    'a merge for a bubble that is no longer in the transcript still writes somewhere')
 }
 
 if (failures) {

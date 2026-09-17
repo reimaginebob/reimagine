@@ -93,7 +93,7 @@ const clearChatServerSide = () => {
 // /api/coach and sharing one conversation via the messages/setMessages props
 // lifted to App.jsx. The embedded variant drops the fixed positioning and the
 // open/close affordance and fills its container instead.
-export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {
+export default function Chat({ currentStep, C, showPulse, onDismissPulse, messages, setMessages, embedded = false, openRequest = 0, open: openProp = false, setOpen: setOpenProp = null, maximized = false, setMaximized = null, seed = '', seedAuto = false, onSeedConsumed, coachSaveTarget = null, getSituation = null, presence = 'open', setPresence = null, outerRef = null, onMinimize = null, onSaveNote, onQuickReply = null, onOpen = null, employmentCaptureActive = false, employmentOfferMessage = null, pursuitCaptureActive = false, pursuitOfferMessage = null, lifeEventsThinTriggerActive = false, lifeEventsThinOfferMessage = null, onLifeEventsThinTopicClose = null, opportunityUpdateCaptureActive = false, opportunityContextCaptureActive = false, opportunityArchiveCaptureActive = false, closeReasonCaptureActive = false, opCardReworkCaptureActive = false, valuesCaptureActive = false, assessmentCaptureActive = false, reputationCaptureActive = false, skillsCaptureActive = false, prioritiesCaptureActive = false, lifeStoryCaptureActive = false, brandReworkCaptureActive = false, sectionReworkTarget = null, activityCaptureActive = false, sessionOpenEligible = false, notesCaptureActive = false, widenSearchHintCaptureActive = false, chosen = null, widenSearchState = null, allowGeneralMode = false, thinking = false, hasCoachFileUpload = false, onVoiceViolation = null, onDistressDetected = null, onMoodLow = null, onSessionOpen = null, onActivity = null, canFireUnprompted = null }) {
   // General-question mode (Career Club team only): ask a general/client question
   // without this account's job-search profile loaded. The toggle only renders
   // when allowGeneralMode is passed; the flag is re-checked server-side.
@@ -281,6 +281,12 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         sessionStorage.getItem('reimagine_pipeline_checkin_fired') === '1'
     } catch {}
     if (already) return
+    // Conversation hold (2026-09-17): the recap is an unprompted opener like
+    // any other, so it goes through App's claimUnpromptedSlot. Checked ABOVE
+    // the sessionStorage write so a hold does not spend this session's recap
+    // on a message that was never said -- if they reloaded into the middle of
+    // a live conversation, the recap simply waits for the next session.
+    if (canFireUnprompted && !canFireUnprompted('session-open-recap')) return
     try { sessionStorage.setItem('reimagine_session_recap_fired', '1') } catch {}
     // Coach engine guardrails, rules 1 and 2: this is "the next session open"
     // both holds are documented to clear at -- same silent side-effect shape
@@ -288,7 +294,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     // mount (guarded by the sessionStorage check just above).
     if (onSessionOpen) onSessionOpen()
     if (sendRef.current) sendRef.current(null, { silent: true })
-  }, [sessionOpenEligible, embedded, open])
+  }, [sessionOpenEligible, embedded, open, canFireUnprompted])
   useEffect(() => {
     const el = inputTaRef.current
     if (!el) return
@@ -296,6 +302,29 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     el.style.height = Math.min(el.scrollHeight, 220) + 'px'
   }, [input])
   const [loading, setLoading] = useState(false)
+  // Report what the person is doing in here up to App (2026-09-17
+  // interruption fix): text sitting half-typed in the composer, a reply still
+  // streaming, and when they last actually SAID something. App keeps this in
+  // a ref and reads it live at the instant an unprompted message is about to
+  // fire (claimUnpromptedSlot, src/App.jsx), so Coach can tell "mid-
+  // conversation" from "walked away". Computed here rather than in App on
+  // purpose: these three values are Chat's own props and state, so there is
+  // no dependency array anywhere that can leave them stale, and a ref on the
+  // receiving side means a keystroke costs no App re-render.
+  //
+  // The cleanup clears the two live fields and keeps lastUserAt: an unmounted
+  // panel has no composer and nothing streaming, but the person still spoke
+  // when they spoke. (It also runs between dep changes, immediately followed
+  // by the fresh report in the same commit, so nothing reads the gap.)
+  useEffect(() => {
+    if (!onActivity) return
+    let lastUserAt = null
+    for (const m of (Array.isArray(messages) ? messages : [])) {
+      if (m && m.role === 'user' && !m.synthetic && typeof m.at === 'string') lastUserAt = m.at
+    }
+    onActivity({ composer: input, loading, lastUserAt })
+    return () => { onActivity({ composer: '', loading: false, lastUserAt }) }
+  }, [input, loading, messages, onActivity])
   const messagesContainerRef = useRef(null)
   // Narration-only Coach messages (banner:true -- the onboarding "here's
   // what's coming" / "why this matters" lines, which tell the person
@@ -718,13 +747,38 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
     const text = isSilentTurn ? '' : (typeof explicit === 'string' ? explicit : input).trim()
     if (isSilentTurn) { if (loading || sendLockRef.current) return } else if (!text || loading || sendLockRef.current) return
     sendLockRef.current = true
-    const userMsg = { role: 'user', content: text }
+    // `at` (2026-09-17): when the person actually said this. App's
+    // conversation hold reads the most recent one to tell "mid-conversation"
+    // from "walked away half an hour ago"; nothing else consumes it, and the
+    // server maps history to {role, content} only, so it never reaches the
+    // model. Only real typed turns get one -- a quick-reply tap is pushed
+    // elsewhere as synthetic, and is deliberately not a turn that buys
+    // silence.
+    const userMsg = { role: 'user', content: text, at: new Date().toISOString() }
     // What the person typed around this turn's attachments, for the
     // crisis-safety scan only (see attachedBlocksRef). Sent ONLY when this
     // turn actually carries an attachment; otherwise the field is absent and
     // the server scans the whole message exactly as it does today. An empty
     // string is meaningful and must still be sent: it says they attached a
     // file and typed nothing, which is not the same as not attaching at all.
+    // One id for this turn's own assistant bubble (2026-09-17). Every write
+    // below -- the streaming chunks, the two error fallbacks, an offer merged
+    // onto the reply, the empty-bubble cleanup after Stop -- used to address
+    // it as `copy[copy.length - 1]`, which is only the right message for as
+    // long as nothing else appends while the turn is in flight. An unprompted
+    // message landing mid-stream (App.jsx's moments and check-ins) made "the
+    // last message" somebody else's, and this turn then overwrote it. The
+    // conversation hold above makes that rare; addressing the bubble by id
+    // makes it impossible, which is the part that has to hold even for the
+    // sites the hold deliberately exempts.
+    const turnId = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+    const writeTurn = (fn) => setMessages(m => {
+      const i = m.findIndex(x => x && x.turnId === turnId)
+      if (i === -1) return m
+      const copy = [...m]
+      copy[i] = fn(copy[i])
+      return copy
+    })
     const attachedBlocks = attachedBlocksRef.current
     const typedText = attachedBlocks.length
       ? attachedBlocks.reduce((acc, b) => acc.split(b).join(''), text).trim()
@@ -739,7 +793,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // in-progress dictation rather than leaving it listening into
       // whatever the person says next.
       if (speechBtnRef.current) speechBtnRef.current.stop()
-      setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])
+      setMessages(m => [...m, userMsg, { role: 'assistant', content: '', turnId }])
       setInput('')
       setLoading(true)
     }
@@ -838,7 +892,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       // seed is still the sole, untouched message) does it take that
       // slot; any other silent turn (post-capture, or a recap firing after
       // a real conversation already exists) still appends as before.
-      if (isSilentTurn) setMessages(m => (silent && m.length === 1 && m[0] && m[0].role === 'assistant' && !m[0].banner && m[0].content === INTRO_MSG.content) ? [{ role: 'assistant', content: prefix }] : [...m, { role: 'assistant', content: prefix }])
+      if (isSilentTurn) setMessages(m => (silent && m.length === 1 && m[0] && m[0].role === 'assistant' && !m[0].banner && m[0].content === INTRO_MSG.content) ? [{ role: 'assistant', content: prefix, turnId }] : [...m, { role: 'assistant', content: prefix, turnId }])
       if (!res.ok || !res.body) {
         // When the model itself is unreachable the server sends one written
         // sentence explaining it (api/_lib/anthropic-error.js), so the coach
@@ -853,13 +907,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         const fallback = res.status === 401
           ? 'Sign in first to talk with your coach.'
           : systemMsg || 'Sorry, something went wrong. Try again in a moment.'
-        setMessages(m => {
-          const copy = [...m]
-          // synthetic: true (My Coach review finding #2.4) -- a client-side
-          // error message, never something the model said.
-          copy[copy.length - 1] = { role: 'assistant', content: fallback, synthetic: true }
-          return copy
-        })
+        // synthetic: true (My Coach review finding #2.4) -- a client-side
+        // error message, never something the model said.
+        writeTurn(() => ({ role: 'assistant', content: fallback, synthetic: true, turnId }))
       } else {
         // The persisted reply row id rides back on this header (same-origin, so
         // it's readable without CORS config). Stash it on the assistant message so
@@ -893,11 +943,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           if (done) break
           fullText += decoder.decode(value, { stream: true })
           // Prose-only: the wire carries no NAVIGATE trailer to strip.
-          setMessages(m => {
-            const copy = [...m]
-            copy[copy.length - 1] = { ...copy[copy.length - 1], content: prefix ? `${prefix}\n\n${fullText}` : fullText, id: msgId }
-            return copy
-          })
+          writeTurn(prev => ({ ...prev, content: prefix ? `${prefix}\n\n${fullText}` : fullText, id: msgId }))
         }
         // Batch item 17 (capture flow: "one reply, offer first, coaching
         // after the tap"): every capture-offer branch below used to push a
@@ -915,12 +961,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // short reply trailing as supporting context -- is safe, and leaves
         // one message, one scroll target, for the whole turn.
         const mergeOfferOntoReply = (content, checkinKey, quickReplies) => {
-          setMessages(m => {
-            const copy = [...m]
-            const last = copy[copy.length - 1]
+          writeTurn(last => {
             const trailing = last && typeof last.content === 'string' ? last.content.trim() : ''
-            copy[copy.length - 1] = { ...last, content: trailing ? `${content}\n\n${trailing}` : content, checkinKey, quickReplies }
-            return copy
+            return { ...last, content: trailing ? `${content}\n\n${trailing}` : content, checkinKey, quickReplies }
           })
         }
         // Docs correction (My Coach review, finding #3.7): this used to say
@@ -1359,8 +1402,10 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // text arrived at all would otherwise leave an empty bubble sitting
         // in the transcript forever.
         setMessages(m => {
-          const last = m[m.length - 1]
-          if (last && last.role === 'assistant' && !last.content) return m.slice(0, -1)
+          const i = m.findIndex(x => x && x.turnId === turnId)
+          if (i === -1) return m
+          const last = m[i]
+          if (last.role === 'assistant' && !last.content) return [...m.slice(0, i), ...m.slice(i + 1)]
           return m
         })
       } else if (!isSilentTurn) {
@@ -1371,13 +1416,9 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // whatever the transcript's real last message happens to be would be
         // worse than saying nothing. Fail exactly as silently as the
         // 204/!res.ok branches above do.
-        setMessages(m => {
-          const copy = [...m]
-          // synthetic: true (My Coach review finding #2.4) -- see the 503/401
-          // fallback above; same reasoning.
-          copy[copy.length - 1] = { role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.', synthetic: true }
-          return copy
-        })
+        // synthetic: true (My Coach review finding #2.4) -- see the 503/401
+        // fallback above; same reasoning.
+        writeTurn(() => ({ role: 'assistant', content: 'Sorry, I could not reach your coach just now. Try again in a moment.', synthetic: true, turnId }))
       }
     } finally {
       abortRef.current = null

@@ -28,7 +28,13 @@ check(/if\(seenBrandDeliveryMoment\|\|brandDeliveryFiredRef\.current\)return/.te
 // is what proves the two never collide without adding a dependency between
 // them.
 const brandDeliveryIdx = app.indexOf("if(step!=='p3'||loading)return")
-const brandDeliveryBlock = app.slice(brandDeliveryIdx, brandDeliveryIdx + 400)
+// Bounded by the effect's own dependency array rather than a byte count
+// (2026-09-17): a fixed window broke the moment the effect gained a comment,
+// failing on assertions that were still perfectly true.
+const brandDeliveryEnd = brandDeliveryIdx === -1 ? -1 : app.indexOf('},[step,signedInUser,hasOnboardingConcierge,outputs,loading,', brandDeliveryIdx)
+check(brandDeliveryIdx !== -1 && brandDeliveryEnd > brandDeliveryIdx,
+  `${APP}: could not bound the brand-delivery effect (its guard or its dependency array moved)`)
+const brandDeliveryBlock = app.slice(brandDeliveryIdx, brandDeliveryEnd)
 check(brandDeliveryBlock.includes('pbCheckinFiredRef.current=true') && brandDeliveryBlock.includes('setSeenPbCheckin(true)'),
   `${APP}: the brand-delivery effect no longer marks the existing Personal Brand check-in satisfied -- both would fire back to back at p3 and twoDoors`)
 
@@ -57,7 +63,7 @@ check(app.slice(saveDepsIdx, saveDepsIdx + 800).includes('seenBrandDeliveryMomen
 // What this file still verifies: the static line is gone from THIS effect
 // specifically (not lingering dead code) and the panel-open call survived
 // the edit.
-const brandDeliveryFullBlock = app.slice(brandDeliveryIdx, brandDeliveryIdx + 900)
+const brandDeliveryFullBlock = brandDeliveryBlock
 check(!brandDeliveryFullBlock.includes('Your story just came together above'),
   `${APP}: the brand-delivery effect still pushes the old static line -- it should defer to the brand-richness orientation check instead`)
 check(brandDeliveryFullBlock.includes('setPbCheckinOpenReq(x=>x+1)'),
