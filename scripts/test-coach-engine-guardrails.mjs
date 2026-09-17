@@ -55,8 +55,24 @@ check(coach.includes("import { applyOutputStrippers, ensureDistressSupport, matc
   `${COACH}: matchesDistressTrigger is not imported`)
 check(coach.includes("import { parseSelfcheck, parseMood, parseWidenSearchHint } from '../src/coach-routing.js'"),
   `${COACH}: parseMood is not imported`)
-check(coach.includes('const distressDetected = matchesDistressTrigger(message)'),
+// Still computed from the PERSON's own words and never from the model's
+// output -- that is what this guard has always been for. Narrowed 2026-09-17
+// to the part of the message they actually typed when the turn carried an
+// attachment: a suicide-prevention job posting or an interview transcript
+// discussing a hard year can carry the trigger vocabulary in someone else's
+// words, and firing the crisis pointer plus a session-long hold on Coach's
+// own offers because of it is a bad answer to an ordinary "summarize this".
+// The three checks below keep the chain intact end to end: an absent
+// typedText still falls back to the whole message, so pasted text (which
+// cannot be told apart from typing) stays covered exactly as before.
+check(coach.includes("const typedTextForSafety = typeof typedText === 'string' ? typedText : null"),
+  `${COACH}: typedText is no longer validated to a string-or-null before reaching the distress scan`)
+check(coach.includes('const distressSource = typedTextForSafety === null ? message : typedTextForSafety'),
+  `${COACH}: the distress source is no longer "what they typed, else the whole message" -- an absent typedText MUST fall back to the full message or pasted distress stops being seen`)
+check(coach.includes('const distressDetected = matchesDistressTrigger(distressSource)'),
   `${COACH}: distressDetected is not computed from the user's own message`)
+check(coach.includes('ensureDistressSupport(distressSource, strippedText)'),
+  `${COACH}: ensureDistressSupport reads a different source than matchesDistressTrigger -- both must scan the same text or the reply and the hold disagree`)
 check(coach.includes("if (distressDetected) res.setHeader('X-Coach-Distress', '1')"),
   `${COACH}: the X-Coach-Distress response header is missing or has drifted`)
 check(coach.includes('const { mood, text: moodStripped } = parseMood(selfcheckStripped)'),

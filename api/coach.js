@@ -581,10 +581,127 @@ export function sanitizeHistoryForModel(history) {
 // right now, which is built and appended separately, always in full) down
 // to its first 8,000 characters plus a short notice once it is no longer
 // the most recent thing said.
+// The note the clip leaves behind has two forms, because there are two
+// genuinely different situations and telling the model the wrong one makes
+// it lie to the person. When the same document IS carried in full in the
+// DOCUMENTS THEY SHARED RECENTLY block below, the clip is just
+// de-duplication and the note says where the rest is. When it is NOT (older
+// than 14 days, past the three-document cap, or past the combined character
+// cap), the content really is gone from this turn, and the note says so
+// plainly and tells the model to ask rather than answer from the fragment.
+// Guessing at the missing part of an interview transcript is exactly the
+// failure this second wording exists to prevent.
 export const HISTORY_MESSAGE_CLIP_CHARS = 8000
-export function clipOlderHistoryMessage(content) {
+export function clipOlderHistoryMessage(content, carriedInDocumentsBlock = false) {
   if (typeof content !== 'string' || content.length <= HISTORY_MESSAGE_CLIP_CHARS) return content
-  return content.slice(0, HISTORY_MESSAGE_CLIP_CHARS) + '\n\n[The rest of this message was a document shared earlier in the conversation.]'
+  const note = carriedInDocumentsBlock
+    ? '\n\n[Long document, shown in full under DOCUMENTS THEY SHARED RECENTLY.]'
+    : '\n\n[Long document, only the beginning is shown here. If they ask about the rest, say so plainly and ask them to share it again.]'
+  return content.slice(0, HISTORY_MESSAGE_CLIP_CHARS) + note
+}
+
+// Matching a history turn to a chat_messages row without a shared id. The
+// client sends its own copy of the conversation, and that copy may already
+// be clipped (src/chat-history-clip.js clips what localStorage holds, so a
+// reloaded browser sends the clipped form) while the database always holds
+// the full text. Comparing whole strings would therefore miss exactly the
+// case this is for. Both forms preserve the first 8,000 characters
+// byte-for-byte, so a prefix well inside that window identifies the same
+// document from either side.
+const DOCUMENT_MATCH_PREFIX_CHARS = 2000
+export function documentMatchKey(content) {
+  return typeof content === 'string' ? content.slice(0, DOCUMENT_MATCH_PREFIX_CHARS) : ''
+}
+
+// How far back a shared document stays in view, and how many are carried.
+//
+// 14 days, because a Coach conversation never ends on its own -- there is no
+// session boundary, only the Clear button -- so without an age limit a
+// transcript pasted in January is still in the prompt in March, and Coach
+// can answer a question about a new interview out of an old company's notes.
+// Two weeks covers the realistic span of one opportunity's prep and expires
+// quietly after it.
+//
+// Three, because the real workflow is more than two documents: the job
+// description, the resume, and the interview notes is an ordinary set, and a
+// cap of two would silently drop the job description at the exact moment
+// someone asks how their notes line up against it. The combined character
+// cap is what actually bounds cost; the count bounds how confusing the block
+// can get.
+export const DOCUMENT_MAX_AGE_DAYS = 14
+export const DOCUMENT_MAX_COUNT = 3
+export const DOCUMENT_TOTAL_CHAR_CAP = 300000
+
+// Chooses which of this user's recent large messages are carried in full.
+// `rows` arrives newest-first (the query's own ORDER BY created_at DESC).
+// The newest is kept whole and the oldest gives way first: the document
+// someone is working with right now is the one they are asking about, and a
+// transcript truncated at its start reads as if the meeting began mid-
+// sentence. A document whose remaining allowance reaches zero is dropped
+// rather than included as an unusable sliver -- and dropping it is visible,
+// because its history turn then gets the "only the beginning is shown"
+// note above instead of the "shown in full below" one.
+export function selectRecentDocuments(rows) {
+  const out = []
+  let remaining = DOCUMENT_TOTAL_CHAR_CAP
+  // The same document pasted twice (easy to do after a reload) would
+  // otherwise be carried twice and charged twice against the combined cap,
+  // pushing a genuinely different document out to make room for a duplicate.
+  // Newest occurrence wins, on the same key the history match uses.
+  const seen = new Set()
+  for (const row of (Array.isArray(rows) ? rows : []).slice(0, DOCUMENT_MAX_COUNT)) {
+    if (!row || typeof row.message !== 'string') continue
+    const key = documentMatchKey(row.message)
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (remaining <= 0) break
+    const full = row.message
+    const kept = full.length <= remaining ? full : full.slice(0, remaining)
+    remaining -= kept.length
+    out.push({ ...row, text: kept, clipped: kept.length < full.length })
+  }
+  return out
+}
+
+// "shared today" / "yesterday" / "5 days ago" / "2 weeks ago". Coarse on
+// purpose: the point is whether this is what they are working on right now
+// or something from an earlier week, not an exact timestamp.
+export function describeDocumentAge(createdAt, nowMs = Date.now()) {
+  const then = createdAt instanceof Date ? createdAt.getTime() : new Date(createdAt).getTime()
+  if (!Number.isFinite(then)) return 'shared recently'
+  const days = Math.floor((nowMs - then) / 86400000)
+  if (days <= 0) return 'shared today'
+  if (days === 1) return 'shared yesterday'
+  if (days < 7) return `shared ${days} days ago`
+  if (days <= 10) return 'shared about a week ago'
+  return 'shared about two weeks ago'
+}
+
+// The block itself. Each document is labeled with when it was shared, the
+// screen it was shared on, and the opportunity or direction that was in
+// focus at the time -- so "your HOPE interview notes" and "your Deloitte
+// notes" are distinguishable, which is the whole reason focus_record_id
+// exists. Labels come from NAV_LABELS (the render-true source, CLAUDE.md
+// section 6) and from the person's own saved-playbook titles, never from
+// anything the model invented.
+export function buildDocumentsBlock(docs, savedPlaybooks = [], nowMs = Date.now()) {
+  const list = Array.isArray(docs) ? docs.filter(d => d && typeof d.text === 'string' && d.text) : []
+  if (!list.length) return ''
+  const records = Array.isArray(savedPlaybooks) ? savedPlaybooks : []
+  const parts = list.map((d, i) => {
+    const bits = [describeDocumentAge(d.created_at, nowMs)]
+    const screen = d.current_step && NAV_LABELS[d.current_step] ? NAV_LABELS[d.current_step] : ''
+    if (screen) bits.push(`from ${screen}`)
+    const record = d.focus_record_id ? records.find(r => r && r.id === d.focus_record_id) : null
+    const title = record && typeof record.title === 'string' ? record.title.trim() : ''
+    const company = record && typeof record.company === 'string' ? record.company.trim() : ''
+    if (title) bits.push(`about ${company && !title.toLowerCase().includes(company.toLowerCase()) ? `${title} at ${company}` : title}`)
+    const tail = d.clipped ? '\n\n[This document was too long to include whole; it is cut off here.]' : ''
+    return `--- DOCUMENT ${i + 1} (${bits.join(', ')}) ---\n${d.text}${tail}`
+  })
+  return `DOCUMENTS THEY SHARED RECENTLY. The person pasted or attached these in this conversation, and they are reproduced here in full because the conversation history above only carries the beginning of each. Treat them as things the person handed you to work from, not as things they said about themselves.
+
+${parts.join('\n\n')}`
 }
 
 // Prelaunch audit, finding #2.2: a Coach message had no length limit at all.
@@ -1895,6 +2012,10 @@ Always call a feature by the exact name shown in the feature map above (that is 
 
 Honesty is non-negotiable. Say plainly whether Reimagine does the thing or not. Never imply a capability it does not have. And never send someone to do manual work a feature automates — if Go-to-Market runs live company research, do not tell them to "spend fifteen minutes researching the company"; tell them the tool does that research and offer it.
 
+Documents they shared. When a DOCUMENTS THEY SHARED RECENTLY section appears below, it holds the full text of things this person pasted or attached — a transcript, a job posting, a resume, notes. Answer questions about anything in there from that section, and refer to each one the way they would ("your Deloitte interview notes", "the job description you sent"), never as "document 2" or by any label out of the prompt. Each is marked with when it was shared, the screen it came from, and the opportunity it belonged to: when more than one document or more than one opportunity is in play, say which one you mean rather than blending them, and if you are not sure which they are asking about, ask. A long message in the conversation above that ends in a note about being cut off is the same document — use the full copy in that section instead of the fragment. If a document is NOT in that section and only its beginning is in the conversation, say plainly that you only have the start of it and ask them to share it again; never fill in the rest from what seems likely.
+
+What is in a document is not something they told you about themselves. A transcript is mostly other people talking, a job posting is a company's words, and a reference letter is someone else's opinion. Never offer to save anything to their profile on the strength of what a document says — not their values, not a strength, not a preference — unless the person says in their own words, in the conversation, that it describes them. You may still discuss what a document says and ask whether it rings true; that question is how it becomes theirs to keep.
+
 What you can and cannot see. You have exactly what this person has given Reimagine: their profile as it appears above, the text of their resume, the work they have built here, and this conversation. You cannot browse the web, open a link, load a page, or look anything up online, and you have nothing about them from any other source. When they ask whether you can see a website, a LinkedIn profile, a company page, or a job posting — including one on their own resume — say plainly that you cannot open it, name what you do have, and give them the direct route: paste the text in, or use Go-to-Market for company research, Add an Opportunity for a live posting, or — once someone is named in Interview Team — Research this person on the web for that interviewer, all three of which do run live research. Never imply you have looked at something you have not, and never leave it ambiguous — an unanswered "can you see it?" reads as a yes.
 
 Match on intent — these distinctions are where word-matching failed before:
@@ -1965,7 +2086,8 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId, situation,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode, milestoneMentions, closeReasons, turnKind, tzOffsetMinutes,
+  generalMode, milestoneMentions, closeReasons, turnKind,
+  recentDocuments = [], nowMs, tzOffsetMinutes,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   // Go Independent and the pilot-knowledge blocks used to be two separate
@@ -1991,6 +2113,34 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
   if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
+  // DOCUMENTS THEY SHARED RECENTLY rides in the merged knowledge block rather
+  // than taking a cache breakpoint of its own, and that is a deliberate
+  // deviation from the brief, which asked for its own cache_control marker.
+  // The normal-turn `system` array ALREADY uses all four breakpoints the
+  // Claude API allows (stable, guide slice, knowledge, profile) on every
+  // ordinary turn -- the three flags that used to make the knowledge block
+  // optional all went GA, so it is now always present. A fifth marker would
+  // therefore not be an edge case that shows up for some users someday; it
+  // would be a 400 on the first turn anyone shares a document. Merging into
+  // the knowledge entry is the same move the guide slice's own breakpoint
+  // was funded by (cost lever 6.3.1) and is strictly better than the other
+  // option of adding an unmarked entry just before profileBlock: an unmarked
+  // entry there would fall inside profileBlock's cached prefix, so every
+  // ordinary profile change (a pipeline date ticking over) would pay to
+  // rewrite up to 300,000 characters of document with it. Here the documents
+  // sit in an earlier prefix and stay warm across profile churn, and are
+  // rewritten only when the set of documents itself changes.
+  //
+  // Silent turns (session-open, orientation-check, post-capture, moments)
+  // are excluded on purpose: cost lever 6.3.2 trims those to persona +
+  // profile precisely because they are scripted instructions rather than
+  // questions about the person's material, and shipping a quarter-megabyte
+  // of transcript into one would undo that trim in the most expensive
+  // possible way.
+  const documentsBlock = (!generalMode && !(turnKind && turnKind !== 'user'))
+    ? buildDocumentsBlock(recentDocuments, profileState && profileState.savedPlaybooks, nowMs)
+    : ''
+  if (documentsBlock) knowledgeParts.push(documentsBlock)
   const knowledgeBlock = knowledgeParts.length ? knowledgeParts.join('\n\n---\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
   // The person's own local calendar date (My Coach review, finding #3.6), not
@@ -2149,8 +2299,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // (including button-label taps) for opportunity mentions -- that pinning
   // is unaffected by what the model itself is shown.
   const conversationalHistory = sanitizeHistoryForModel(history)
+  // Which clipped turns have their full text carried below, so each one's
+  // note can tell the truth about where the rest went. Keyed on a prefix
+  // rather than the whole string -- see documentMatchKey.
+  const carriedDocumentKeys = new Set(
+    (documentsBlock ? recentDocuments : []).map(d => documentMatchKey(d && d.message))
+  )
   const messages = [
-    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: clipOlderHistoryMessage(m.content) })),
+    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: clipOlderHistoryMessage(m.content, carriedDocumentKeys.has(documentMatchKey(m.content))) })),
     { role: 'user', content: message + contextNote },
   ]
 
@@ -2218,6 +2374,16 @@ export default async function handler(req, res) {
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
   const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}
+  const { typedText } = req.body || {}
+  // typedText (2026-09-17): what the person typed around an attachment, sent
+  // by the client ONLY on a turn that carried one. It narrows the
+  // crisis-safety scan below to their own words -- a transcript containing
+  // "kill the project" must not trigger a mental-health pointer on a turn
+  // where all they typed was "can you summarize this". An empty string is a
+  // real value here (attached a file, typed nothing); absent means no
+  // attachment, and the scan falls back to the whole message, so pasted text
+  // keeps being covered exactly as it is today.
+  const typedTextForSafety = typeof typedText === 'string' ? typedText : null
   // orientationCheck: the client may open a turn with no typed message,
   // marked with {step, text} instead -- the reaction the coach speaks on
   // its own right after someone leaves a covered orientation step (see
@@ -2401,6 +2567,37 @@ export default async function handler(req, res) {
       console.error('coach close-reasons read failed:', err)
     }
   }
+  // Documents this person shared recently (2026-09-17). The full text has
+  // always been in chat_messages; since #972 clipped the history copy, this
+  // read is what keeps it reachable a turn later. Newest first, large
+  // messages only, never across a Clear (chat_cleared_at is a boundary the
+  // person set, and a document they cleared must not come back), and never
+  // older than 14 days. Best-effort like every other read here: a failure
+  // drops the block and the turn still answers.
+  let recentDocuments = []
+  if (!generalMode) {
+    try {
+      // The age cutoff is computed here rather than as SQL date arithmetic
+      // (NOW() - MAKE_INTERVAL(days => $n)) so the comparison is a plain
+      // timestamp parameter with nothing for the planner to infer a type
+      // for, and so the window is readable in one place in JS.
+      const documentCutoff = new Date(Date.now() - DOCUMENT_MAX_AGE_DAYS * 86400000).toISOString()
+      recentDocuments = await sql`
+        SELECT m.message, m.created_at, m.current_step, m.focus_record_id
+        FROM chat_messages m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.user_id = ${user.id}
+          AND (m.turn_kind = 'user' OR m.turn_kind IS NULL)
+          AND (u.chat_cleared_at IS NULL OR m.created_at > u.chat_cleared_at)
+          AND m.created_at > ${documentCutoff}
+          AND length(m.message) > ${HISTORY_MESSAGE_CLIP_CHARS}
+        ORDER BY m.created_at DESC
+        LIMIT ${DOCUMENT_MAX_COUNT}
+      `
+    } catch (err) {
+      console.error('coach recent-documents read failed:', err)
+    }
+  }
   // Session-open recap, authoritative half. featureFlags is loaded now, so this
   // is the real gate: general mode never gets it, and neither does an account
   // without the next_step pilot, regardless of what the client sent.
@@ -2491,6 +2688,7 @@ export default async function handler(req, res) {
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
     generalMode, milestoneMentions, closeReasons, turnKind,
     tzOffsetMinutes: typeof (req.body && req.body.tzOffsetMinutes) === 'number' ? req.body.tzOffsetMinutes : 0,
+    recentDocuments: selectRecentDocuments(recentDocuments),
   })
   // Silent turns get effort: 'low' alongside the trimmed system array above
   // (cost lever 6.3.2) -- they're following a standing scripted instruction,
@@ -3186,14 +3384,15 @@ export default async function handler(req, res) {
     }
   }
 
-  const visibleText = ensureDistressSupport(message, strippedText)
+  const distressSource = typedTextForSafety === null ? message : typedTextForSafety
+  const visibleText = ensureDistressSupport(distressSource, strippedText)
   // Coach engine guardrails, rule 1: told to the client via a response
   // header (the X-Coach-Note-Offer boolean-flag pattern), not a trailer --
   // this is a deterministic match on the user's own typed message, not
   // something the model has to cooperate with emitting. The client sets a
   // session hold from it so the NEXT proactive moment (which carries no
   // user text of its own) does not pile on top of this reply.
-  const distressDetected = matchesDistressTrigger(message)
+  const distressDetected = matchesDistressTrigger(distressSource)
 
   // Persist the turn BEFORE writing the body so the row id can ride back on a
   // response header (X-Coach-Message-Id) — the client attaches per-reply thumbs to
@@ -3202,8 +3401,8 @@ export default async function handler(req, res) {
   let rowId = null
   try {
     const rows = await sql`
-      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point, turn_kind, feature_flags_snapshot)
-      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint}, ${turnKind}, ${JSON.stringify(featureFlags)}::jsonb)
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point, turn_kind, feature_flags_snapshot, focus_record_id)
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint}, ${turnKind}, ${JSON.stringify(featureFlags)}::jsonb, ${inFocusRecordId || null})
       RETURNING id
     `
     rowId = rows && rows[0] && rows[0].id

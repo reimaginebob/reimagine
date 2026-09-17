@@ -18,6 +18,8 @@ Answer questions about any part of your search, grounded in what it knows about 
 
 When you want it to work from something on paper — a job description, an old performance review, a call transcript — attach the file with the paperclip next to the message box (a PDF, a Word file, or a plain text file) and its text lands in your message automatically. Pasting the text in directly works just as well.
 
+Your coach keeps what you share available for about two weeks, so you can come back the next day and keep asking about it. It holds the three most recent things you've shared; older ones drop off, and tapping Clear removes them along with the conversation. If you ask about something it no longer has, it will say so rather than guess.
+
 It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands, how your search itself is going — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
 
 On your Focus Playbook, once you build one section, it often follows with a quick word on what naturally comes next and a one-tap offer to build that section too — the same build the screen's own button would start, just offered where you are.
