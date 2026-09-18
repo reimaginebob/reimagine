@@ -7451,7 +7451,19 @@ function Sidebar({step,done,onNav,coachActive=false,isDemo,prog,selectedLane,cho
       <div style={sectionHeaderStyle}>Your work</div>
       {primaryItems.flatMap(({id,label,Icon,children,badge})=>{
         const childActive=Array.isArray(children)&&children.some(c=>(c.activeSteps||[c.id]).includes(step))
-        const active=(id==='myCoach'?coachActive:step===id)||childActive
+        // Every row's highlight answers one question: is this the screen you
+        // are on. My Coach used to answer a different one -- `coachActive`,
+        // which is true whenever the chat PANEL is open, and the docked panel
+        // is open by default. So My Coach sat permanently highlighted next to
+        // whichever screen you were actually on, and because the two rows are
+        // adjacent the gold bar and tint merged into one block that read as a
+        // selected region rather than a current page (Bob, 2026-09-18, landing
+        // on My Pipeline). An open panel is not a location: it is visible on
+        // screen and has its own header pill, so nothing is lost by dropping
+        // it here. `step` never becomes 'myCoach' in this rail anyway -- the
+        // caller intercepts onNav('myCoach') and opens the panel instead of
+        // navigating -- so this row simply never carries the active treatment.
+        const active=step===id||childActive
         const rows=[
           <div key={id} data-step={id} onClick={()=>onNav(id)} style={primaryItemStyle(active)}>
             <Icon size={16}/>
