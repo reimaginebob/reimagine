@@ -1847,6 +1847,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             >
               Clear
             </button>
+            {setMaximized && (
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+                aria-label={isMaximized ? 'Restore to default size' : 'Expand for more room'}
+              >
+                {isMaximized ? 'Restore' : 'Expand'}
+              </button>
+            )}
           </div>
         </div>
         {transcript}
