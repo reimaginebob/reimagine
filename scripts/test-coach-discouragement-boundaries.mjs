@@ -123,7 +123,7 @@ check(/angle: discouragementAngle/.test(coach),
   check(!/worth naming/.test(a8),
     `${COACH}: angle 8 contains "worth naming" -- insight-flagging, banned by Coach's own BANNED SHAPES item 2`)
   check(!/pulling at you/.test(a8),
-    `${COACH}: angle 8 contains "pulling at you" -- psychotherapy pull-language, banned by CLAUDE.md section 3 and NOT caught by any runtime pattern, so only this check stands between it and the prompt`)
+    `${COACH}: angle 8 contains "pulling at you" -- psychotherapy pull-language, banned by CLAUDE.md section 3. The ai-coaching-pull-language pattern now catches this shape in Coach OUTPUT; this check is what keeps it out of the PROMPT, which no runtime gate ever scans`)
 }
 {
   // The map has to route to it, and has to say it does not stack with the rest.
