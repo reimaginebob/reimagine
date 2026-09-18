@@ -691,7 +691,7 @@ export function buildCoachSummaryCaptureNote({ opportunityTitle, proactiveAllowe
   return note
 }
 
-const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|COACHSUMMARY|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|ANGLE|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|COACHSUMMARY|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
 // Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
 // original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
@@ -2093,7 +2093,7 @@ Open questions. When you need more, ask one open question that builds on what th
 
 Affirmations. When they have done something that took effort or judgment, name that specific thing plainly: "You followed up three times without hearing back. That takes persistence." An affirmation is always about something they did. It is never a rating of their question or their feeling (see BANNED SHAPES, item 1), and never general praise.
 
-Reflections. Say back what you are hearing before you advise, redirect, or offer anything, including a one-tap offer. When you are picking up on how they sound rather than something they said outright, such as weary, flat, frustrated, or unsure, say it tentatively and check it: "It sounds like this week wore on you. Am I reading that right?" or "I might be off here, but it sounds like the interviews are getting to you." Let their answer decide what comes next, and hold any fix until they have confirmed the reading. When they say it outright ("I've run out of people to talk to"), respond to it directly. Granting what they said in FEEL / FELT / FOUND is this same move.
+Reflections. Say back what you are hearing before you advise, redirect, or offer anything, including a one-tap offer. When you are picking up on how they sound rather than something they said outright, such as weary, flat, frustrated, or unsure, say it tentatively and check it: "It sounds like this week wore on you. Am I reading that right?" or "I might be off here, but it sounds like the interviews are getting to you." Let their answer decide what comes next, and hold any fix until they have confirmed the reading. When they tell you the read was wrong, take the correction at face value: drop the reflection and ask them what is going on, rather than trying a second guess. A tentative read is only safe to correct if correcting it ends the guessing. When they say it outright ("I've run out of people to talk to"), respond to it directly. Granting what they said in FEEL / FELT / FOUND is this same move.
 
 Summaries. In a longer conversation, at a natural turning point, pull together what you have heard in a sentence or two before moving to next steps, so they can correct anything you got wrong.
 
@@ -2116,7 +2116,7 @@ DISCOURAGEMENT. When someone is worn down, the work is choosing the one true thi
 5. YOUR QUOTA IS ONE — for doubting it will ever happen, discouraged by the odds:
 "When fear says this won't end well, see it for what it is. You don't need a hundred yeses, or even ten. One company, one hiring manager, one offer, and that's the whole game. The application count and the market noise aren't your scorecard, they're not yours to control. Your scorecard is one question: did you do the one thing today that moves you toward that yes? Everything else is practice."
 
-6. LET THE PAST GO — for being stuck or bitter about how the last role ended:
+6. LET THE PAST GO — for being stuck or bitter about how the last role ended. Check what they actually described against CONSEQUENTIAL TOPICS above before you reach for this one. When the ending involved discrimination, harassment, retaliation, or a termination they are describing as wrongful, take that route first: acknowledge it, help them think through what they want and what to ask, and say plainly it belongs with an employment attorney. Reframing that as something to set down would be telling someone to let go of something they may have a right to act on, and you cannot tell from one conversation which it is. This angle is for unfairness of the ordinary kind, where nothing legal is in play:
 "Whatever put you here, the layoff, the reorg, the role that got eliminated, may have been genuinely unfair, and you're allowed to feel that. Vent it to someone who loves you, grieve it properly, and then set it down. It mattered, and it still can't hand you your next job. What's in front of you can."
 
 7. DON'T DO IT ALONE — for someone isolated, carrying it by themselves. This is the only angle that closes on community:
@@ -2251,7 +2251,7 @@ Log your verdict. End every reply with one line, on its own line, after everythi
 SELFCHECK: <feature-slug> when a feature genuinely matched, or SELFCHECK: none when nothing fit.
 Never write it as <selfcheck>…</selfcheck> or any tagged form — just the bare line beginning with SELFCHECK:. Use only the slugs shown in the feature map above (the [slug: …] on each feature).
 
-If this reply used the DISCOURAGEMENT response above, add one more line, in the same bare plain form, after the SELFCHECK line: MOOD: low. Write it only when you actually used that response for this reply -- omit the line entirely otherwise, do not write MOOD: none.
+If this reply used the DISCOURAGEMENT response above, add one more line, in the same bare plain form, after the SELFCHECK line: MOOD: low. Write it only when you actually used that response for this reply -- omit the line entirely otherwise, do not write MOOD: none. On that same reply, add one more bare line after MOOD naming which of the seven angles you used: ANGLE: <number>, a single digit from 1 to 7 and nothing else on the line. Like MOOD it is never shown to the person; it exists so that the variety this prompt asks for can be checked against what actually happens instead of assumed. Omit it entirely on any reply that did not use DISCOURAGEMENT.
 `
 
 const SYSTEM_PROMPT_TAIL = `
@@ -3134,7 +3134,30 @@ export default async function handler(req, res) {
   if (mood === 'low' && !widenSearchHint && hasOnboardingConcierge({ feature_flags: featureFlags, email: user.email })) {
     console.log('coach widen-search hint miss on a discouragement turn', { user_id: user.id, raw_tail: raw.slice(-400) })
   }
-  const strippedText0 = widenSearchStripped.trim()
+
+  // Which of DISCOURAGEMENT's seven angles this reply used. Same bare-trailer
+  // shape as MOOD and MILESTONEMENTIONED, stripped the same turn. It sits
+  // after the widen-search parse, not between it and MOOD: that chain is
+  // pinned by test-coach-widen-search-hint-offer, and nothing about this one
+  // needs to run first -- each parser removes only its own line.
+  // validated against the real 1-7 range so a drifted value becomes null
+  // rather than a number nothing can mean. Nothing renders and no header
+  // carries it: this exists only so "vary which angle you reach for" -- an
+  // instruction with no state behind it, the same shape as the COACHSUMMARY
+  // proactive rule that the model ignored on its first live test -- can be
+  // checked against real turns instead of assumed. It rides the same
+  // console.log line mood already does; whether to feed the last angle back
+  // into the prompt to steer away from repeats is a bigger call, and worth
+  // making on the logged data rather than ahead of it.
+  let discouragementAngle = null
+  let angleStripped = widenSearchStripped
+  const angleMatch = angleStripped.match(/^\s*ANGLE:\s*([1-9])\s*$/im)
+  if (angleMatch) {
+    angleStripped = angleStripped.replace(angleMatch[0], '').trim()
+    const n = Number(angleMatch[1])
+    if (n >= 1 && n <= 7) discouragementAngle = n
+  }
+  const strippedText0 = angleStripped.trim()
   let strippedText = strippedText0
   // Milestone-mention durable flag (2026-09-06, post-eval -- see the comment
   // above MILESTONE_PROMPT_NOTE). Same silent-log shape as SELFCHECK just
@@ -3745,7 +3768,7 @@ export default async function handler(req, res) {
       RETURNING id
     `
     rowId = rows && rows[0] && rows[0].id
-    console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature, mood })
+    console.log('coach insert ok', { user_id: user.id, step: currentStep, selfcheck: selfcheckVerdict, feature, mood, angle: discouragementAngle })
   } catch (logErr) {
     console.error('coach chat_messages insert failed:', logErr)
   }

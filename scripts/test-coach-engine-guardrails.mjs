@@ -79,8 +79,15 @@ check(coach.includes('const { mood, text: moodStripped } = parseMood(selfcheckSt
   `${COACH}: MOOD: low is not parsed out of the reply right after SELFCHECK`)
 check(coach.includes("if (mood === 'low') res.setHeader('X-Coach-Mood', 'low')"),
   `${COACH}: the X-Coach-Mood response header is missing or has drifted`)
-check(coach.includes('mood })') && coach.includes("console.log('coach insert ok'"),
-  `${COACH}: mood is not included in the coach insert ok log line`)
+// Bounded on the log call itself rather than on `mood })`. That literal
+// asserted mood was the LAST key, which is not what this guard is for, and it
+// broke the first time a key was added after it (the DISCOURAGEMENT angle,
+// 2026-09-18). What matters is that mood is in this line at all.
+{
+  const m = coach.match(/console\.log\('coach insert ok',\s*\{[^}]*\}\)/)
+  check(!!m && /\bmood\b/.test(m[0]),
+    `${COACH}: mood is not included in the coach insert ok log line`)
+}
 // The DISCOURAGEMENT trailer instruction: model-facing, conditional (never
 // MOOD: none), placed right after the SELFCHECK instruction it mirrors.
 check(coach.includes('If this reply used the DISCOURAGEMENT response above, add one more line, in the same bare plain form, after the SELFCHECK line: MOOD: low.'),
