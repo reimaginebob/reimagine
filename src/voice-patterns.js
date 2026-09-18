@@ -241,6 +241,42 @@ export const HARD_PATTERNS = [
     appliesTo: ['build', 'runtime'],
     note: 'AI-coaching register.',
   },
+  // Psychotherapy pull-language (2026-09-18). CLAUDE.md section 3 bans three
+  // phrases under this heading -- "pulling at you," "weighing on you," "sit
+  // with that" -- and until now only the third had a detector, so two of the
+  // three were governed in principle and enforced nowhere. Caught when "what's
+  // actually pulling at you" reached a drafted Coach angle and only a
+  // hand-written assertion in test-coach-discouragement-boundaries.mjs stood
+  // between it and the prompt.
+  //
+  // Two deliberate carve-outs, both about not firing on legitimate English:
+  //   1. `pulling at` fires only behind a vague or interrogative subject
+  //      (what's / whatever / something / it / that / this). The banned
+  //      register is the therapist's open question -- "what's pulling at
+  //      you" -- where a feeling is named as acting on the person without
+  //      anyone naming it. A concrete subject is a different sense entirely:
+  //      Bob's own 5 P's text in api/coach.js teaches Passion as "why this
+  //      role actually pulls at you," which is attraction, not distress, and
+  //      Coach is told to speak it in those exact words. A flat phrase match
+  //      would force a regenerate every time Coach taught the frameworks.
+  //   2. `weighing on` takes no such guard: there is no attraction sense of
+  //      it. "The weight of the decision" and "what's pulling the numbers
+  //      down" are unrelated shapes and do not match.
+  // Not covered, deliberately: "weighing on your mind," which is ordinary
+  // English rather than coaching register, and a concrete-subject "the
+  // decision is pulling at you," which carve-out 1 trades away to protect the
+  // 5 P's line.
+  //
+  // Safe at build scope: the only occurrence in any scanned source file is
+  // src/App.jsx's p8 prompt, which names the phrase in order to ban it and
+  // already sits inside the P object's voice-allow region.
+  {
+    name: 'ai-coaching-pull-language',
+    re: /\b(?:(?:what|whatever|something|anything|things|it|that|this)(?:'s|\u2019s)?\s+(?:is\s+|was\s+|has\s+been\s+)?(?:really\s+|actually\s+|still\s+|truly\s+|quietly\s+)?pulling\s+at\s+(?:you|him|her|them)|weigh(?:ing|s)\s+on\s+(?:you|him|her|them))\b/i,
+    severity: 'hard',
+    appliesTo: ['build', 'runtime'],
+    note: 'Psychotherapy pull-language. Name the thing plainly and ask a direct question instead.',
+  },
   // "Rooms where..." / "rooms in which..." used as audience or situation
   // placeholder (e.g., "make people visible in rooms where they have no
   // voice"). Singular and plural both fire. The existing

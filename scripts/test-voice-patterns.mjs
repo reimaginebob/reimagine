@@ -1052,11 +1052,77 @@ for (const [label, expectedName, input] of partnershipCases) {
   }
 }
 
+// Psychotherapy pull-language (2026-09-18). Two of the three phrases
+// CLAUDE.md section 3 bans under this heading had no detector until now. The
+// negative cases are the ones that matter: Bob's 5 P's text teaches Passion as
+// "why this role actually pulls at you" (attraction, not distress) and Coach
+// is told to speak it in those exact words, so a flat phrase match would force
+// a regenerate every time Coach taught the frameworks.
+const pullLanguageCases = [
+  ["pull-language: \"what's actually pulling at you\" fires", 'ai-coaching-pull-language',
+    "Say more about what's actually pulling at you here."],
+  ['pull-language: "what is pulling at you" fires', 'ai-coaching-pull-language',
+    'I want to understand what is pulling at you before we go further.'],
+  ["pull-language: \"whatever's pulling at you\" fires", 'ai-coaching-pull-language',
+    "Whatever's pulling at you, it is worth naming out loud."],
+  ['pull-language: "something pulling at you" fires', 'ai-coaching-pull-language',
+    'There is something pulling at you that the resume does not explain.'],
+  ['pull-language: "this is pulling at you" fires', 'ai-coaching-pull-language',
+    'This is pulling at you more than the last one did.'],
+  ['pull-language: "weighing on you" fires', 'ai-coaching-pull-language',
+    'The silence from that panel is clearly weighing on you.'],
+  ['pull-language: "weighs on you" fires', 'ai-coaching-pull-language',
+    'A month with no reply weighs on you.'],
+  ['pull-language: "weighing on them" fires', 'ai-coaching-pull-language',
+    'The wait is weighing on them too.'],
+  ["pull-language legit: Bob's 5 P's Passion line does NOT fire", null,
+    'Passion (why this role actually pulls at you, without performing it)'],
+  ['pull-language legit: concrete subject with "is pulling" does NOT fire', null,
+    'Say more about why this role is pulling at you.'],
+  ['pull-language legit: "the weight of the decision" does NOT fire', null,
+    'The weight of the decision is real, and the deadline is Friday.'],
+  ["pull-language legit: \"what's pulling the numbers down\" does NOT fire", null,
+    "Let's find out what's pulling the numbers down in that funnel."],
+  ['pull-language legit: "weighing on your mind" does NOT fire', null,
+    'Tell me what has been weighing on your mind this week.'],
+  ['pull-language legit: "weighing the two offers" does NOT fire', null,
+    'You are weighing the two offers against different time horizons.'],
+]
+let pullLanguageFailed = 0
+for (const [label, expectedName, input] of pullLanguageCases) {
+  const violations = detectVoiceViolations(input, { includeSoft: false, scope: 'runtime' })
+  const names = violations.map(v => v.name)
+  const fired = names.includes('ai-coaching-pull-language')
+  if (expectedName === null ? fired : !fired) {
+    console.error(`FAIL: ${label}`)
+    console.error(`  input:    ${JSON.stringify(input)}`)
+    console.error(`  expected: ${expectedName === null ? 'no ai-coaching-pull-language match' : expectedName}`)
+    console.error(`  got:      ${names.join(', ') || '(none)'}`)
+    failed++; pullLanguageFailed++
+  }
+}
+
+// The pattern is build-scoped too, so the same detections must be reachable
+// from the source-scanning subset -- otherwise check-voice.mjs would let the
+// phrase into a prompt string that is not inside a voice-allow region.
+{
+  const buildScoped = detectVoiceViolations(
+    "Say more about what's actually pulling at you, and about what is weighing on you.",
+    { includeSoft: false, scope: 'build' },
+  ).map(v => v.name)
+  if (!buildScoped.includes('ai-coaching-pull-language')) {
+    console.error('FAIL: pull-language: pattern is not reachable at build scope')
+    console.error(`  got: ${buildScoped.join(', ') || '(none)'}`)
+    failed++; pullLanguageFailed++
+  }
+}
+
 const kickerTotal = kickerCases.length + 1 // kickerCases + the p3 step-scoping check
 const formulaTotal = formulaCases.length + 1 + 4 // formulaCases + combined-detection + 4 step-filter checks (formula-* now universal)
 const voiceGuideTotal = voiceGuideCases.length + 1 + 4 + 2 + 4 + 1 // voiceGuideCases + combined-detection + 4 universal step-filter checks + 2 closer step-filter checks + 4 contamination step-filter checks + 1 verbatim SYS regression
 const partnershipTotal = partnershipCases.length
-const total = cases.length + 2 + formulaTotal + voiceGuideTotal + kickerTotal + partnershipTotal
+const pullLanguageTotal = pullLanguageCases.length + 1 // cases + the build-scope reachability check
+const total = cases.length + 2 + formulaTotal + voiceGuideTotal + kickerTotal + partnershipTotal + pullLanguageTotal
 if (failed > 0) {
   console.error(`\ntest-voice-patterns: ${failed} of ${total} cases failed.`)
   process.exit(1)
