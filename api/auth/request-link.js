@@ -3,6 +3,7 @@ import { generateToken, hashToken } from '../_lib/session.js'
 import { sendMagicLinkEmail } from '../_lib/email.js'
 import { isSignupSource } from '../../src/signup-sources.js'
 import { isTrack } from '../../src/tracks.js'
+import { normalizeVia } from '../../src/referral-partner.js'
 import { isAllowedHost } from '../_lib/allowed-hosts.js'
 import { getClientIp, checkIpRateLimit, logIpEvent } from '../_lib/auth-rate-limit.js'
 import { sanitizeNextPath } from '../_lib/next-path.js'
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
   await logIpEvent('request-link', clientIp)
 
   const { email, firstName, lastName, privacyAccepted, privacyVersion, termsAccepted, termsVersion,
-    signupSource, signupSourceDetail, track, next } = req.body || {}
+    signupSource, signupSourceDetail, track, referralPartner, next } = req.body || {}
   // Where to send the user back to after verify, e.g. an admin bookmark that
   // bounced them here for a fresh link. Optional and doesn't need to be
   // secret, so it rides as a plain query param on the emailed link rather
@@ -120,6 +121,18 @@ export default async function handler(req, res) {
   // mistyped link.
   const tokenTrack = (isNewAccount && isTrack(track)) ? track : null
 
+  // Which partner link's tag this account arrived under, carried the same way
+  // and for the same reason as track and signup_source: the click that
+  // creates the account comes from the user's inbox, on a URL that no longer
+  // carries the query param. New accounts only, never overwritten by a later
+  // sign-in -- the tag is about how the account first arrived. Independent of
+  // signup_source (which asks what the person SAYS; this is which link they
+  // actually CLICKED) -- see migrations/2026-09-16_referral-partner.sql.
+  // Format-validated rather than list-validated (src/referral-partner.js);
+  // an unrecognised or malformed tag is dropped rather than rejected, on the
+  // same principle as signup_source and track above.
+  const tokenReferralPartner = isNewAccount ? normalizeVia(referralPartner) : null
+
   // Dual-window rate limit. We query both windows in one round trip, then
   // compute the earliest moment the limiting window opens back up. When both
   // windows bind, the user waits until the later of the two recovery points.
@@ -160,8 +173,8 @@ export default async function handler(req, res) {
   const userAgent = req.headers['user-agent'] || ''
 
   await sql`
-    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail, track)
-    VALUES (${tokenHash}, ${normalizedEmail}, ${cappedFirstName || null}, ${cappedLastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${clientIp}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail}, ${tokenTrack})
+    INSERT INTO magic_link_tokens (token_hash, email, first_name, last_name, expires_at, user_agent, ip_address, privacy_accepted_at, privacy_version, terms_accepted_at, terms_version, signup_source, signup_source_detail, track, referral_partner)
+    VALUES (${tokenHash}, ${normalizedEmail}, ${cappedFirstName || null}, ${cappedLastName || null}, ${expiresAt.toISOString()}, ${userAgent}, ${clientIp}, ${tokenPrivacyAt}, ${tokenPrivacyVersion}, ${tokenTermsAt}, ${tokenTermsVersion}, ${tokenSource}, ${tokenSourceDetail}, ${tokenTrack}, ${tokenReferralPartner})
   `
 
   // Build the verify URL from the request origin so preview deploys

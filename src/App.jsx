@@ -74,6 +74,7 @@ import OfferDisclaimerGate from "./OfferDisclaimerGate"
 import { PRIVACY_VERSION, TOS_VERSION, PRIVACY_VERSION_MATERIAL, TOS_VERSION_MATERIAL, OFFER_DISCLAIMER_VERSION } from "./config/legal"
 import { ACTIVE_SIGNUP_SOURCES, detailPromptFor } from "./signup-sources.js"
 import { isTrack, TRACK_PARAM, TRACK_INDEPENDENT } from "./tracks.js"
+import { isVia, normalizeVia, VIA_PARAM, VIA_STORAGE_KEY, VIA_MAX_AGE_DAYS } from "./referral-partner.js"
 import BrandChangeNote from "./components/BrandChangeNote"
 import { brandProse, diffBrandProse, checkBrandPreservation, describeBrandPreservationGap, mergeProofPoints, patchUnrelatedRegressions } from "./brand-diff.js"
 // Shared with api/verify-posting.js so the browser-side URL classification
@@ -7772,6 +7773,12 @@ export default function PivotEngine(){
   // -> verify.js, which is the only place it is actually trusted -- this is
   // just read-and-forward.
   const nextParam=_params.get('next')||null
+  // Which partner link's tag this visit arrived under. Read live the same
+  // way trackParam is; unlike trackParam, the value actually sent at signup
+  // is the persisted first-touch copy (pe_via, see the effect below and
+  // src/referral-partner.js), not necessarily this live value -- a flyer or
+  // newsletter click and the signup itself often don't happen in one sitting.
+  const viaParam=normalizeVia(_params.get(VIA_PARAM))
   const IP={loc:{country:'',city:'',work:[]},resume:'',resumeFile:'',resumeDelta:'',linkedin:'',linkedinFile:'',linkedinRecs:'',assess:'',assessFile:'',assessType:'',values:'',passions:'',compFloor:'',bridgeTarget:'',bridgeRunway:'',workReq:'',benefitsWeight:'',riskTolerance:'',dealBreakers:'',rep:{memory:'',emergency:'',twoWords:'',other:''},lifeEvents:'',fitNeed:'',fitBuyer:'',skills:{technical:[],systems:[],certifications:[],languages:[],methodologies:[]},corrections:[],frameworks:[],jd:'',jdFile:'',companyReadInput:'',builder:null,baselineResume:null}
   const IO={p3:'',p4:'',p5:'',p6:'',p7:'',p8:'',p_res:'',p9:'',p10:'',p11:'',income:'',op:''}
   const initStep=isDemo?'welcome':'welcome'
@@ -10285,6 +10292,42 @@ export default function PivotEngine(){
       }
     }catch{}
   },[])
+  // First-touch capture for a partner link's tag (src/referral-partner.js).
+  // Written once per browser, on the visit that first carries a valid ?via=,
+  // so an account created from a much later visit still carries the tag from
+  // the flyer/newsletter/LinkedIn click that actually brought the person here.
+  // Never overwrites an existing unexpired tag -- re-clicking a different
+  // partner's link on a later visit must not steal credit from the first one.
+  // Demo/test skip persistence, matching every other localStorage effect here.
+  // pe_via is deliberately NOT one of the keys clearAccountLocalState() clears
+  // on Sign Out / Start Fresh: attribution belongs to the browser that clicked
+  // the partner link, not to whichever account is signed in at the moment.
+  useEffect(()=>{
+    if(isDemo||isTest)return
+    if(!viaParam)return
+    try{
+      const raw=localStorage.getItem(VIA_STORAGE_KEY)
+      if(raw){
+        const d=JSON.parse(raw)
+        if(d&&isVia(d.v)&&Number.isFinite(d.at)&&(Date.now()-d.at)<=VIA_MAX_AGE_DAYS*24*60*60*1000)return
+      }
+      localStorage.setItem(VIA_STORAGE_KEY,JSON.stringify({v:viaParam,at:Date.now()}))
+    }catch{}
+  },[])
+  // Resolves what to actually send at signup: the persisted first-touch tag
+  // if one is on file and still unexpired, else the live URL param (covers a
+  // signup that happens in the very same visit the link was clicked, before
+  // the effect above has had a chance to run).
+  const readStoredVia=()=>{
+    try{
+      const raw=localStorage.getItem(VIA_STORAGE_KEY)
+      if(raw){
+        const d=JSON.parse(raw)
+        if(d&&isVia(d.v)&&Number.isFinite(d.at)&&(Date.now()-d.at)<=VIA_MAX_AGE_DAYS*24*60*60*1000)return d.v
+      }
+    }catch{}
+    return viaParam
+  }
   useEffect(()=>{if(isDemo||isTest){setSignedUp(true);return}try{const r=localStorage.getItem('pe_signedup');if(r==='true')setSignedUp(true)}catch{}},[])
   // Cross-device Clear (2026-09-16 follow-up to My Coach's Clear button,
   // src/components/Chat.jsx / api/coach-clear.js): users.chat_cleared_at
@@ -12979,7 +13022,7 @@ export default function PivotEngine(){
     // Keep the existing Apps Script beta-signup pipeline firing on new-user submissions.
     try{fetch('https://script.google.com/macros/s/AKfycbz_wPKjaBRW6wlqmm7X-baYyU1FuuTjKBgZIjc8zp77d4cUDD589dyK5ePqDyLCjunEEw/exec',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email:em,timestamp:new Date().toISOString()})}).catch(()=>{})}catch{}
     try{
-      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam,next:nextParam})})
+      const r=await fetch('/api/auth/request-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,firstName:fn,lastName:ln,privacyAccepted:true,privacyVersion:PRIVACY_VERSION,termsAccepted:true,termsVersion:TOS_VERSION,signupSource:signupForm.source||null,signupSourceDetail:signupForm.sourceDetail||null,track:trackParam,referralPartner:readStoredVia(),next:nextParam})})
       if(!r.ok){
         const data=await r.json().catch(()=>({}))
         if(r.status===429)setSignupError(data.error||'Too many requests. Try again in an hour.')
@@ -13013,6 +13056,14 @@ export default function PivotEngine(){
   //                                     obviously already has an account
   //   reimagine-admin-token             hyphenated, so the old sweep never
   //                                     caught it either; unrelated surface
+  //   pe_via                            partner-link attribution (see the
+  //                                     first-touch effect above and
+  //                                     src/referral-partner.js) belongs to
+  //                                     this browser, not to whichever
+  //                                     account happens to be signed in --
+  //                                     clearing it on sign-out would let a
+  //                                     second account on the same browser
+  //                                     lose the tag the first one arrived on
   // Add a key here only if it holds the user's own content or session state.
   const clearAccountLocalState=()=>{
     const keys=['pe_v3','pe_v4','pe_saved_v1','pe_signedup','pe_signed_in_at','reimagine_chat_history','reimagine_last_error','reimagine_chat_cleared_at_applied']

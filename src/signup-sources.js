@@ -31,6 +31,7 @@ export const SIGNUP_SOURCES = [
   // accounts holding it (kept so the code stays valid). It mixed Career
   // Club's own NextPlacement with competitor outplacement firms; see above.
   { code: 'employer', label: 'My employer or outplacement firm provided it', detailPrompt: 'Which company or firm? (optional)' },
+  { code: 'group',      label: 'A job search group or alumni network', detailPrompt: 'Which one? (optional)' },
   { code: 'bob',        label: 'Bob Goodwin or Career Club' },
   { code: 'linkedin',   label: 'LinkedIn' },
   { code: 'media',      label: 'A newsletter, podcast, or article', detailPrompt: 'Which one? (optional)' },
