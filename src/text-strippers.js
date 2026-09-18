@@ -1052,7 +1052,7 @@ const DISTRESS_TRIGGER_RE = /\bkill(?:ing)? myself\b|\bend (?:my life|it all|my 
 // job-search/networking question would not -- so they do not reopen the
 // false-positive the narrowing fixed.
 const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b|\b988\b|\bsomeone (?:you|they) trust\b/i
-const DISTRESS_POINTER = " One more thing, and it matters more than any job-search tactic: what you're describing sounds heavier than a hard week of searching — please talk to someone you trust about it, a friend, someone close to you, or a counselor. You're not meant to carry that alone."
+const DISTRESS_POINTER = " One more thing, and it matters more than any job-search tactic: what you're describing sounds heavier than a hard week of searching — please talk to someone you trust about it, a friend, someone close to you, or a counselor. If there is no one like that right now, or you would rather talk to someone outside your life, in the US you can call or text 988, the Suicide & Crisis Lifeline, any hour of any day. You're not meant to carry that alone."
 export function ensureDistressSupport(userMessage, output) {
   if (typeof output !== 'string') return output
   if (typeof userMessage !== 'string' || !DISTRESS_TRIGGER_RE.test(userMessage)) return output
