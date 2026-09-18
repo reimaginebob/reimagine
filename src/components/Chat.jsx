@@ -201,6 +201,15 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // moment the person hits Send -- pressing Send means "I'm done talking,"
   // and leaving the mic listening after that reads as the app not noticing.
   const speechBtnRef = useRef(null)
+  // Mirrors SpeechBtn's internal `listening` state (2026-09-18, composer
+  // adaptive slot): the composer swaps this same slot between mic and Send
+  // depending on whether there's text, but a swap must never happen WHILE
+  // actively dictating -- the first recognized word populates `input`, and
+  // unmounting SpeechBtn mid-recording would orphan its SpeechRecognition
+  // object (no unmount cleanup exists; only an explicit .stop() ends it).
+  // Keeping this in sync via SpeechBtn's onListeningChange lets the slot
+  // hold the mic in view for the whole recording regardless of `input`.
+  const [micListening, setMicListening] = useState(false)
   // The input grows with its content (2026-08-20). It was a fixed 2 rows, which
   // is fine for "how do I answer this?" and wrong for everything longer — a
   // prefilled seed or a dictated interview answer arrived scrolled to its last
@@ -1633,8 +1642,8 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
                 return (
                 <button key={qi} onClick={() => tapQuickReply(i, opt, m.checkinKey)}
                   style={isDismissal
-                    ? { background: '#fff', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
-                    : { background: '#fff', border: `1px solid ${C.gold}`, color: C.gold, borderRadius: 16, padding: '6px 16px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    ? { background: '#F4F6F9', border: '1px solid #D8DEE8', color: '#8A9BB8', borderRadius: 16, padding: '6px 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+                    : { background: '#fff', border: `1px solid ${C.gold}`, color: C.gold, borderRadius: 16, padding: '6px 16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {opt.label}
                 </button>
                 )
@@ -1707,7 +1716,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   const inputRow = (
     <div style={{ borderTop: '1px solid #E2E5EA' }}>
       {allowGeneralMode && (
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px 0', fontSize: 15, color: generalMode ? '#A06828' : '#8A9BB8', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px 0', fontSize: 16, color: generalMode ? C.goldL : C.gray, cursor: 'pointer', fontFamily: 'inherit' }}>
           <input type="checkbox" checked={generalMode} onChange={e => setGeneralMode(e.target.checked)} style={{ margin: 0, cursor: 'pointer' }} />
           General question — answer without my profile
         </label>
@@ -1715,22 +1724,6 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
       {fileBusy && <div style={{ fontSize: 15, color: '#8A9BB8', padding: '10px 12px 0' }}>Reading your file…</div>}
       {fileErr && <div style={{ fontSize: 15, color: '#B23B3B', padding: '10px 12px 0' }}>{fileErr}</div>}
       <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-      <textarea
-        ref={inputTaRef}
-        autoFocus
-        rows={2}
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-        placeholder="Ask your coach anything. Shift+Enter for a new line."
-        disabled={loading}
-        style={{
-          flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
-          borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
-          resize: 'vertical', lineHeight: 1.4, minHeight: 62, maxHeight: 220, overflowY: 'auto',
-        }}
-      />
-      {hasSpeech && <SpeechBtn ref={speechBtnRef} onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" />}
       {hasCoachFileUpload && <>
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
           onChange={async e => {
@@ -1752,7 +1745,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
               setFileBusy(false)
             }
           }} />
-        <button type="button" title="Attach a document (PDF, Word, or text)" disabled={fileBusy || loading}
+        <button type="button" title="Attach a document (PDF, Word, or text)" aria-label="Attach a document (PDF, Word, or text)" disabled={fileBusy || loading}
           onClick={() => fileInputRef.current.click()}
           style={{
             background: '#fff', border: '1px solid #E2E5EA', borderRadius: 8, padding: '8px 10px',
@@ -1762,19 +1755,68 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           <Paperclip size={17} color="#8A9BB8" />
         </button>
       </>}
-      <button
-        onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}
-        disabled={!loading && !input.trim()}
+      <textarea
+        ref={inputTaRef}
+        autoFocus
+        rows={2}
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+        placeholder="Ask your coach anything. Shift+Enter for a new line."
+        disabled={loading}
         style={{
-          background: loading ? '#fff' : C.gold, color: loading ? C.gold : '#fff',
-          border: loading ? `1px solid ${C.gold}` : 'none',
-          borderRadius: 8, padding: '8px 14px', cursor: (!loading && !input.trim()) ? 'default' : 'pointer',
-          fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
-          opacity: (!loading && !input.trim()) ? 0.6 : 1,
+          flex: 1, padding: '8px 12px', border: '1px solid #E2E5EA',
+          borderRadius: 8, fontSize: 18, fontFamily: 'inherit', color: '#1A2540',
+          resize: 'vertical', lineHeight: 1.4, minHeight: 62, maxHeight: 220, overflowY: 'auto',
         }}
-      >
-        {loading ? 'Stop' : 'Send'}
-      </button>
+      />
+      {/* Adaptive send/mic slot (2026-09-18): mic and Send used to sit side by
+          side as two permanent icons. Collapsed into one slot, matching
+          WhatsApp/iMessage/Slack -- mic while the field is empty, Send once
+          there's text -- at zero extra height cost. `loading` (a reply in
+          flight) always wins, showing Stop. `micListening` must be checked
+          BEFORE `input.trim()`: the first recognized word populates `input`
+          mid-dictation, and swapping this slot to Send right then would
+          unmount SpeechBtn while it is still recording (see SpeechBtn.jsx's
+          onListeningChange comment) -- so the mic stays in view, in its
+          active/pulsing state, for the whole recording regardless of
+          `input`, and only Send takes over once recording actually stops. */}
+      {loading ? (
+        <button
+          onClick={() => { if (abortRef.current) abortRef.current.abort() }}
+          style={{
+            background: '#fff', color: C.gold, border: `1px solid ${C.gold}`,
+            borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
+          }}
+        >
+          Stop
+        </button>
+      ) : (micListening || (hasSpeech && !input.trim())) ? (
+        <SpeechBtn ref={speechBtnRef} onResult={t => setInput((input || '') + t)} C={C} title="Speak your question" onListeningChange={setMicListening} />
+      ) : input.trim() ? (
+        <button
+          onClick={send}
+          style={{
+            background: C.gold, color: '#fff', border: 'none',
+            borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 17, fontWeight: 600,
+          }}
+        >
+          Send
+        </button>
+      ) : (
+        <button
+          disabled
+          style={{
+            background: C.gold, color: '#fff', border: 'none',
+            borderRadius: 8, padding: '8px 14px', cursor: 'default',
+            fontFamily: 'inherit', fontSize: 17, fontWeight: 600, opacity: 0.6,
+          }}
+        >
+          Send
+        </button>
+      )}
       </div>
       <div style={{ padding: '0 12px 10px', fontSize: 15, color: '#8A9BB8', lineHeight: 1.4 }}>
         Your coach is AI. It works from what you've shared and can be wrong or incomplete. Decisions are yours; for legal, financial, or medical questions, talk to a professional.{hasSpeech ? ' Voice works best in Chrome or Safari.' : ''}
@@ -1842,7 +1884,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             )}
             <button
               onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
-              style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ background: 'transparent', color: C.err, border: `1px solid ${C.err}66`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
               aria-label="Clear conversation"
             >
               Clear
@@ -2015,7 +2057,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
-            style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'transparent', color: C.err, border: `1px solid ${C.err}66`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
             Clear

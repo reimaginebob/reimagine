@@ -15,6 +15,14 @@
 // `.stop()` on it to end an in-progress recording programmatically, the same
 // as the person clicking the mic again themselves. Optional: existing call
 // sites that never pass a ref are unaffected.
+//
+// onListeningChange (optional, 2026-09-18): fires with the new boolean
+// whenever recording starts or stops. Added for Coach's composer, which
+// swaps this button out for Send once there's text -- without knowing
+// `listening` from outside, that swap could unmount this component mid-
+// dictation, orphaning the underlying SpeechRecognition object (it has no
+// unmount cleanup; only an explicit .stop() ends it). A caller that never
+// passes this prop is unaffected.
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Mic } from 'lucide-react'
 
@@ -22,8 +30,9 @@ export const hasSpeech = typeof window !== 'undefined' && ('SpeechRecognition' i
 
 const DEFAULT_C = { border: '#E2E5EA', gray: '#3D4A5C' }
 
-const SpeechBtn = forwardRef(function SpeechBtn({ onResult, style, C = DEFAULT_C, title }, ref) {
-  const [listening, setListening] = useState(false)
+const SpeechBtn = forwardRef(function SpeechBtn({ onResult, style, C = DEFAULT_C, title, onListeningChange }, ref) {
+  const [listening, setListeningState] = useState(false)
+  const setListening = v => { setListeningState(v); if (onListeningChange) onListeningChange(v) }
   const recRef = useRef(null)
   const toggle = () => {
     if (listening) { recRef.current?.stop(); return }
@@ -53,7 +62,7 @@ const SpeechBtn = forwardRef(function SpeechBtn({ onResult, style, C = DEFAULT_C
   }))
   return <>
     <style>{"@keyframes recordingPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,0.6)}50%{box-shadow:0 0 0 8px rgba(231,76,60,0)}}"}</style>
-    <button onClick={toggle} title={listening ? 'Recording. Click to stop.' : (title || 'Speak instead of typing')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, border: `2px solid ${listening ? '#e74c3c' : C.border}`, background: listening ? '#e74c3c' : 'white', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0, ...(listening ? { animation: 'recordingPulse 1.5s infinite' } : {}), ...(style || {}) }}>
+    <button onClick={toggle} title={listening ? 'Recording. Click to stop.' : (title || 'Speak instead of typing')} aria-label={listening ? 'Recording. Click to stop.' : (title || 'Speak instead of typing')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 10, border: `2px solid ${listening ? '#e74c3c' : C.border}`, background: listening ? '#e74c3c' : 'white', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0, ...(listening ? { animation: 'recordingPulse 1.5s infinite' } : {}), ...(style || {}) }}>
       <Mic size={18} color={listening ? '#FFFFFF' : C.gray} />
     </button>
   </>

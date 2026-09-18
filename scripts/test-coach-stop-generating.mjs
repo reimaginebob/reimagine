@@ -34,14 +34,20 @@ check(chat.includes("} else if (!isSilentTurn) {\n        // A silent turn (sess
 check(chat.includes('abortRef.current = null\n      setLoading(false)'),
   `${CHAT}: the finally block no longer clears abortRef.current -- a stale controller could be aborted again on a later, unrelated send`)
 
-// The Send button becomes a Stop button while loading -- same slot, not a
-// second control -- and the abort call is guarded against a null ref.
-check(chat.includes('onClick={loading ? () => { if (abortRef.current) abortRef.current.abort() } : send}'),
-  `${CHAT}: the input-row button no longer toggles between Stop (calling abortRef.current.abort()) and send() based on loading`)
-check(chat.includes("{loading ? 'Stop' : 'Send'}"),
-  `${CHAT}: the button label no longer switches to "Stop" while loading`)
-check(chat.includes('disabled={!loading && !input.trim()}'),
-  `${CHAT}: the button is no longer enabled while loading (it needs to stay clickable so Stop actually works, unlike the old disabled={loading || !input.trim()})`)
+// The composer's send/mic slot becomes a Stop button while loading (2026-09-18,
+// composer polish pass: the slot is now adaptive -- mic/Send/Stop share one
+// position rather than Send/Stop alone -- so the check moves from one ternary
+// to the `loading ?` branch of that slot) -- and the abort call is guarded
+// against a null ref.
+const stopSlotStart = chat.indexOf('{loading ? (\n        <button\n          onClick={() => { if (abortRef.current) abortRef.current.abort() }}')
+check(stopSlotStart !== -1,
+  `${CHAT}: the composer slot no longer renders a Stop button (calling abortRef.current.abort()) while loading`)
+const stopSlotClose = stopSlotStart === -1 ? -1 : chat.indexOf('</button>', stopSlotStart)
+const stopSlotBlock = stopSlotStart === -1 ? '' : chat.slice(stopSlotStart, stopSlotClose)
+check(stopSlotBlock.includes('\n          Stop\n        '),
+  `${CHAT}: the Stop button's label is missing while loading`)
+check(!stopSlotBlock.includes('disabled'),
+  `${CHAT}: a disabled prop was added to the Stop button -- it must stay unconditionally clickable while loading, unlike the old disabled={loading || !input.trim()}`)
 
 if (failures) {
   console.error(`test-coach-stop-generating: ${failures} check(s) failed`)
