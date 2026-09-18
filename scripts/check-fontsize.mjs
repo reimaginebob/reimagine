@@ -12,17 +12,32 @@
 // blocked immediately without requiring the whole app be swept first. As areas
 // are cleaned, lower BASELINE to lock in the win. Goal: BASELINE reaches 0.
 //
-// Scope: React inline styles only (camelCase `fontSize:NN`). CSS strings in the
-// print/PDF HTML use `font-size:` and are intentionally not scanned here.
+// Scope: every .jsx/.js file under src/, recursively (React inline styles only,
+// camelCase `fontSize:NN`). Previously limited to src/App.jsx plus a flat (non-
+// recursive) list of src/components/*.jsx|js — every other file directly under
+// src/ (AdminDashboard.jsx, CoachInsights.jsx, and five other internal-tool
+// screens) was invisible to this gate and accumulated 106 sub-15px violations
+// unnoticed before the 2026-09-18 full-repo audit widened the scan. CSS strings
+// in the print/PDF HTML use `font-size:` and are intentionally not scanned here.
 
 import fs from 'fs'
+import path from 'path'
 
 const BASELINE = 0
 
-const files = [
-  'src/App.jsx',
-  ...fs.readdirSync('src/components').filter(f => /\.(jsx|js)$/.test(f)).map(f => 'src/components/' + f),
-]
+function walk(dir, out = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      walk(p, out)
+    } else if (/\.(jsx|js)$/.test(entry.name)) {
+      out.push(p.split(path.sep).join('/'))
+    }
+  }
+  return out
+}
+
+const files = walk('src')
 
 let total = 0
 const perFile = {}

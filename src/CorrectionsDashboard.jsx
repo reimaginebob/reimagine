@@ -206,7 +206,7 @@ function Td({ children, right, muted, colSpan, style }) {
 const S = {
   muted: { color: GRAYL, fontSize: 15 },
   errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 15 },
-  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
   banner: { background: "#FBF3E7", border: `1px solid ${GOLD}55`, color: "#5C4322", borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 15, lineHeight: 1.5 },
   tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 },
   tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
@@ -218,7 +218,7 @@ const S = {
   panel: { background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 2px rgba(26,37,64,0.04)", marginBottom: 16 },
   panelTitle: { fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: GOLDL, margin: "0 0 14px", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 15 },
-  th: { color: GRAYL, fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 15, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "8px", borderBottom: `1px solid ${BORDER}`, verticalAlign: "top" },
   themeBarWrap: { display: "flex", flexWrap: "wrap", gap: 8 },
   themeChip: { background: CREAM, border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "8px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
@@ -227,6 +227,6 @@ const S = {
   filterChip: { background: CREAM, border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "6px 10px 6px 14px", fontSize: 15, display: "inline-flex", alignItems: "center", gap: 6 },
   filterChipX: { background: "none", border: "none", color: GRAYL, fontSize: 16, cursor: "pointer", padding: "0 4px", fontFamily: "inherit" },
   pbToggle: { display: "flex", alignItems: "center", gap: 6, fontSize: 15, color: GRAY, cursor: "pointer" },
-  flag: { display: "inline-block", background: CREAM, border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 6, padding: "2px 8px", fontSize: 13, fontWeight: 600, marginRight: 6, marginBottom: 4 },
-  flagStrong: { display: "inline-block", background: "#FBF3E7", border: `1px solid ${GOLD}`, color: GOLDL, borderRadius: 6, padding: "2px 8px", fontSize: 13, fontWeight: 700, marginRight: 6, marginBottom: 4 },
+  flag: { display: "inline-block", background: CREAM, border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 6, padding: "2px 8px", fontSize: 15, fontWeight: 600, marginRight: 6, marginBottom: 4 },
+  flagStrong: { display: "inline-block", background: "#FBF3E7", border: `1px solid ${GOLD}`, color: GOLDL, borderRadius: 6, padding: "2px 8px", fontSize: 15, fontWeight: 700, marginRight: 6, marginBottom: 4 },
 }

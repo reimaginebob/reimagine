@@ -198,7 +198,7 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
             const width = f.signups > 0 ? (s.value / f.signups) * 100 : 0
             return (
               <div key={s.key} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, marginBottom: 4 }}>
                   <span style={{ color: GRAY }}>{s.label}</span>
                   <span style={{ color: GRAYL }}>
                     <strong style={{ color: NAVY }}>{fmtInt(s.value)}</strong>
@@ -368,13 +368,13 @@ export default function GrowthDashboard({ refreshKey = 0 }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
             {depth.map((d) => (
               <div key={d.sections} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 13, color: GRAYL, width: 74, flexShrink: 0 }}>
+                <span style={{ fontSize: 15, color: GRAYL, width: 74, flexShrink: 0 }}>
                   {d.sections === 0 ? "none" : `${d.sections} of 7`}
                 </span>
                 <div style={{ ...S.barTrack, flex: 1 }}>
                   <div style={{ width: `${(d.users / maxDepth) * 100}%`, height: "100%", background: d.sections === 7 ? OK : GOLD, opacity: d.sections === 7 ? 1 : 0.7, borderRadius: 5 }} />
                 </div>
-                <span style={{ fontSize: 14, color: NAVY, fontWeight: 600, width: 28, textAlign: "right" }}>{d.users}</span>
+                <span style={{ fontSize: 15, color: NAVY, fontWeight: 600, width: 28, textAlign: "right" }}>{d.users}</span>
               </div>
             ))}
             {depth.length === 0 && <div style={S.muted}>No accounts yet.</div>}
@@ -680,20 +680,20 @@ const S = {
   panelTitle: { fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: GOLDL, margin: "0 0 14px", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 },
   // Guidance keeps the gold border-left treatment so it never reads as data
   // (CLAUDE.md section 8).
-  callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
-  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 14, lineHeight: 1.55, color: GRAY, marginTop: 12 },
+  callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 15, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
+  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 15, lineHeight: 1.55, color: GRAY, marginTop: 12 },
   tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
   tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
   tileValue: { fontSize: 26, fontWeight: 700, lineHeight: 1.1, fontFamily: "Georgia, serif" },
-  tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
+  tileLabel: { fontSize: 15, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
   tileSub: { color: GOLDL, fontStyle: "italic" },
   barTrack: { height: 10, background: CREAM, borderRadius: 5, overflow: "hidden" },
-  subSectionLabel: { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: GRAYL, margin: "18px 0 6px" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
-  th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  subSectionLabel: { fontSize: 15, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: GRAYL, margin: "18px 0 6px" },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 15 },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 15, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
-  muted: { color: GRAYL, fontSize: 14, lineHeight: 1.5 },
+  muted: { color: GRAYL, fontSize: 15, lineHeight: 1.5 },
   refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "8px 16px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 14 },
-  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 15 },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 }

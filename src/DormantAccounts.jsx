@@ -134,7 +134,7 @@ export default function DormantAccounts({ refreshKey = 0 }) {
                 <Td>
                   {r.duplicate_of.length === 0
                     ? <span style={{ opacity: 0.4 }}>—</span>
-                    : <span style={{ color: r.twin_is_active ? ERR : GRAYL, fontSize: 13 }}>
+                    : <span style={{ color: r.twin_is_active ? ERR : GRAYL, fontSize: 15 }}>
                         {r.twin_is_active ? "active twin: " : "twin: "}{r.duplicate_of.join(", ")}
                       </span>}
                 </Td>
@@ -165,7 +165,7 @@ export default function DormantAccounts({ refreshKey = 0 }) {
                         {d.accounts.map((a) => (
                           <div key={a.email} style={{ padding: "2px 0" }}>
                             {a.email}
-                            <span style={{ color: GRAYL, fontSize: 13 }}>
+                            <span style={{ color: GRAYL, fontSize: 15 }}>
                               {" · "}{fmtDate(a.created_at)}
                               {a.active ? <strong style={{ color: OK }}> · active</strong> : " · dormant"}
                             </span>
@@ -193,14 +193,14 @@ function Td({ children, right, muted, colSpan }) {
 }
 
 const S = {
-  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 14, lineHeight: 1.55, color: GRAY },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
-  th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 15, lineHeight: 1.55, color: GRAY },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 15 },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 15, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
   pill: { background: "#FFFFFF", border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "7px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
   pillActive: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 999, padding: "7px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   primaryBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "9px 18px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  muted: { color: GRAYL, fontSize: 14, lineHeight: 1.5 },
-  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", fontSize: 14 },
-  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  muted: { color: GRAYL, fontSize: 15, lineHeight: 1.5 },
+  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", fontSize: 15 },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 }
