@@ -1834,7 +1834,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             {setPresence && (
               <button
                 onClick={onMinimize || (() => setPresence('minimized'))}
-                style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
                 aria-label="Minimize My Coach"
               >
                 Minimize
@@ -1842,7 +1842,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             )}
             <button
               onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
-              style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
               aria-label="Clear conversation"
             >
               Clear
@@ -1850,7 +1850,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
             {setMaximized && (
               <button
                 onClick={() => setIsMaximized(!isMaximized)}
-                style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
                 aria-label={isMaximized ? 'Restore to default size' : 'Expand for more room'}
               >
                 {isMaximized ? 'Restore' : 'Expand'}
@@ -2015,7 +2015,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={() => { if (window.confirm(CLEAR_CONFIRM_TEXT)) { clearChatServerSide(); setMessages([INTRO_MSG]) } }}
-            style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
             aria-label="Clear conversation"
           >
             Clear
@@ -2023,7 +2023,7 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
           {!isMobile && (
             <button
               onClick={() => setIsMaximized(!isMaximized)}
-              style={{ background: 'none', border: 'none', color: '#8A9BB8', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ background: 'transparent', color: C.gray, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 14px', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}
               aria-label={isMaximized ? 'Restore to default size' : 'Expand for more room'}
             >
               {isMaximized ? 'Restore' : 'Expand'}
