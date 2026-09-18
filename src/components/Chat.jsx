@@ -1520,6 +1520,20 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
   // shrink and scroll inside once the panel hits its ceiling (a flex item
   // defaults to min-height:auto, which refuses to shrink below its content and
   // would overflow the panel instead of scrolling).
+  // send() appends the question and its reply's placeholder together in one
+  // update (`{ role: 'assistant', content: '', turnId }`), and the
+  // placeholder holds no text until the whole reply arrives in one write (it
+  // is never streamed token-by-token -- see the partnership-not-self-
+  // interest note elsewhere in this file). Reported live (2026-09-18): with
+  // "most recent never collapses" keyed only on array position, the
+  // question collapsed to a strip the instant Send was tapped -- the person
+  // lost sight of what they had just asked while staring at "Thinking...".
+  // While that placeholder is still empty, the question it answers counts
+  // as current too, not yet superseded.
+  const lastMsg = messages.length ? messages[messages.length - 1] : null
+  const pendingReply = loading && lastMsg && lastMsg.role === 'assistant' && !lastMsg.content
+  const collapseFloor = pendingReply ? messages.length - 2 : messages.length - 1
+
   const transcript = (
     <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
     <div ref={messagesContainerRef} data-coach-transcript="true" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 18px' }}>
@@ -1535,14 +1549,14 @@ export default function Chat({ currentStep, C, showPulse, onDismissPulse, messag
         // person acts on it or a new offer of the same kind supersedes it,
         // neither of which "something else was said after it" is.
         const hasLiveTaps = Array.isArray(m.quickReplies) && m.quickReplies.length > 0
-        const isCollapsedMessage = i < messages.length - 1 && !expandedMessages.has(i) && !hasLiveTaps
+        const isCollapsedMessage = i < collapseFloor && !expandedMessages.has(i) && !hasLiveTaps
         // Same eligibility as isCollapsedMessage, minus the expanded check --
         // true whether the strip is showing or the person tapped it open.
         // Reported live (2026-09-05): the strip's tap toggled expandedMessages
         // in both directions, but nothing on the EXPANDED bubble called
         // toggleMessageExpanded back -- once opened, a superseded message had
         // no way to return to its one-line strip.
-        const isExpandableMessage = i < messages.length - 1 && !hasLiveTaps
+        const isExpandableMessage = i < collapseFloor && !hasLiveTaps
         // Banner/intro narration keeps showing its own content verbatim in
         // the strip (unchanged). A regular Q&A message gets a role-prefixed,
         // truncated preview -- its full text is a whole Coach reply or
