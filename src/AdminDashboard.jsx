@@ -375,7 +375,7 @@ export default function AdminDashboard() {
         <div style={S.panelGrid}>
           {/* Account controls: pause / unpause a user (rogue-activity safeguard) */}
           <Panel title="Account controls">
-            <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+            <div style={{ fontSize: 15, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
               Pause an account (blocks generating, saving, and the coach) or lift a pause. Reversible — nothing is deleted. Paste the email from an alert.
             </div>
             <input value={suspendEmail} onChange={(e) => setSuspendEmail(e.target.value)} placeholder="user@example.com"
@@ -386,12 +386,12 @@ export default function AdminDashboard() {
               <button onClick={() => doSuspend("unpause")} disabled={suspendBusy}
                 style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: suspendBusy ? "default" : "pointer", opacity: suspendBusy ? 0.6 : 1, fontFamily: "inherit" }}>Unpause</button>
             </div>
-            {suspendMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
+            {suspendMsg && <div style={{ fontSize: 15, color: "#1A2540", marginTop: 10 }}>{suspendMsg}</div>}
           </Panel>
 
           {/* Pilot access: grant / revoke any registered flag, by email */}
           <Panel title={`Pilot access — ${(flagOptions[pipelineFlag] && flagOptions[pipelineFlag].label) || pipelineFlag} (${testers.length})`}>
-            <div style={{ fontSize: 14, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
+            <div style={{ fontSize: 15, color: "#4A5568", lineHeight: 1.5, marginBottom: 10 }}>
               Grant or revoke a gated pilot for a registered user by email. Bob goes first on every pilot; add anyone else only after he has checked it on production. Takes effect on their next page load.
             </div>
             <select value={pipelineFlag} onChange={(e) => { setPipelineFlag(e.target.value); setPipelineMsg("") }}
@@ -406,8 +406,8 @@ export default function AdminDashboard() {
               <button onClick={() => doPipeline("revoke")} disabled={pipelineBusy}
                 style={{ background: "transparent", color: "#1A2540", border: "1px solid #E2E5EA", borderRadius: 8, padding: "9px 18px", fontSize: 15, cursor: pipelineBusy ? "default" : "pointer", opacity: pipelineBusy ? 0.6 : 1, fontFamily: "inherit" }}>Revoke</button>
             </div>
-            {pipelineMsg && <div style={{ fontSize: 14, color: "#1A2540", marginTop: 10 }}>{pipelineMsg}</div>}
-            {testers.length > 0 && <div style={{ marginTop: 12, fontSize: 14, color: "#4A5568" }}>
+            {pipelineMsg && <div style={{ fontSize: 15, color: "#1A2540", marginTop: 10 }}>{pipelineMsg}</div>}
+            {testers.length > 0 && <div style={{ marginTop: 12, fontSize: 15, color: "#4A5568" }}>
               <div style={{ fontWeight: 600, color: "#1A2540", marginBottom: 4 }}>Current testers</div>
               {testers.map((e) => {
                 const t = tokenStatus && tokenStatus[e]
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
               first and keep the per-row Unpause; released rows are history. */}
           <Panel title={`Account holds (${onHold.length} on hold, ${paused.length - onHold.length} released)`} wide>
             {paused.length === 0
-              ? <div style={{ fontSize: 14, color: "#4A5568" }}>No account has ever been placed on hold.</div>
+              ? <div style={{ fontSize: 15, color: "#4A5568" }}>No account has ever been placed on hold.</div>
               : <table style={S.table}>
                   <thead><tr><Th>Email</Th><Th>Status</Th><Th>Why</Th><Th>When</Th><Th>Times held</Th><Th right>Action</Th></tr></thead>
                   <tbody>
@@ -492,7 +492,7 @@ export default function AdminDashboard() {
                         <Td right>
                           {p.on_hold
                             ? <button onClick={() => unpauseRow(p.email)} disabled={rowBusy === p.email}
-                                style={{ background: "#2E7D52", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 14, fontWeight: 600, cursor: rowBusy === p.email ? "default" : "pointer", opacity: rowBusy === p.email ? 0.6 : 1, fontFamily: "inherit" }}>
+                                style={{ background: "#2E7D52", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 15, fontWeight: 600, cursor: rowBusy === p.email ? "default" : "pointer", opacity: rowBusy === p.email ? 0.6 : 1, fontFamily: "inherit" }}>
                                 {rowBusy === p.email ? "…" : "Unpause"}
                               </button>
                             : <span style={{ color: "#9CA3AF" }}>—</span>}
@@ -566,14 +566,14 @@ export default function AdminDashboard() {
             {searchIntake.map((r, i) => (
               <div key={r.email} style={{ padding: "14px 0", borderTop: i === 0 ? "none" : `1px solid ${BORDER}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-                  <span style={{ fontSize: 14, color: NAVY, wordBreak: "break-all" }}>{r.email}</span>
-                  <span style={{ fontSize: 13, color: GRAYL, whiteSpace: "nowrap" }}>{(r.focus_at || r.going_well_at) ? new Date(r.focus_at || r.going_well_at).toLocaleDateString() : "—"}</span>
+                  <span style={{ fontSize: 15, color: NAVY, wordBreak: "break-all" }}>{r.email}</span>
+                  <span style={{ fontSize: 15, color: GRAYL, whiteSpace: "nowrap" }}>{(r.focus_at || r.going_well_at) ? new Date(r.focus_at || r.going_well_at).toLocaleDateString() : "—"}</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                   {[["Going well", r.going_well], ["Would like to improve", r.focus]].map(([label, text]) => (
                     <div key={label}>
                       <div style={{ ...S.th, padding: "0 0 4px" }}>{label}</div>
-                      <div style={{ fontSize: 14, lineHeight: 1.6, color: text ? GRAY : GRAYL }}>{text || "—"}</div>
+                      <div style={{ fontSize: 15, lineHeight: 1.6, color: text ? GRAY : GRAYL }}>{text || "—"}</div>
                     </div>
                   ))}
                 </div>
@@ -740,36 +740,36 @@ const S = {
   container: { maxWidth: 1180, margin: "0 auto" },
   headerRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 22 },
   title: { fontFamily: "Georgia, serif", fontSize: "clamp(28px, 5vw, 38px)", fontWeight: 700, color: NAVY, margin: 0, lineHeight: 1.15 },
-  subhead: { fontSize: 14, color: GRAYL, marginTop: 6 },
+  subhead: { fontSize: 15, color: GRAYL, marginTop: 6 },
   adminNav: { display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" },
   adminNavLink: { fontSize: 16, color: GOLDL, fontWeight: 600, textDecoration: "none" },
   adminNavSep: { fontSize: 16, color: BORDER },
   tabBar: { display: "flex", gap: 4, marginBottom: 20, borderBottom: `1px solid ${BORDER}` },
   tab: { background: "transparent", border: "none", borderBottom: "2px solid transparent", color: GRAYL, padding: "8px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },
   tabActive: { background: "transparent", border: "none", borderBottom: `2px solid ${GOLD}`, color: NAVY, padding: "8px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: -1 },
-  pill: { background: "#FFFFFF", border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "7px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  pillActive: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 999, padding: "7px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "7px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  signOutBtn: { background: "transparent", border: "none", color: GRAYL, fontSize: 13, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" },
-  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 14 },
-  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  pill: { background: "#FFFFFF", border: `1px solid ${BORDER}`, color: GRAY, borderRadius: 999, padding: "7px 16px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  pillActive: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 999, padding: "7px 16px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "7px 16px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  signOutBtn: { background: "transparent", border: "none", color: GRAYL, fontSize: 16, textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" },
+  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 15 },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
   panelGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 },
   panel: { background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 2px rgba(26,37,64,0.04)" },
   panelTitle: { fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: GOLDL, margin: "0 0 14px", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 },
   tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
   tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
   tileValue: { fontSize: 26, fontWeight: 700, lineHeight: 1.1, fontFamily: "Georgia, serif" },
-  tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
+  tileLabel: { fontSize: 15, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
   tileSub: { color: GOLDL, fontStyle: "italic" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
-  th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 15 },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 15, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
-  muted: { color: GRAYL, fontSize: 14 },
+  muted: { color: GRAYL, fontSize: 15 },
   // auth form
   authWrap: { maxWidth: 380, margin: "12vh auto 0", background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 28 },
   authTitle: { fontFamily: "Georgia, serif", fontSize: 30, fontWeight: 700, color: NAVY, margin: "0 0 6px" },
-  authSub: { fontSize: 14, color: GRAYL, margin: "0 0 20px", lineHeight: 1.5 },
+  authSub: { fontSize: 15, color: GRAYL, margin: "0 0 20px", lineHeight: 1.5 },
   input: { width: "100%", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "12px 14px", fontSize: 16, fontFamily: "inherit", color: NAVY, outline: "none", boxSizing: "border-box" },
   primaryBtn: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 8, padding: "12px 16px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  authErr: { marginTop: 14, color: ERR, fontSize: 14 },
+  authErr: { marginTop: 14, color: ERR, fontSize: 15 },
 }

@@ -222,7 +222,7 @@ export default function EconomicsDashboard() {
           <div style={{ marginTop: 12 }}>
             <button onClick={saveInputs} disabled={inBusy} style={S.primaryBtn}>{inBusy ? "Saving…" : "Save"}</button>
           </div>
-          {inMsg && <div style={{ fontSize: 14, color: NAVY, marginTop: 10 }}>{inMsg}</div>}
+          {inMsg && <div style={{ fontSize: 15, color: NAVY, marginTop: 10 }}>{inMsg}</div>}
           {(payload.inputs_history || []).length > 1 && (
             <table style={{ ...S.table, marginTop: 14 }}>
               <thead><tr><Th>Effective</Th><Th right>Price</Th><Th right>Fixed</Th><Th>Note</Th></tr></thead>
@@ -499,7 +499,7 @@ export default function EconomicsDashboard() {
             <button onClick={() => saveBilling(false)} disabled={billBusy} style={S.primaryBtn}>{billBusy ? "…" : "Save"}</button>
             <button onClick={() => saveBilling(true)} disabled={billBusy} style={S.smallBtn}>Clear</button>
           </div>
-          {billMsg && <div style={{ fontSize: 14, color: NAVY, marginTop: 10 }}>{billMsg}</div>}
+          {billMsg && <div style={{ fontSize: 15, color: NAVY, marginTop: 10 }}>{billMsg}</div>}
         </Panel>
       </div>
     </>
@@ -605,7 +605,7 @@ function BudgetPanel({ budget }) {
     <Panel title="API budget" wide>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontFamily: "Georgia, serif", fontSize: 18, color: barColor, fontWeight: 600 }}>{headline}</div>
-        <div style={{ fontSize: 14, color: GRAYL }}>
+        <div style={{ fontSize: 15, color: GRAYL }}>
           {fmtUsd(b.spend_usd, true)} of {fmtUsd(b.cap_usd)} · {b.month} · {Number(b.days_remaining).toFixed(1)} days left
         </div>
       </div>
@@ -623,7 +623,7 @@ function BudgetPanel({ budget }) {
           <div key={t} style={{ ...S.budgetTick, left: `${t}%` }} />
         ))}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: GRAYL, marginTop: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: GRAYL, marginTop: 4 }}>
         <span>{Math.round(pct)}% spent</span>
         <span>{b.projection_reliable ? `projected ${Math.round(projPct)}% by month end` : "too early in the month to project"}</span>
       </div>
@@ -664,7 +664,7 @@ function Line({ label, value, sub, cents }) {
   const v = Number(value) || 0
   return (
     <tr>
-      <td style={S.td}>{label}{sub ? <span style={{ color: GRAYL, fontSize: 13 }}> · {sub}</span> : null}</td>
+      <td style={S.td}>{label}{sub ? <span style={{ color: GRAYL, fontSize: 15 }}> · {sub}</span> : null}</td>
       <td style={{ ...S.td, textAlign: "right", color: v < 0 ? GRAY : NAVY, fontWeight: 600 }}>{fmtUsd(v, cents)}</td>
     </tr>
   )
@@ -683,10 +683,10 @@ const S = {
   panelTitle: { fontFamily: "Georgia, serif", fontSize: 18, fontWeight: 600, color: GOLDL, margin: "0 0 14px", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 },
   // Guidance gets the gold border-left treatment so it never reads as body copy
   // or as data (CLAUDE.md section 8).
-  callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
-  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 14, lineHeight: 1.55, color: GRAY, marginTop: 12 },
+  callout: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 10px 10px 0", padding: "12px 16px", fontSize: 15, lineHeight: 1.6, color: GRAY, marginBottom: 16 },
+  calloutTight: { borderLeft: `4px solid ${GOLD}`, background: "#FDF8F0", borderRadius: "0 8px 8px 0", padding: "10px 12px", fontSize: 15, lineHeight: 1.55, color: GRAY, marginTop: 12 },
   tileGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 12 },
-  code: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13, background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1px 5px" },
+  code: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 15, background: "#FFFFFF", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1px 5px" },
   // Budget bar. A track with the alert thresholds marked, so the distance to
   // the next warning is visible rather than having to be worked out.
   budgetTrack: { position: "relative", height: 14, background: CREAM, border: `1px solid ${BORDER}`, borderRadius: 7, overflow: "hidden", marginTop: 14 },
@@ -695,18 +695,18 @@ const S = {
   budgetProjection: { position: "absolute", top: -2, bottom: -2, width: 2, background: NAVY },
   tile: { background: CREAM, borderRadius: 10, padding: "12px 14px" },
   tileValue: { fontSize: 26, fontWeight: 700, lineHeight: 1.1, fontFamily: "Georgia, serif" },
-  tileLabel: { fontSize: 12, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
+  tileLabel: { fontSize: 15, color: GRAYL, marginTop: 4, lineHeight: 1.3 },
   tileSub: { color: GOLDL, fontStyle: "italic" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
-  th: { color: GRAYL, fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 15 },
+  th: { color: GRAYL, fontWeight: 600, fontSize: 15, textTransform: "uppercase", letterSpacing: "0.04em", padding: "6px 8px", borderBottom: `1px solid ${BORDER}` },
   td: { padding: "7px 8px", borderBottom: `1px solid ${BORDER}` },
   field: { display: "flex", flexDirection: "column", gap: 4 },
-  fieldLabel: { fontSize: 12, color: GRAYL, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 },
+  fieldLabel: { fontSize: 15, color: GRAYL, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 },
   input: { border: `1px solid ${BORDER}`, borderRadius: 8, padding: "9px 12px", fontSize: 16, fontFamily: "inherit", color: NAVY, outline: "none", boxSizing: "border-box", width: "100%" },
   primaryBtn: { background: GOLD, border: `1px solid ${GOLD}`, color: "#FFFFFF", borderRadius: 8, padding: "9px 18px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   smallBtn: { background: "transparent", border: `1px solid ${BORDER}`, color: NAVY, borderRadius: 8, padding: "8px 16px", fontSize: 16, cursor: "pointer", fontFamily: "inherit" },
   refreshBtn: { background: NAVY, border: `1px solid ${NAVY}`, color: "#FFFFFF", borderRadius: 8, padding: "8px 16px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
-  muted: { color: GRAYL, fontSize: 14, lineHeight: 1.5 },
-  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 14 },
-  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
+  muted: { color: GRAYL, fontSize: 15, lineHeight: 1.5 },
+  errorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#FDECEA", border: `1px solid ${ERR}55`, color: ERR, borderRadius: 10, padding: "12px 16px", marginBottom: 18, fontSize: 15 },
+  retryBtn: { background: ERR, border: "none", color: "#FFFFFF", borderRadius: 6, padding: "6px 14px", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
 }

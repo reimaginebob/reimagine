@@ -146,7 +146,7 @@ export default function CoachInsights() {
 
         {activeFilters.length > 0 && (
           <div style={S.filterRow}>
-            <span style={{ color: GRAYL, fontSize: 13 }}>Filtered:</span>
+            <span style={{ color: GRAYL, fontSize: 15 }}>Filtered:</span>
             {activeFilters.map(([k, v]) => (
               <button key={k} onClick={() => toggleFilter(k, v)} style={S.filterChip} title="Click to remove">{MIX_LABEL[k] || k}: {v} ✕</button>
             ))}
@@ -246,8 +246,8 @@ export default function CoachInsights() {
                           {chips.map((c, j) => <span key={j} style={S.tagChip}>{c}</span>)}
                         </div>
                         {r.comment && <div style={{ ...S.unmetText, fontStyle: "italic" }}>“{r.comment}”</div>}
-                        <div style={{ fontSize: 13, color: GRAYL, marginTop: 4 }}>Q: {r.message}</div>
-                        <div style={{ fontSize: 13, color: GRAY, marginTop: 2 }}>A: {r.reply}</div>
+                        <div style={{ fontSize: 15, color: GRAYL, marginTop: 4 }}>Q: {r.message}</div>
+                        <div style={{ fontSize: 15, color: GRAY, marginTop: 2 }}>A: {r.reply}</div>
                       </div>
                     )
                   })}
@@ -313,41 +313,41 @@ const S = {
   container: { maxWidth: 1080, margin: "0 auto", padding: "28px 20px" },
   authWrap: { maxWidth: 380, margin: "12vh auto", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 28 },
   authTitle: { fontFamily: "Georgia,serif", fontSize: 24, margin: "0 0 6px", color: NAVY },
-  authSub: { color: GRAYL, fontSize: 14, margin: "0 0 18px" },
+  authSub: { color: GRAYL, fontSize: 15, margin: "0 0 18px" },
   input: { padding: "11px 12px", borderRadius: 9, border: `1px solid ${BORDER}`, fontSize: 15, fontFamily: "inherit" },
   primaryBtn: { padding: "11px 14px", borderRadius: 9, border: "none", background: NAVY, color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" },
-  authErr: { marginTop: 12, color: ERRC, fontSize: 14 },
+  authErr: { marginTop: 12, color: ERRC, fontSize: 15 },
   headerRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 18 },
   title: { fontFamily: "Georgia,serif", fontSize: 26, margin: "0 0 4px", color: NAVY },
-  subhead: { color: GRAYL, fontSize: 13 },
-  pill: { padding: "6px 12px", borderRadius: 999, border: `1px solid ${BORDER}`, background: "#fff", color: GRAY, fontSize: 13, cursor: "pointer" },
-  pillActive: { padding: "6px 12px", borderRadius: 999, border: `1px solid ${NAVY}`, background: NAVY, color: "#fff", fontSize: 13, cursor: "pointer" },
-  refreshBtn: { padding: "6px 12px", borderRadius: 9, border: `1px solid ${BORDER}`, background: "#fff", color: GRAY, fontSize: 13, cursor: "pointer" },
-  signOutBtn: { padding: "6px 12px", borderRadius: 9, border: "none", background: "transparent", color: GRAYL, fontSize: 13, cursor: "pointer", textDecoration: "underline" },
+  subhead: { color: GRAYL, fontSize: 15 },
+  pill: { padding: "6px 12px", borderRadius: 999, border: `1px solid ${BORDER}`, background: "#fff", color: GRAY, fontSize: 16, cursor: "pointer" },
+  pillActive: { padding: "6px 12px", borderRadius: 999, border: `1px solid ${NAVY}`, background: NAVY, color: "#fff", fontSize: 16, cursor: "pointer" },
+  refreshBtn: { padding: "6px 12px", borderRadius: 9, border: `1px solid ${BORDER}`, background: "#fff", color: GRAY, fontSize: 16, cursor: "pointer" },
+  signOutBtn: { padding: "6px 12px", borderRadius: 9, border: "none", background: "transparent", color: GRAYL, fontSize: 16, cursor: "pointer", textDecoration: "underline" },
   errorBanner: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "#FBEBE8", border: `1px solid ${ERRC}`, borderRadius: 9, padding: "10px 14px", color: ERRC, marginBottom: 16 },
-  retryBtn: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${ERRC}`, background: "#fff", color: ERRC, fontSize: 13, cursor: "pointer" },
+  retryBtn: { padding: "4px 10px", borderRadius: 7, border: `1px solid ${ERRC}`, background: "#fff", color: ERRC, fontSize: 16, cursor: "pointer" },
   filterRow: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 },
-  filterChip: { padding: "4px 10px", borderRadius: 999, border: `1px solid ${GOLDL}`, background: "#F3ECDD", color: GOLDL, fontSize: 13, cursor: "pointer" },
-  clearBtn: { padding: "4px 8px", border: "none", background: "transparent", color: GRAYL, fontSize: 13, cursor: "pointer", textDecoration: "underline" },
+  filterChip: { padding: "4px 10px", borderRadius: 999, border: `1px solid ${GOLDL}`, background: "#F3ECDD", color: GOLDL, fontSize: 16, cursor: "pointer" },
+  clearBtn: { padding: "4px 8px", border: "none", background: "transparent", color: GRAYL, fontSize: 16, cursor: "pointer", textDecoration: "underline" },
   headlineGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 18 },
   stat: { background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 14px" },
   statVal: { fontWeight: 700, lineHeight: 1.1 },
-  statLabel: { color: GRAY, fontSize: 13, marginTop: 6 },
-  statSub: { color: GRAYL, fontSize: 12, marginTop: 2 },
+  statLabel: { color: GRAY, fontSize: 15, marginTop: 6 },
+  statSub: { color: GRAYL, fontSize: 15, marginTop: 2 },
   panel: { background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 16px", marginBottom: 16 },
   panelHead: { marginBottom: 12 },
   panelTitle: { fontFamily: "Georgia,serif", fontSize: 17, color: NAVY },
-  panelSub: { color: GRAYL, fontSize: 12, marginTop: 2 },
+  panelSub: { color: GRAYL, fontSize: 15, marginTop: 2 },
   mixGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 },
   barRow: { display: "flex", alignItems: "center", gap: 10, borderRadius: 6, padding: "3px 4px" },
-  barLabel: { width: 170, fontSize: 13, color: GRAY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  barLabel: { width: 170, fontSize: 15, color: GRAY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   barTrack: { flex: 1, height: 14, background: BARBG, borderRadius: 7, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 7 },
-  barN: { width: 40, textAlign: "right", fontSize: 13, color: NAVY, fontWeight: 600 },
+  barN: { width: 40, textAlign: "right", fontSize: 15, color: NAVY, fontWeight: 600 },
   unmetItem: { borderLeft: `3px solid ${GOLD}`, padding: "8px 0 8px 12px" },
-  unmetMeta: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 12, color: GRAYL, marginBottom: 4 },
-  stepTag: { background: NAVY, color: "#fff", borderRadius: 999, padding: "1px 8px", fontSize: 11 },
-  tagChip: { background: "#F3ECDD", color: GOLDL, borderRadius: 999, padding: "1px 8px", fontSize: 11 },
+  unmetMeta: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 15, color: GRAYL, marginBottom: 4 },
+  stepTag: { background: NAVY, color: "#fff", borderRadius: 999, padding: "1px 8px", fontSize: 15 },
+  tagChip: { background: "#F3ECDD", color: GOLDL, borderRadius: 999, padding: "1px 8px", fontSize: 15 },
   unmetText: { fontSize: 15, color: NAVY, lineHeight: 1.5 },
-  empty: { color: GRAYL, fontSize: 14, padding: "8px 0" },
+  empty: { color: GRAYL, fontSize: 15, padding: "8px 0" },
 }
