@@ -1,9 +1,11 @@
 // PayPal / Venmo / card option for the Pay It Forward panel (SupportPanel,
-// src/App.jsx). Sits below the existing Stripe amount buttons -- Stripe is
-// untouched; this is a second, independent way to give, one-time only (no
-// PayPal equivalent of Stripe's $10/mo option -- see Output/handoff/
-// 2026-09-17_paypal-commerce-integration.md for why that is a scope choice,
-// not an oversight).
+// src/App.jsx). A second, independent way to give alongside the existing
+// Stripe amount buttons -- Stripe is untouched -- one-time only (no PayPal
+// equivalent of Stripe's $10/mo option -- see Output/handoff/2026-09-17_
+// paypal-commerce-integration.md for why that is a scope choice, not an
+// oversight). SupportPanel places it beside the Stripe column on desktop
+// and below it on mobile (2026-09-18 layout pass); this component owns no
+// outer margin itself so either placement can control its own spacing.
 //
 // Loaded on demand: the PayPal JS SDK script tag is injected the first time
 // this component mounts (i.e. only when a signed-in or signed-out visitor
@@ -116,7 +118,7 @@ export default function PayPalDonate({ userId }) {
   })
 
   return (
-    <div style={{ marginTop: 22 }}>
+    <div>
       <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: '#718096', margin: '0 0 10px' }}>
         Or pay with PayPal, Venmo, or card
       </div>

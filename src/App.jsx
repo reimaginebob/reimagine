@@ -7279,10 +7279,19 @@ function withDonorRef(url,userId){
 }
 function SupportPanel({onClose,userId,hasPaypalDonate=false}){
   const K=SUPPORT_PANEL_COPY
+  const isMobile=useIsMobile()
+  // Below MOBILE_BREAKPOINT the two providers stack (a side-by-side grid on a
+  // phone-width screen would squeeze both columns unreadably), so the grid
+  // split is only worth it once there is a real second column to show AND
+  // room to show it beside the first one.
+  const twoCol=hasPaypalDonate&&!isMobile
   const sectionLabelStyle={fontSize:15,fontWeight:800,letterSpacing:'1px',textTransform:'uppercase',color:'#718096',margin:'0 0 10px'}
   const amountLinkStyle={display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'11px 20px',border:`1.5px solid ${C.gold}`,borderRadius:10,color:C.gold,fontSize:17,fontWeight:700,textDecoration:'none',fontFamily:'inherit',cursor:'pointer',background:'transparent'}
   return <div data-print="hide" onClick={onClose} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.55)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-    <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={K.navLabel} style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:560,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+    {/* maxWidth only grows once there is a real second column (hasPaypalDonate);
+       a non-flagged account renders the exact same 560px single column as before
+       this layout pass, so the ungated Stripe half is pixel-identical for them. */}
+    <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true" aria-label={K.navLabel} style={{background:'#FFFFFF',borderRadius:14,padding:'32px 36px',maxWidth:hasPaypalDonate?880:560,width:'100%',maxHeight:'calc(100vh - 48px)',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
       <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:14,right:16,background:'transparent',border:'none',color:'#718096',fontSize:24,cursor:'pointer',padding:4,lineHeight:1,fontFamily:'inherit'}}>×</button>
       <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'0 0 16px',paddingRight:24,lineHeight:1.35}}>{K.header}</h2>
       {K.body.map((para,i)=><p key={i} style={{fontSize:17,color:'#3D4A5C',lineHeight:1.65,margin:'0 0 14px'}}>{para}</p>)}
@@ -7290,19 +7299,23 @@ function SupportPanel({onClose,userId,hasPaypalDonate=false}){
         <p style={{fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:17,color:'#3D4A5C',lineHeight:1.55,margin:0}}>{`“${K.quote.text}”`}</p>
         <p style={{fontSize:15,color:'#718096',margin:'6px 0 0'}}>{`— ${K.quote.attribution}`}</p>
       </div>}
-      <div style={{marginTop:22}}>
-        <div style={sectionLabelStyle}>{K.onceLabel}</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+      <div style={twoCol?{marginTop:22,display:'grid',gridTemplateColumns:'1fr 1fr',columnGap:32}:{marginTop:22}}>
+        <div>
+          <div style={sectionLabelStyle}>{K.onceLabel}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+            {K.onceOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+          </div>
+          <div style={{marginTop:20}}>
+            <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+              {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
+            </div>
+          </div>
         </div>
+        {hasPaypalDonate&&(twoCol
+          ? <div style={{borderLeft:'1px solid #E2E5EA',paddingLeft:32}}><PayPalDonate userId={userId}/></div>
+          : <div style={{marginTop:28,paddingTop:22,borderTop:'1px solid #E2E5EA'}}><PayPalDonate userId={userId}/></div>)}
       </div>
-      <div style={{marginTop:20}}>
-        <div style={sectionLabelStyle}>{K.monthlyLabel}</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-          {K.monthlyOptions.map(o=><a key={o.label} href={withDonorRef(o.url,userId)} target="_blank" rel="noopener noreferrer" style={amountLinkStyle}>{o.label}</a>)}
-        </div>
-      </div>
-      {hasPaypalDonate&&<PayPalDonate userId={userId}/>}
     </div>
   </div>
 }
