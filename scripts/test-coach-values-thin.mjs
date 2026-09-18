@@ -70,7 +70,10 @@ check(app.slice(saveDepsIdx, saveDepsIdx + 900).includes('seenValuesThinHub'),
 // stack on the same visit.
 const fireIdx = app.indexOf('valuesThinHubFiredRef.current=true')
 check(fireIdx !== -1, `${APP}: the values-thin-hub firing effect is missing`)
-const fireBlock = fireIdx !== -1 ? app.slice(fireIdx - 900, fireIdx + 300) : ''
+// Bounded by the enclosing useEffect rather than a byte count (2026-09-17):
+// a fixed backward window broke the moment the effect gained a comment.
+const fireEffectIdx = fireIdx === -1 ? -1 : app.lastIndexOf('useEffect(()=>{', fireIdx)
+const fireBlock = fireIdx !== -1 && fireEffectIdx !== -1 ? app.slice(fireEffectIdx, fireIdx + 300) : ''
 check(fireBlock.includes('if(!hasOnboardingConcierge)return'),
   `${APP}: values-thin-hub is not gated on hasOnboardingConcierge`)
 check(fireBlock.includes("wc([profile.values,profile.passions].filter(Boolean).join(' '))>=THIN_MIN.values||seenValuesThinHub||valuesThinHubFiredRef.current"),

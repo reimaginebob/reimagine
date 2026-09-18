@@ -60,13 +60,23 @@ check(/profileBlock \+= buildAlreadyMentionedBlock\(inFocus\.id, milestoneMentio
 // -- both needed by the handler to read history in and write a new mention
 // back out, scoped to the SAME record the prompt was actually built for
 // (not re-derived, which could drift from what buildCoachRequest resolved).
-check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,60}\}\) \{/.test(coach),
+// The trailing window was 60 characters when this was written and the
+// signature ended two parameters after milestoneMentions. It has grown since
+// (turnKind, tzOffsetMinutes, then recentDocuments/nowMs for the 2026-09-17
+// documents block), so the bound is widened rather than the signature
+// reshaped to fit it -- what this check is actually for is that
+// milestoneMentions is still a parameter, not where it sits in the list.
+check(/export function buildCoachRequest\(\{[\s\S]{0,400}generalMode, milestoneMentions,[\s\S]{0,200}\}\) \{/.test(coach),
   `${COACH}: buildCoachRequest does not accept milestoneMentions as a parameter`)
-check(coach.includes("return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }"),
+// Checked as a member of the return list rather than as the whole literal
+// (2026-09-18): pinning the exact string meant every later field added to the
+// return broke a test about inFocusRecordId specifically.
+check(/return \{ system, messages,[^}]*\binFocusRecordId\b[^}]*\}/.test(coach),
   `${COACH}: buildCoachRequest does not return inFocusRecordId`)
 // Window widened 2026-09-09 (engine guardrails brief, rule 4): the
 // situationBlockChars comment/declaration sits between the two anchors now.
-check(/let inFocusRecordId = null[\s\S]{0,950}inFocusRecordId = inFocus\.id/.test(coach),
+// Bounded by the assignment itself rather than a byte count, same reasoning.
+check(/let inFocusRecordId = null[\s\S]{0,2000}inFocusRecordId = inFocus\.id/.test(coach),
   `${COACH}: inFocusRecordId is not set from the resolved in-focus record`)
 
 // Handler: reads existing mentions gated on the same flag as the note itself,

@@ -20,7 +20,7 @@ import { NEXT_STEP_KNOWLEDGE } from '../src/data/next-step-knowledge.js'
 import { INDUSTRY_ECOSYSTEM_KNOWLEDGE } from '../src/data/industry-ecosystem-knowledge.js'
 import { CORRECTION_ACTIONS_KNOWLEDGE } from '../src/data/correction-actions-knowledge.js'
 import { TRACK_INDEPENDENT } from '../src/tracks.js'
-import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation } from './_lib/feature-flags.js'
+import { hasConnectorBeta, hasPipelineCapture, hasNextStep, hasOnboardingConcierge, hasCoachNoteAgency, hasSectionRework, hasMilestonePrompt, hasOrientationCapture, hasCloseReasonCapture, hasIndustryEcosystemView, hasCoachSituation, hasCoachSummary } from './_lib/feature-flags.js'
 import { hasCorrectionActions } from './_lib/feature-flags.js'
 import { CLOSE_REASON_CODES, INITIATED_BY_VALUES } from '../src/pursuit-close-reasons.js'
 import { MYOW_CONTENT } from '../src/data/myow-content.js'
@@ -472,7 +472,226 @@ function clip(text, limit = 4000) {
 // the ONLY place that text is ever cleaned, since it replaces `strippedText`
 // outright rather than being re-run through parseMood. Missing MOOD here
 // let that line ship to the client as the last line of the visible reply.
-const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
+// Summary to notes (COACHSUMMARY, 2026-09-17). Sibling of
+// COACH_NOTE_CAPTURE_NOTE above, and deliberately NOT a second copy of it:
+// COACHNOTE keeps ONE reply, only when asked; this keeps the CONCLUSIONS of a
+// whole thread about one opportunity, and may be offered on Coach's own read
+// that the thread has closed.
+//
+// Built per turn rather than being a constant, because what Coach is allowed
+// to do varies with state the model cannot see: whether this opportunity has
+// already been offered a summary inside the 24-hour window, and whether this
+// account has heard the one-time "you can just ask for this" line yet.
+//
+// Two things are deliberately NOT asked of the model. It is never asked to
+// count 24 hours (it has no clock, and a rule it cannot evaluate is a rule it
+// will guess at) -- the proactive half is simply absent from the prompt when
+// the window is closed. And it is never asked to scan history for a previous
+// decline: the client stamps lastCoachSummaryOfferAt when an offer RENDERS,
+// accepted or not, so an ignored offer and a declined one close the window
+// identically and no separate decline marker has to exist.
+// One offer per opportunity per rolling 24 hours. Rolling rather than
+// per-conversation on purpose: My Coach has no session boundary short of
+// Clear, so "once per conversation" would mean once ever for anyone who
+// never clears, which undercounts exactly the people with several
+// opportunities running over weeks.
+export const COACH_SUMMARY_OFFER_WINDOW_MS = 24 * 60 * 60 * 1000
+
+// --- Summary scope (2026-09-18, live finding on bob+lindsey@career.club) ---
+// My Coach has no session boundary short of Clear, so one transcript routinely
+// spans several opportunities. The summary instruction used to open with "the
+// conversation you are having about ${title}", which is simply FALSE the moment
+// the transcript covers more than one -- and the model did what that framing
+// invites: it summarized the whole visible history. A GoGuardian summary landed
+// in GoGuardian's notes opening with a paragraph about Deloitte, naming
+// Deloitte contacts. Wrong facts filed on the wrong opportunity is the kind of
+// miss a person notices once and stops trusting the feature over.
+//
+// The boundary is computed HERE rather than described to the model, for the
+// same reason the 24-hour window is: a rule the model has to infer from free
+// text is a rule it will infer wrong. Real typed turns carry `rid` -- the
+// record that was in focus when they were sent, stamped client-side in
+// Chat.jsx from the same value that already rides the request as
+// focusRecordId, so the two can never disagree.
+//
+// Sparse by design: only typed user turns carry `rid` (moments, banners and
+// quick-reply taps do not), and transcripts from before this shipped carry
+// none at all. `attributable` says which case this is, and the caller treats
+// "cannot attribute" as a reason to be MORE conservative, never less.
+export function scopeHistoryToRecord(history, recordId) {
+  const list = Array.isArray(history) ? history : []
+  const want = typeof recordId === 'string' ? recordId : ''
+  let attributable = false
+  // Index of the last turn belonging to a DIFFERENT opportunity. Everything
+  // after it is this opportunity's part of the conversation. -1 means the whole
+  // retained history is in scope.
+  let boundary = -1
+  const otherRecordIds = []
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i]
+    const rid = (m && typeof m.rid === 'string' && m.rid) ? m.rid : ''
+    if (!rid) continue
+    attributable = true
+    if (rid !== want) {
+      boundary = i
+      if (!otherRecordIds.includes(rid)) otherRecordIds.push(rid)
+    }
+  }
+  let inScopeUserTurns = 0
+  let firstInScopeOpening = null
+  for (let i = boundary + 1; i < list.length; i++) {
+    const m = list[i]
+    if (!m || m.role !== 'user' || m.synthetic) continue
+    inScopeUserTurns += 1
+    if (firstInScopeOpening === null && typeof m.content === 'string' && m.content.trim()) {
+      firstInScopeOpening = m.content.trim().replace(/\s+/g, ' ').slice(0, 90)
+    }
+  }
+  return { attributable, boundary, inScopeUserTurns, otherRecordIds, firstInScopeOpening }
+}
+
+// How many of the person's own turns about ONE opportunity before Coach may
+// offer a summary of it unprompted. Counts the turn being answered, so 3 means
+// they have asked three things about this opportunity.
+//
+// A code-side floor, not a instruction: the shipped instruction already said "a
+// quick factual exchange, a single question answered... is not this", and the
+// model offered anyway on the very first question ever asked about GoGuardian.
+// An instruction the model demonstrably does not honor is not a gate. The
+// on-request path is deliberately NOT floored -- someone who wants a summary
+// after one turn can still ask for one and get it.
+export const COACH_SUMMARY_MIN_TURNS = 3
+
+// Names of the OTHER opportunities this account has open, for the negative
+// half of the scope instruction and for the post-hoc contamination check.
+// Company where there is one (that is what a summary actually names), title
+// otherwise. Short names are dropped: a two- or three-letter company would
+// match ordinary prose and suppress good summaries.
+export function otherOpportunityNames(activeSaved, inFocus) {
+  const out = []
+  const mine = `${(inFocus && inFocus.company) || ''} ${(inFocus && inFocus.title) || ''}`.toLowerCase()
+  for (const r of (Array.isArray(activeSaved) ? activeSaved : [])) {
+    if (!r || !r.id || (inFocus && r.id === inFocus.id) || r.source !== 'door2') continue
+    const name = (typeof r.company === 'string' && r.company.trim()) ? r.company.trim()
+      : (typeof r.title === 'string' && r.title.trim()) ? r.title.trim() : ''
+    if (name.length < 4) continue
+    // Never flag a name the in-focus opportunity itself contains -- two roles
+    // at the same company must not suppress each other's summaries.
+    if (mine.includes(name.toLowerCase())) continue
+    if (!out.includes(name)) out.push(name)
+  }
+  return out
+}
+
+// Every person this account has named on an interview team, grouped by the
+// opportunity they belong to (2026-09-18). Used ONLY to measure how often a
+// reply about one opportunity names somebody from another -- see
+// replyNamesOtherOpportunityPerson.
+export function opportunityPeopleByRecord(activeSaved) {
+  const out = []
+  for (const r of (Array.isArray(activeSaved) ? activeSaved : [])) {
+    if (!r || !r.id || r.source !== 'door2') continue
+    const ivs = (r.panel && Array.isArray(r.panel.interviewers)) ? r.panel.interviewers : []
+    const names = []
+    for (const iv of ivs) {
+      const nm = (iv && typeof iv.name === 'string') ? iv.name.trim() : ''
+      if (nm) names.push(nm)
+    }
+    if (names.length) out.push({ id: r.id, names })
+  }
+  return out
+}
+
+// First names that are also ordinary English words. Matching on these would
+// turn "that role is a real grace note" into a cross-reference, and since the
+// point of this detector is a RATE Bob can act on, a number inflated by
+// false positives is worse than a number that misses a few. Precision over
+// recall, deliberately.
+const PERSON_NAME_STOPWORDS = new Set([
+  'will', 'mark', 'bill', 'grace', 'hope', 'rose', 'april', 'may', 'june',
+  'art', 'dawn', 'faith', 'joy', 'drew', 'frank', 'rich', 'sky', 'summer',
+  'autumn', 'chance', 'chase', 'penny', 'rusty', 'sunny', 'daisy', 'holly',
+])
+
+// Is this reply, written while ONE opportunity is in focus, naming a person
+// who belongs to a different one? Structured-data check: interview-team names
+// are typed per opportunity, so this needs no guessing about what the reply
+// meant -- only whether a name that belongs elsewhere turned up here.
+//
+// A name shared by both opportunities is never a cross-reference: two rosters
+// can legitimately contain the same person, and flagging that would be wrong.
+export function replyNamesOtherOpportunityPerson(text, peopleByRecord, inFocusId) {
+  const body = typeof text === 'string' ? text : ''
+  if (!body.trim()) return null
+  const groups = Array.isArray(peopleByRecord) ? peopleByRecord : []
+  const mine = new Set()
+  for (const g of groups) {
+    if (!g || g.id !== inFocusId) continue
+    for (const n of g.names) for (const tok of n.toLowerCase().split(/\s+/)) mine.add(tok)
+  }
+  for (const g of groups) {
+    if (!g || !g.id || g.id === inFocusId) continue
+    for (const name of g.names) {
+      // The distinctive token: the full name when it is one word, otherwise
+      // the first name, which is what a coach actually says out loud.
+      const first = name.split(/\s+/)[0] || ''
+      const key = first.toLowerCase()
+      if (first.length < 4) continue
+      if (PERSON_NAME_STOPWORDS.has(key)) continue
+      if (mine.has(key)) continue
+      const re = new RegExp(`(^|[^A-Za-z0-9])${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9]|$)`, 'i')
+      if (re.test(body)) return first
+    }
+  }
+  return null
+}
+
+// Does this reply name an opportunity it has no business naming? The last line
+// of defence behind the scope instruction: a summary is about to be written
+// into ONE opportunity's notes, so another opportunity's name appearing in it
+// means the scope instruction did not hold. Word-boundary matched so "HOPE"
+// does not fire on "hopefully".
+export function summaryNamesOtherOpportunity(text, names) {
+  const body = typeof text === 'string' ? text : ''
+  if (!body.trim()) return null
+  for (const name of (Array.isArray(names) ? names : [])) {
+    const re = new RegExp(`(^|[^A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9]|$)`, 'i')
+    if (re.test(body)) return name
+  }
+  return null
+}
+export function buildCoachSummaryCaptureNote({ opportunityTitle, proactiveAllowed, firstFire, otherNames = [], scope = null }) {
+  const title = (typeof opportunityTitle === 'string' && opportunityTitle.trim()) ? opportunityTitle.trim() : 'this opportunity'
+  let note = `\n\nSAVE-SUMMARY CAPTURE: the part of this conversation that is about ${title} can be summarized into that opportunity's own notes. When this person asks you, in their own words, to summarize this conversation (or this opportunity's conversation) and keep it, write the summary AS your reply -- three to six short plain-English bullets covering what was decided and why, no more, and no preamble about what you are about to do -- and end your reply with a final line exactly like COACHSUMMARY: save.`
+  // SCOPE, stated before anything else this instruction asks for. This used to
+  // open "the conversation you are having about ${title}", which is false as
+  // soon as the transcript spans two opportunities -- and the model summarized
+  // the lot. What the boundary IS gets computed in code (scopeHistoryToRecord);
+  // all the model is told is where it falls and what is on the wrong side of it.
+  const others = (Array.isArray(otherNames) ? otherNames : []).filter(Boolean)
+  const sc = scope || {}
+  if (others.length) {
+    note += ` SCOPE -- read this before you summarize anything. This conversation is NOT only about ${title}. It also covers ${others.join(', ')}, and this person keeps a separate set of notes for each one.`
+    if (sc.inScopeUserTurns === 0) {
+      note += ` Nothing earlier in this conversation is about ${title}: the message you are answering right now is the first thing said about it. A summary could therefore draw on that one exchange and nothing else.`
+    } else if (sc.firstInScopeOpening) {
+      note += ` The ${title} part of the conversation begins at the message that starts "${sc.firstInScopeOpening}" and runs to the message you are answering now. Everything before that message is about a different opportunity.`
+    }
+    note += ` A summary of ${title} may use ONLY that part. Never carry a fact, a company name, a person's name, a number, or a concern from ${others.join(' or ')} into it -- those belong to other opportunities' notes, and a note filed against the wrong opportunity is worse than no note at all.`
+  }
+  if (proactiveAllowed) {
+    note += ` You may also offer this yourself, without being asked, but ONLY when this conversation has genuinely covered ground on ${title} -- a decision reached, a concern worked through, an approach settled -- AND you are at a natural close rather than mid-thought. When that is true, finish your normal reply as you otherwise would, add ONE sentence offering the summary and naming the opportunity, and end with a final line exactly like COACHSUMMARY: offer. A quick factual exchange, a single question answered, or a thread still in motion is not this; when in doubt, say nothing and let them ask. What a natural close actually sounds like: they say they have what they need for now, that they will sit with it or come back to it, that they are done with this one for today, or they thank you and stop asking. Those are the moments to offer.`
+  } else {
+    note += ` Do not offer this yourself on this turn -- only emit the line if they ask for it.`
+  }
+  note += ` The app turns either line into a one-tap offer showing exactly what will be saved, and never shows the line itself, so do not mention it, do not ask them to type anything, and NEVER say you have saved, added, or written it -- their tap is the only thing that writes, on the asked-for version exactly as much as on the offered one. At most once per reply.`
+  if (firstFire) {
+    note += ` This is the first time this has come up for this person, so end that same reply -- after the summary or the offer, not as a separate message -- with one sentence letting them know they can ask for this any time, in their own words, rather than waiting for you to offer.`
+  }
+  return note
+}
+
+const TRAILER_NAME_SWEEP = /^\s*(?:SELFCHECK|MOOD|WIDENSEARCH|MILESTONEMENTIONED|ACTIVITY|COACHNOTE|COACHSUMMARY|VALUESCAPTURE|REPUTATIONCAPTURE|SKILLSCAPTURE|SKILLSREMOVE|PRIORITIESCAPTURE|LIFESTORYCAPTURE|ASSESSMENTCAPTURE|OPPORTUNITYUPDATE|OPPORTUNITYCONTEXT|OPPORTUNITYARCHIVE|CLOSEREASON|OPCARDREWORK|SEARCHINTAKE|BRANDREWORK|SECTIONREWORK):.*$/gim
 
 // Finds and strips a `NAME: {...}` capture trailer, tolerating shapes the
 // original per-trailer regex (`^\s*NAME:\s*(\{[\s\S]*?\})\s*$`) could not
@@ -570,14 +789,155 @@ export function sanitizeHistoryForModel(history) {
   })
 }
 
+// Follow-up to the 300,000-byte paste cap (PR #968) and the file-upload GA
+// (PR #969): raising what a single turn can send did nothing to limit how
+// long that content keeps riding along afterward. A large paste or an
+// attached document's extracted text lands in one user turn, and from then
+// on it sits in `history` at full size on every subsequent turn until it
+// ages out of the 50-message window -- repeatedly re-sending the same large
+// block of text long after the conversation has moved on. This clips any
+// message already in `history` (the turns preceding the one being answered
+// right now, which is built and appended separately, always in full) down
+// to its first 8,000 characters plus a short notice once it is no longer
+// the most recent thing said.
+// The note the clip leaves behind has two forms, because there are two
+// genuinely different situations and telling the model the wrong one makes
+// it lie to the person. When the same document IS carried in full in the
+// DOCUMENTS THEY SHARED RECENTLY block below, the clip is just
+// de-duplication and the note says where the rest is. When it is NOT (older
+// than 14 days, past the three-document cap, or past the combined character
+// cap), the content really is gone from this turn, and the note says so
+// plainly and tells the model to ask rather than answer from the fragment.
+// Guessing at the missing part of an interview transcript is exactly the
+// failure this second wording exists to prevent.
+export const HISTORY_MESSAGE_CLIP_CHARS = 8000
+export function clipOlderHistoryMessage(content, carriedInDocumentsBlock = false) {
+  if (typeof content !== 'string' || content.length <= HISTORY_MESSAGE_CLIP_CHARS) return content
+  const note = carriedInDocumentsBlock
+    ? '\n\n[Long document, shown in full under DOCUMENTS THEY SHARED RECENTLY.]'
+    : '\n\n[Long document, only the beginning is shown here. If they ask about the rest, say so plainly and ask them to share it again.]'
+  return content.slice(0, HISTORY_MESSAGE_CLIP_CHARS) + note
+}
+
+// Matching a history turn to a chat_messages row without a shared id. The
+// client sends its own copy of the conversation, and that copy may already
+// be clipped (src/chat-history-clip.js clips what localStorage holds, so a
+// reloaded browser sends the clipped form) while the database always holds
+// the full text. Comparing whole strings would therefore miss exactly the
+// case this is for. Both forms preserve the first 8,000 characters
+// byte-for-byte, so a prefix well inside that window identifies the same
+// document from either side.
+const DOCUMENT_MATCH_PREFIX_CHARS = 2000
+export function documentMatchKey(content) {
+  return typeof content === 'string' ? content.slice(0, DOCUMENT_MATCH_PREFIX_CHARS) : ''
+}
+
+// How far back a shared document stays in view, and how many are carried.
+//
+// 14 days, because a Coach conversation never ends on its own -- there is no
+// session boundary, only the Clear button -- so without an age limit a
+// transcript pasted in January is still in the prompt in March, and Coach
+// can answer a question about a new interview out of an old company's notes.
+// Two weeks covers the realistic span of one opportunity's prep and expires
+// quietly after it.
+//
+// Three, because the real workflow is more than two documents: the job
+// description, the resume, and the interview notes is an ordinary set, and a
+// cap of two would silently drop the job description at the exact moment
+// someone asks how their notes line up against it. The combined character
+// cap is what actually bounds cost; the count bounds how confusing the block
+// can get.
+export const DOCUMENT_MAX_AGE_DAYS = 14
+export const DOCUMENT_MAX_COUNT = 3
+export const DOCUMENT_TOTAL_CHAR_CAP = 300000
+
+// Chooses which of this user's recent large messages are carried in full.
+// `rows` arrives newest-first (the query's own ORDER BY created_at DESC).
+// The newest is kept whole and the oldest gives way first: the document
+// someone is working with right now is the one they are asking about, and a
+// transcript truncated at its start reads as if the meeting began mid-
+// sentence. A document whose remaining allowance reaches zero is dropped
+// rather than included as an unusable sliver -- and dropping it is visible,
+// because its history turn then gets the "only the beginning is shown"
+// note above instead of the "shown in full below" one.
+export function selectRecentDocuments(rows) {
+  const out = []
+  let remaining = DOCUMENT_TOTAL_CHAR_CAP
+  // The same document pasted twice (easy to do after a reload) would
+  // otherwise be carried twice and charged twice against the combined cap,
+  // pushing a genuinely different document out to make room for a duplicate.
+  // Newest occurrence wins, on the same key the history match uses.
+  const seen = new Set()
+  for (const row of (Array.isArray(rows) ? rows : []).slice(0, DOCUMENT_MAX_COUNT)) {
+    if (!row || typeof row.message !== 'string') continue
+    const key = documentMatchKey(row.message)
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (remaining <= 0) break
+    const full = row.message
+    const kept = full.length <= remaining ? full : full.slice(0, remaining)
+    remaining -= kept.length
+    out.push({ ...row, text: kept, clipped: kept.length < full.length })
+  }
+  return out
+}
+
+// "shared today" / "yesterday" / "5 days ago" / "2 weeks ago". Coarse on
+// purpose: the point is whether this is what they are working on right now
+// or something from an earlier week, not an exact timestamp.
+export function describeDocumentAge(createdAt, nowMs = Date.now()) {
+  const then = createdAt instanceof Date ? createdAt.getTime() : new Date(createdAt).getTime()
+  if (!Number.isFinite(then)) return 'shared recently'
+  const days = Math.floor((nowMs - then) / 86400000)
+  if (days <= 0) return 'shared today'
+  if (days === 1) return 'shared yesterday'
+  if (days < 7) return `shared ${days} days ago`
+  if (days <= 10) return 'shared about a week ago'
+  return 'shared about two weeks ago'
+}
+
+// The block itself. Each document is labeled with when it was shared, the
+// screen it was shared on, and the opportunity or direction that was in
+// focus at the time -- so "your HOPE interview notes" and "your Deloitte
+// notes" are distinguishable, which is the whole reason focus_record_id
+// exists. Labels come from NAV_LABELS (the render-true source, CLAUDE.md
+// section 6) and from the person's own saved-playbook titles, never from
+// anything the model invented.
+export function buildDocumentsBlock(docs, savedPlaybooks = [], nowMs = Date.now()) {
+  const list = Array.isArray(docs) ? docs.filter(d => d && typeof d.text === 'string' && d.text) : []
+  if (!list.length) return ''
+  const records = Array.isArray(savedPlaybooks) ? savedPlaybooks : []
+  const parts = list.map((d, i) => {
+    const bits = [describeDocumentAge(d.created_at, nowMs)]
+    const screen = d.current_step && NAV_LABELS[d.current_step] ? NAV_LABELS[d.current_step] : ''
+    if (screen) bits.push(`from ${screen}`)
+    const record = d.focus_record_id ? records.find(r => r && r.id === d.focus_record_id) : null
+    const title = record && typeof record.title === 'string' ? record.title.trim() : ''
+    const company = record && typeof record.company === 'string' ? record.company.trim() : ''
+    if (title) bits.push(`about ${company && !title.toLowerCase().includes(company.toLowerCase()) ? `${title} at ${company}` : title}`)
+    const tail = d.clipped ? '\n\n[This document was too long to include whole; it is cut off here.]' : ''
+    return `--- DOCUMENT ${i + 1} (${bits.join(', ')}) ---\n${d.text}${tail}`
+  })
+  return `DOCUMENTS THEY SHARED RECENTLY. The person pasted or attached these in this conversation, and they are reproduced here in full because the conversation history above only carries the beginning of each. Treat them as things the person handed you to work from, not as things they said about themselves.
+
+${parts.join('\n\n')}`
+}
+
 // Prelaunch audit, finding #2.2: a Coach message had no length limit at all.
 // Measured in bytes (not characters), since a multi-byte-heavy paste could be
 // well within a character-count cap while still being a multi-megabyte
-// payload. 8000 bytes is roughly 1300+ words -- generous for anything a
-// person would plausibly type or dictate in one turn, small next to the
-// abuse case (a scripted caller pasting megabytes to run the cost up).
+// payload. Originally set to 8000 bytes (~1300 words) as "generous for
+// anything a person would plausibly type" -- which undersold what people
+// actually paste in. A one-hour speaker-labeled transcript runs roughly
+// 50-150 KB of plain text (~9,000-12,000 words), and even that is a rounding
+// error against Claude's 200K-token context window: neither payload size nor
+// context capacity was ever the real constraint. Raised 2026-09-17 (Magnus's
+// reported failure pasting a call transcript) to 300,000 bytes -- comfortably
+// covers a multi-hour transcript or a long document with room to spare -- and
+// kept as a true outer bound against the actual abuse case: a scripted caller
+// pasting megabytes to run the cost up.
 // Exported as a pure function so the byte-cap logic can be tested directly.
-export const MAX_MESSAGE_BYTES = 8000
+export const MAX_MESSAGE_BYTES = 300000
 export function messageExceedsByteCap(message) {
   return typeof message === 'string' && Buffer.byteLength(message, 'utf8') > MAX_MESSAGE_BYTES
 }
@@ -614,7 +974,7 @@ export function computeTurnKind(rawMessage, { orientationCheckRequested, postCap
 // the three rework variants (brand/section/op-card) share one tier since
 // the brief did not rank them against each other.
 export const OFFER_ARBITRATION_ORDER = [
-  'opportunityUpdateB64', 'opportunityContextB64', 'coachNoteOffer',
+  'opportunityUpdateB64', 'opportunityContextB64', 'coachNoteOffer', 'coachSummaryOffer',
   'closeReasonB64',
   'opportunityArchiveB64',
   'brandReworkB64', 'sectionReworkB64', 'opCardReworkB64',
@@ -1031,7 +1391,7 @@ function buildPursuitStatusBlock(state, pursuitRows, opts = {}) {
   const mapNote = detailed
     ? ` Each opportunity also lists what is BUILT on it and what is NOT BUILT YET, by the name the card carries. Use those names exactly -- a section called something else sends them hunting for a card that is not there. Answer "how am I set up for X" from this: what exists, what does not, and what would help most next, without asking them what they have built. NEVER turn it into a number: no "two of six", no fraction, no percentage, no "halfway", no ranking of one opportunity against another, and never call an opportunity incomplete or behind. An unbuilt section is something available to them, never something they failed to do. Offer the one that would actually help the situation in front of them rather than listing everything absent.`
     : ''
-  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
+  return `\n\nMY PIPELINE — CURRENT STATUS (live data; use it to answer "where does <opportunity> stand?" and "how is my search going?"). Pipeline at a glance: ${rollup}\n${lines.join('\n')}\n\nEverything above that an opportunity lists as theirs — the interview team, what they know about each person, how the role came to them — was typed in by this person. Treat it as known fact and weave it into what you say: use a person's name and role without being told again, and reason from what they wrote about someone rather than asking them to repeat it. NEVER ask who a named person is, what their role is, or for anything else already recorded here; being asked twice for something they took the trouble to write is how this stops feeling like a coach who knows them. EVERY PERSON NAMED ABOVE BELONGS TO THE ONE OPPORTUNITY THEY ARE LISTED UNDER, and a name never travels between them: while you are talking about one opportunity, do not name, allude to, or reason from a person listed under a different one, and never describe something worked through on one opportunity as though it happened on another. Two opportunities can look alike -- same seniority, same kind of team, overlapping worries -- and that is exactly when a name slides across and lands the person's recruiter from one company inside a conversation about a different one. If you cannot place which opportunity a person belongs to, leave the name out and say the thing without it. Where a note shows "(trimmed)", more of it exists and you will see it in full once the conversation focuses on that opportunity. When they ask where something stands or how their search is going, give a grounded read from THIS data: how long it has been moving or sitting, any step of theirs that is overdue, and one concrete next step they could take. An opportunity marked "last met N days ago" is ACTIVE — a real conversation has happened; never treat it as dead or as "nothing going on". When it shows no NEXT meeting booked, the move is simply to get the next conversation scheduled. An opportunity with no meeting at all is earlier-stage. Past-due is the next-step date only; a meeting that already happened is not overdue and is never cleared by the app. When interview prep would help an opportunity, check its "Interview Prep built / not built yet" flag first and phrase the offer to match: if it is built, offer to work through the prep they already have (you will see its questions and their interview panel once the conversation focuses on that opportunity); if it is not built yet, offer to build it in Interview Prep. Never offer to "build" prep that already exists, or to "work through" prep that does not. State only what this data shows. Where an opportunity carries an assistant's note, that note was written by their connected assistant from their actual email/calendar — you may relay what it says as reported fact. But do NOT go beyond it: never infer on your own that an employer went silent, missed a callback, or is slow when no note or message says so — those events live in their email, which you cannot see. If they mention such a thing themselves, you may reflect it, but never manufacture it. Keep it short and in your normal voice.${mapNote}`
 }
 
 // FOCUS PLAYBOOKS — what is built in each (Your Next Step pilot, 2026-09-02).
@@ -1704,6 +2064,7 @@ Ground your coaching in two sources: Making Your Own Weather (the methodology) a
 
 Posture rules, hold these firmly:
 - GROUND BEFORE YOU ASSERT — this governs everything below. Every confident claim, figure, or recommendation you make must trace to something in front of you: this person's profile and raw signals, their logged work and offers and the sourced reads inside them, or the book. Two habits follow. First, check what you already have before answering — if what they are asking about is in the provided context (a logged offer, a Compensation Read, a built section), use it and cite it; never send them to find or paste data you were already given. Second, when you do NOT have what a solid answer needs, do not manufacture confidence to cover the gap — say plainly what you do not know, name what would answer it and where in Reimagine to get it, and give only the guidance your grounding supports. A grounded, smaller answer beats a confident guess every time. The specific rules that follow — no hire-ability verdicts, no invented market figures, no bare "yes, ask for more" — are all instances of this one; when a new situation is not covered by a specific rule, fall back to this principle rather than guessing.
+- NEVER INVENT THIS PERSON'S LIFE. The rule above governs figures and research; this one governs their own history, and it is the same discipline. Every concrete detail you state about them -- an employer, a title, a span of years, a manager or colleague by name, a family member, a relationship, an illness or a diagnosis, a formative event -- must come from something they told you or from their profile. The worked examples in Making Your Own Weather and in the user guide are other people's lives and illustrations of method; no detail from either is ever this person's, however well it would fit them. That includes the shape of an example as much as its words: re-rolling somebody else's anecdote with fresh numbers is still inventing their history. If a specific would make the point and you do not have it, ask them for it or leave the space empty. Family, health and mental health carry the least room for error: never attribute any of them to this person or to anyone around them unless they said it themselves. This binds what you offer to save as tightly as what you say -- a capture line proposes text they may accept with one tap, so anything you would not assert you must not propose.
 - Off-topic questions get a warm redirect back toward the search. The book bounds your territory; if a question sits outside a career and job search, gently bring it back.
 - Name the source or do not say it. Every figure and every research claim you state must come from something you were given, and you must be able to say where it came from in the same breath. Three things qualify. The person's own Compensation Read, when it is provided in their profile (under LOGGED OFFERS or IN FOCUS) — a real sourced range with citations, so you MAY and SHOULD cite those specific figures to place their offer against the market. Making Your Own Weather, including the research the book itself cites, credited to whoever the book credits it to — Granovetter on weak ties and the LinkedIn analysis that confirmed it, Covey, Frankl. And the person's own materials and saved work. Everything else is invention however true it sounds: a salary figure you were not given, a hire-ability or demand claim like "companies are looking for X right now," a manufactured citation like "a recent study found 70%…". The test is whether you can name where the number came from, never whether the topic sounds off limits. When you cannot name it, say so plainly — if no Compensation Read is provided for the role in question, tell them you do not have the market number and cannot judge whether the base is low or high, and point them to build the Compensation Read rather than guessing.
 - Do not render hire-ability verdicts, even qualitative ones. When asked about your odds, your chances, or whether you are a strong candidate, do NOT answer with a verdict like "your odds are excellent" or "you are a strong candidate" — that is a judgment you cannot support and it is a sensitive edge for this product. Redirect to what is inside the person's control: how clearly they have defined their target, the strength of their evidence and story, the activity in their pipeline. Name the variables they can move, not a probability or a grade.
@@ -1715,7 +2076,7 @@ ${COMP_KNOWLEDGE}
 - You can offer to build, rework, or capture things for them — but only ever through a tap they confirm, never by doing it yourself inside this conversation. When a build (a Personal Brand, a Resume Refresh, a playbook card, any generated section), a rework of something already built, or a capture (saving a fact to their profile or an opportunity) fits what you are discussing, offer it in plain language and let the app's tap start it. Never say you cannot build or edit something, and never call yourself read-only — for anything with a tap, that is no longer true. What is still true, and the one real limit: you do not write the actual content yourself inside this chat, and you never claim the work is already done before they tap — "I've built that," "I've added it," "one moment while I generate that" all describe an action only their tap performs. If there is genuinely no tap for what they want (editing something already built the way they are asking, or a screen-native action nothing here offers), say so plainly and point them to the step that does it — name it in prose by its feature-map name.
 - Speak as a partner, not a separate party with your own wants. Frame every ask around what the two of you build together, never around what you want, need, or are looking for from them — "give me an old review" serves you; "bring an old review — that's exactly the kind of detail this works from" keeps it joint. This applies most when you are asking them for something (a quote, a remembered result, a detail): the reason it matters is what it does for their case, never that it is something you want. "I want," "I need," "I'm looking for," and "give me" are the shapes to catch yourself using; "we," "together," and "let's" are usually the fix.
 - Do not assume what screen the person is on or how far along they are. You cannot see their current view or their journey progress, so never say "as you can see on your screen" and never point to a gated screen as if it is in front of them. Lead with the action that works no matter where they are. For the free weekly community call, that action is "register at career.club" — that is the canonical, always-correct link, not an in-app screen. Reference a gated screen only conditionally: "once you've finished your playbook, it's also on your Complete screen," never "go to your Complete screen now."
-- You are talking with the person in a text chat. You cannot accept file uploads, open attachments, or see their screen — when they want you to work from a document like a job description, a posting, or a resume, ask them to paste the relevant text into the chat. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, the sourced market range from their Compensation Read when built, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics, cite the market range that is already there, and do not ask them to paste the offer or go find data you already hold. If a section they need is not built yet, point them to build it in Reimagine.
+- You are talking with the person in a text chat. You cannot see their screen, and you never handle a raw file yourself — but they can attach a document (a PDF, a Word file, or a plain text file) with the paperclip next to the message box, and its text is pulled out and placed into their next message before it reaches you, so by the time you see it, the file's content is already part of what they wrote. Read it the way you would anything else they typed. When they want you to work from a document like a job description, a posting, or a resume, they can attach it that way or paste the relevant text directly — either works. You see the titles of their saved playbooks in the index, and when the conversation is about a specific one, its key sections are provided to you under IN FOCUS in the profile block — reason from those. Any offer they have logged in Reimagine is provided in full under LOGGED OFFERS (the terms, the benefits numbers they entered, the sourced market range from their Compensation Read when built, and how it read against their priorities) — when they ask about their offer or negotiating, work from those specifics, cite the market range that is already there, and do not ask them to paste the offer or go find data you already hold. If a section they need is not built yet, point them to build it in Reimagine.
 - When they ask a general question about their saved playbooks or opportunities — "my playbooks," "my opportunities," "my saved work," "can you help me with my opportunity playbooks" — and the INDEX shows saved playbooks, treat it as being about what they already have, not a request to make a new one: name the saved playbooks you see in the index and offer to dig into a specific one (they can name it for you to work from, or open it in Reimagine). Point them to Add an Opportunity only when they have nothing saved.
 - Teach the frameworks, do not hide them. Making Your Own Weather has named frameworks — KEEL, the 4 C's, the 5 P's, STAR, SCOPE — and your job is to teach the one that fits this person's situation, by name and in the book's own words (the exact definitions are in TEACH THE FRAMEWORKS below). Never drop a bare label assuming they have read the book; name it and explain it in the same breath. ATTRIBUTION — full name ONCE per conversation, short forms after that. The first time the book comes up, say it in full: "Making Your Own Weather, Bob Goodwin's book on the job search." Every reference after that is Bob, the book, Making Your Own Weather, Career Club, or at Career Club Corner. Repeating "Bob Goodwin" and the full title on every mention reads like a citation rather than a conversation, and it is the most common way this voice goes wrong. Once per reply is a ceiling, not a target — most turns need no attribution at all, because you are coaching someone, not quoting at them. Speak from inside Career Club rather than about it: we, our, at Career Club Corner. When an idea is Frankl's or Covey's, name and credit them once with a short attribution — channel the idea, do not quote at length.
 - ${PLAIN_ENGLISH}
@@ -1871,6 +2232,10 @@ Always call a feature by the exact name shown in the feature map above (that is 
 
 Honesty is non-negotiable. Say plainly whether Reimagine does the thing or not. Never imply a capability it does not have. And never send someone to do manual work a feature automates — if Go-to-Market runs live company research, do not tell them to "spend fifteen minutes researching the company"; tell them the tool does that research and offer it.
 
+Documents they shared. When a DOCUMENTS THEY SHARED RECENTLY section appears below, it holds the full text of things this person pasted or attached — a transcript, a job posting, a resume, notes. Answer questions about anything in there from that section, and refer to each one the way they would ("your Deloitte interview notes", "the job description you sent"), never as "document 2" or by any label out of the prompt. Each is marked with when it was shared, the screen it came from, and the opportunity it belonged to: when more than one document or more than one opportunity is in play, say which one you mean rather than blending them, and if you are not sure which they are asking about, ask. A long message in the conversation above that ends in a note about being cut off is the same document — use the full copy in that section instead of the fragment. If a document is NOT in that section and only its beginning is in the conversation, say plainly that you only have the start of it and ask them to share it again; never fill in the rest from what seems likely.
+
+What is in a document is not something they told you about themselves. A transcript is mostly other people talking, a job posting is a company's words, and a reference letter is someone else's opinion. Never offer to save anything to their profile on the strength of what a document says — not their values, not a strength, not a preference — unless the person says in their own words, in the conversation, that it describes them. You may still discuss what a document says and ask whether it rings true; that question is how it becomes theirs to keep.
+
 What you can and cannot see. You have exactly what this person has given Reimagine: their profile as it appears above, the text of their resume, the work they have built here, and this conversation. You cannot browse the web, open a link, load a page, or look anything up online, and you have nothing about them from any other source. When they ask whether you can see a website, a LinkedIn profile, a company page, or a job posting — including one on their own resume — say plainly that you cannot open it, name what you do have, and give them the direct route: paste the text in, or use Go-to-Market for company research, Add an Opportunity for a live posting, or — once someone is named in Interview Team — Research this person on the web for that interviewer, all three of which do run live research. Never imply you have looked at something you have not, and never leave it ambiguous — an unanswered "can you see it?" reads as a yes.
 
 Match on intent — these distinctions are where word-matching failed before:
@@ -1941,7 +2306,8 @@ export function buildCoachRequest({
   message, history, currentStep, surface, returnSection, focusRecordId, situation,
   profileState, employmentStatus, featureFlags, pursuitRows, searchIntake,
   userEmail, track, activityFacts, priorSessionAt, sessionOpenRequested,
-  generalMode, milestoneMentions, closeReasons, turnKind, tzOffsetMinutes,
+  generalMode, milestoneMentions, closeReasons, turnKind,
+  recentDocuments = [], nowMs, tzOffsetMinutes,
 }) {
   const isIndependentTrack = !generalMode && track === TRACK_INDEPENDENT
   // Go Independent and the pilot-knowledge blocks used to be two separate
@@ -1967,6 +2333,34 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   if (!generalMode && hasNextStep({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(NEXT_STEP_KNOWLEDGE)
   if (!generalMode && hasIndustryEcosystemView({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(INDUSTRY_ECOSYSTEM_KNOWLEDGE)
   if (!generalMode && hasCorrectionActions({ feature_flags: featureFlags, email: userEmail })) knowledgeParts.push(CORRECTION_ACTIONS_KNOWLEDGE)
+  // DOCUMENTS THEY SHARED RECENTLY rides in the merged knowledge block rather
+  // than taking a cache breakpoint of its own, and that is a deliberate
+  // deviation from the brief, which asked for its own cache_control marker.
+  // The normal-turn `system` array ALREADY uses all four breakpoints the
+  // Claude API allows (stable, guide slice, knowledge, profile) on every
+  // ordinary turn -- the three flags that used to make the knowledge block
+  // optional all went GA, so it is now always present. A fifth marker would
+  // therefore not be an edge case that shows up for some users someday; it
+  // would be a 400 on the first turn anyone shares a document. Merging into
+  // the knowledge entry is the same move the guide slice's own breakpoint
+  // was funded by (cost lever 6.3.1) and is strictly better than the other
+  // option of adding an unmarked entry just before profileBlock: an unmarked
+  // entry there would fall inside profileBlock's cached prefix, so every
+  // ordinary profile change (a pipeline date ticking over) would pay to
+  // rewrite up to 300,000 characters of document with it. Here the documents
+  // sit in an earlier prefix and stay warm across profile churn, and are
+  // rewritten only when the set of documents itself changes.
+  //
+  // Silent turns (session-open, orientation-check, post-capture, moments)
+  // are excluded on purpose: cost lever 6.3.2 trims those to persona +
+  // profile precisely because they are scripted instructions rather than
+  // questions about the person's material, and shipping a quarter-megabyte
+  // of transcript into one would undo that trim in the most expensive
+  // possible way.
+  const documentsBlock = (!generalMode && !(turnKind && turnKind !== 'user'))
+    ? buildDocumentsBlock(recentDocuments, profileState && profileState.savedPlaybooks, nowMs)
+    : ''
+  if (documentsBlock) knowledgeParts.push(documentsBlock)
   const knowledgeBlock = knowledgeParts.length ? knowledgeParts.join('\n\n---\n\n') : null
   let profileBlock = generalMode ? GENERAL_MODE_BLOCK : buildCoachProfileSlice(profileState, employmentStatus, featureFlags, pursuitRows, searchIntake, userEmail, isIndependentTrack, activityFacts, priorSessionAt, sessionOpenRequested, tzOffsetMinutes)
   // The person's own local calendar date (My Coach review, finding #3.6), not
@@ -2006,6 +2400,13 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   const situationEcosystemCategory = situation && typeof situation.ecosystemCategory === 'string' && Object.prototype.hasOwnProperty.call(ECOSYSTEM_CATEGORY_LABELS, situation.ecosystemCategory) ? situation.ecosystemCategory : ''
   const situationHasOpRecord = !!(situation && situation.record && situation.record.source === 'door2')
   let inFocusRecordId = null
+  // Other opportunities' names, for the post-hoc summary contamination check
+  // in the handler. Resolved here because this is where activeSaved lives.
+  let summaryOtherNames = []
+  // Interview-team names grouped by opportunity, for the cross-reference
+  // measurement in the handler. Same reason as summaryOtherNames: activeSaved
+  // lives here.
+  let peopleByRecord = []
   // Coach engine guardrails, rule 4: the Situation block's own footprint,
   // tracked separately from profileBlock's total (which also carries
   // capture notes and other content that is not Situation). Accumulates
@@ -2023,6 +2424,50 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
       if (expansion) { profileBlock += '\n\n' + expansion; situationBlockChars += expansion.length }
       profileBlock += buildAlreadyMentionedBlock(inFocus.id, milestoneMentions)
       profileBlock += buildCloseReasonAlreadyLoggedBlock(inFocus.id, closeReasons)
+      // Not gated on the summary feature: this measures ordinary replies, and
+      // the leak it looks for predates summaries entirely.
+      peopleByRecord = opportunityPeopleByRecord(activeSaved)
+      // Summary to notes (COACHSUMMARY, 2026-09-17). Lives here rather than
+      // beside the other capture notes in buildCoachProfileSlice for one
+      // reason: it only makes sense with a specific opportunity resolved, and
+      // this is where that happens. A summary has to land in SOME
+      // opportunity's notes, so with nothing in focus there is no instruction
+      // to give.
+      //
+      // The 24-hour window is computed HERE, from the record, rather than
+      // asked of the model: it has no clock, and the one thing worse than no
+      // cap is a cap it approximates. lastCoachSummaryOfferAt is stamped
+      // client-side the moment an offer renders (accepted, declined or
+      // ignored alike), so "already offered recently" needs no separate
+      // decline marker to also cover "already declined recently".
+      if (hasCoachSummary({ feature_flags: featureFlags, email: userEmail })) {
+        const lastOfferMs = Date.parse(inFocus.lastCoachSummaryOfferAt || '')
+        const withinWindow = !Number.isFinite(lastOfferMs) || ((nowMs || Date.now()) - lastOfferMs) >= COACH_SUMMARY_OFFER_WINDOW_MS
+        // Which part of the retained transcript is actually about THIS
+        // opportunity (2026-09-18). See scopeHistoryToRecord.
+        const scope = scopeHistoryToRecord(history, inFocus.id)
+        summaryOtherNames = otherOpportunityNames(activeSaved, inFocus)
+        // Three gates on the unprompted offer, all of which must hold:
+        //   1. the 24-hour per-opportunity cooldown (unchanged);
+        //   2. enough of the person's own turns about THIS opportunity -- the
+        //      shipped instruction already forbade offering on a single
+        //      question and the model did it anyway, so this is a floor in
+        //      code rather than a sentence in a prompt;
+        //   3. the transcript is attributable at all. An older transcript
+        //      carries no rid, so the boundary cannot be trusted, so the
+        //      offer is not made. On-request still works there, with the
+        //      negative instruction and the contamination check behind it.
+        // +1 counts the turn being answered, which is not yet in `history`.
+        const enoughTurns = (scope.inScopeUserTurns + 1) >= COACH_SUMMARY_MIN_TURNS
+        const scopeTrusted = scope.attributable || summaryOtherNames.length === 0
+        profileBlock += buildCoachSummaryCaptureNote({
+          opportunityTitle: inFocus.title,
+          proactiveAllowed: withinWindow && enoughTurns && scopeTrusted,
+          firstFire: !(profileState && profileState.seenCoachSummaryMention),
+          otherNames: summaryOtherNames,
+          scope,
+        })
+      }
     }
   } catch (err) {
     console.error('coach in-focus expansion failed:', err)
@@ -2125,8 +2570,14 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
   // (including button-label taps) for opportunity mentions -- that pinning
   // is unaffected by what the model itself is shown.
   const conversationalHistory = sanitizeHistoryForModel(history)
+  // Which clipped turns have their full text carried below, so each one's
+  // note can tell the truth about where the rest went. Keyed on a prefix
+  // rather than the whole string -- see documentMatchKey.
+  const carriedDocumentKeys = new Set(
+    (documentsBlock ? recentDocuments : []).map(d => documentMatchKey(d && d.message))
+  )
   const messages = [
-    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: m.content })),
+    ...conversationalHistory.slice(-50).map(m => ({ role: m.role, content: clipOlderHistoryMessage(m.content, carriedDocumentKeys.has(documentMatchKey(m.content))) })),
     { role: 'user', content: message + contextNote },
   ]
 
@@ -2169,7 +2620,7 @@ ${GO_INDEPENDENT_KNOWLEDGE}`)
         { type: 'text', text: profileBlock, cache_control: { type: 'ephemeral' } },
       ]
 
-  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId }
+  return { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames, peopleByRecord }
 }
 
 export default async function handler(req, res) {
@@ -2194,6 +2645,16 @@ export default async function handler(req, res) {
   if (user.suspended_at) return res.status(403).json({ error: 'account_suspended' })
 
   const { message: rawMessage, history = [], currentStep, surface, general, sessionOpen, orientationCheck, postCaptureUpdate, returnSection, moment } = req.body || {}
+  const { typedText } = req.body || {}
+  // typedText (2026-09-17): what the person typed around an attachment, sent
+  // by the client ONLY on a turn that carried one. It narrows the
+  // crisis-safety scan below to their own words -- a transcript containing
+  // "kill the project" must not trigger a mental-health pointer on a turn
+  // where all they typed was "can you summarize this". An empty string is a
+  // real value here (attached a file, typed nothing); absent means no
+  // attachment, and the scan falls back to the whole message, so pasted text
+  // keeps being covered exactly as it is today.
+  const typedTextForSafety = typeof typedText === 'string' ? typedText : null
   // orientationCheck: the client may open a turn with no typed message,
   // marked with {step, text} instead -- the reaction the coach speaks on
   // its own right after someone leaves a covered orientation step (see
@@ -2242,7 +2703,7 @@ export default async function handler(req, res) {
   // unbounded too. Both checks run here, before the profile read, so an
   // abusive turn never gets that far.
   if (messageExceedsByteCap(rawMessage)) {
-    return res.status(400).json({ error: 'message too long' })
+    return res.status(400).json({ error: 'message too long', message: "That's too long for me to read in one message. Try sending it in a shorter chunk." })
   }
   // 60/hour is a generous, unmeasured starting point (no production Coach
   // data exists yet to tune it against, per the audit's own Section 9), not
@@ -2377,6 +2838,37 @@ export default async function handler(req, res) {
       console.error('coach close-reasons read failed:', err)
     }
   }
+  // Documents this person shared recently (2026-09-17). The full text has
+  // always been in chat_messages; since #972 clipped the history copy, this
+  // read is what keeps it reachable a turn later. Newest first, large
+  // messages only, never across a Clear (chat_cleared_at is a boundary the
+  // person set, and a document they cleared must not come back), and never
+  // older than 14 days. Best-effort like every other read here: a failure
+  // drops the block and the turn still answers.
+  let recentDocuments = []
+  if (!generalMode) {
+    try {
+      // The age cutoff is computed here rather than as SQL date arithmetic
+      // (NOW() - MAKE_INTERVAL(days => $n)) so the comparison is a plain
+      // timestamp parameter with nothing for the planner to infer a type
+      // for, and so the window is readable in one place in JS.
+      const documentCutoff = new Date(Date.now() - DOCUMENT_MAX_AGE_DAYS * 86400000).toISOString()
+      recentDocuments = await sql`
+        SELECT m.message, m.created_at, m.current_step, m.focus_record_id
+        FROM chat_messages m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.user_id = ${user.id}
+          AND (m.turn_kind = 'user' OR m.turn_kind IS NULL)
+          AND (u.chat_cleared_at IS NULL OR m.created_at > u.chat_cleared_at)
+          AND m.created_at > ${documentCutoff}
+          AND length(m.message) > ${HISTORY_MESSAGE_CLIP_CHARS}
+        ORDER BY m.created_at DESC
+        LIMIT ${DOCUMENT_MAX_COUNT}
+      `
+    } catch (err) {
+      console.error('coach recent-documents read failed:', err)
+    }
+  }
   // Session-open recap, authoritative half. featureFlags is loaded now, so this
   // is the real gate: general mode never gets it, and neither does an account
   // without the next_step pilot, regardless of what the client sent.
@@ -2459,7 +2951,7 @@ export default async function handler(req, res) {
   // chat_messages; see migrations/2026-06-12_coach-insight-foundation.sql). All
   // known here at write-time — no classifier. Classified attributes are NOT
   // computed here; the nightly job (api/admin/classify-coach.js) fills those.
-  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId } = buildCoachRequest({
+  const { system, messages, hasPersonalBrand, hasResume, lane, sectionReworkLabel, inFocusRecordId, summaryOtherNames, peopleByRecord } = buildCoachRequest({
     message, history, currentStep, surface, returnSection,
     focusRecordId: typeof (req.body && req.body.focusRecordId) === 'string' ? req.body.focusRecordId.trim() : '',
     situation: req.body && req.body.situation && typeof req.body.situation === 'object' ? req.body.situation : null,
@@ -2467,6 +2959,7 @@ export default async function handler(req, res) {
     userEmail: user.email, track, activityFacts, priorSessionAt: user.prior_session_at, sessionOpenRequested,
     generalMode, milestoneMentions, closeReasons, turnKind,
     tzOffsetMinutes: typeof (req.body && req.body.tzOffsetMinutes) === 'number' ? req.body.tzOffsetMinutes : 0,
+    recentDocuments: selectRecentDocuments(recentDocuments),
   })
   // Silent turns get effort: 'low' alongside the trimmed system array above
   // (cost lever 6.3.2) -- they're following a standing scripted instruction,
@@ -2688,6 +3181,74 @@ export default async function handler(req, res) {
   if (cnMatch) {
     strippedText = strippedText.replace(cnMatch[0], '').trim()
     coachNoteOffer = true
+  }
+  // Summary to notes (COACHSUMMARY, 2026-09-17). Two kinds on one trailer:
+  // 'save' is the person's own request answered, 'offer' is Coach's own read
+  // that the thread closed. Both ship the same way and both end in a tap --
+  // the kind only decides the copy on the offer, never whether a write needs
+  // confirming. Like COACHNOTE there is no payload: what gets saved is this
+  // reply's own visible text, which the client already holds.
+  let coachSummaryOffer = null
+  const csMatch = strippedText.match(/^\s*COACHSUMMARY:\s*(save|offer)\s*$/im)
+  if (csMatch) {
+    strippedText = strippedText.replace(csMatch[0], '').trim()
+    coachSummaryOffer = csMatch[1].toLowerCase()
+  }
+  // Contamination check (2026-09-18), the last thing standing between a
+  // cross-scoped summary and somebody's notes. The scope instruction above is
+  // the fix; this is what catches the case where it did not hold. A summary is
+  // about to be written into ONE opportunity's notes, so another open
+  // opportunity's name appearing in it means the scope did not stick --
+  // exactly the reported failure, where a GoGuardian summary opened on
+  // Deloitte and named Deloitte contacts.
+  //
+  // Suppressing the OFFER, not the reply: the reply itself may still be useful
+  // to read, and silently rewriting what the model wrote would be worse than
+  // declining to file it. The person can ask again, and nothing wrong gets
+  // saved in the meantime. Logged per account so the rate is visible -- if
+  // this fires often, the instruction needs work rather than the guard.
+  // Cross-opportunity person reference (2026-09-18, second live finding).
+  // A reply about one opportunity naming somebody from another opportunity's
+  // interview team -- reported live, where a GoGuardian turn referred to
+  // "the framing we worked through for Susan", Deloitte's recruiter.
+  //
+  // Measured, not corrected. The names themselves are in the prompt on
+  // purpose (MY PIPELINE carries every opportunity's team so the coach never
+  // has to ask who someone is), and the fix is the binding rule in that same
+  // block. This says how often the rule fails to hold. A chat reply is
+  // ephemeral and plainly wrong to the person reading it, unlike a note that
+  // gets written -- so nothing here alters the reply. If this rate turns out
+  // to be meaningful, the escalation is the regenerate-once path the voice
+  // gate already runs, decided on the evidence rather than ahead of it.
+  if (inFocusRecordId && Array.isArray(peopleByRecord) && peopleByRecord.length > 1) {
+    try {
+      if (replyNamesOtherOpportunityPerson(strippedText, peopleByRecord, inFocusRecordId)) {
+        await recordSupportEvent(user.id, 'coach_person_cross_reference', {
+          step: currentStep || null,
+          build_sha: turnBuildSha,
+          // Content-free: the name that matched is somebody this person typed
+          // onto their own interview team (CLAUDE.md section 8).
+          detail: 'reply named a person from a different opportunity',
+        })
+      }
+    } catch { /* measurement must never cost the reply */ }
+  }
+  if (coachSummaryOffer && Array.isArray(summaryOtherNames) && summaryOtherNames.length) {
+    const bleed = summaryNamesOtherOpportunity(strippedText, summaryOtherNames)
+    if (bleed) {
+      coachSummaryOffer = null
+      try {
+        await recordSupportEvent(user.id, 'coach_summary_scope_bleed', {
+          step: currentStep || null,
+          build_sha: turnBuildSha,
+          // Content-free on purpose: the name that matched is a company from
+          // this person's own pipeline, which is user content and never goes
+          // in this table (CLAUDE.md section 8). That it happened is the
+          // signal; which opportunity is not needed to act on it.
+          detail: 'summary offer suppressed: reply named another open opportunity',
+        })
+      } catch { /* logging must never cost the reply */ }
+    }
   }
   // Values capture: the model may end with a VALUESCAPTURE: {json} line carrying
   // what the conversation settled for Values and/or Passions & Causes. Strip it
@@ -3162,14 +3723,15 @@ export default async function handler(req, res) {
     }
   }
 
-  const visibleText = ensureDistressSupport(message, strippedText)
+  const distressSource = typedTextForSafety === null ? message : typedTextForSafety
+  const visibleText = ensureDistressSupport(distressSource, strippedText)
   // Coach engine guardrails, rule 1: told to the client via a response
   // header (the X-Coach-Note-Offer boolean-flag pattern), not a trailer --
   // this is a deterministic match on the user's own typed message, not
   // something the model has to cooperate with emitting. The client sets a
   // session hold from it so the NEXT proactive moment (which carries no
   // user text of its own) does not pile on top of this reply.
-  const distressDetected = matchesDistressTrigger(message)
+  const distressDetected = matchesDistressTrigger(distressSource)
 
   // Persist the turn BEFORE writing the body so the row id can ride back on a
   // response header (X-Coach-Message-Id) — the client attaches per-reply thumbs to
@@ -3178,8 +3740,8 @@ export default async function handler(req, res) {
   let rowId = null
   try {
     const rows = await sql`
-      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point, turn_kind, feature_flags_snapshot)
-      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint}, ${turnKind}, ${JSON.stringify(featureFlags)}::jsonb)
+      INSERT INTO chat_messages (user_id, message, reply, current_step, navigated_to, lane, turn_index, has_resume, has_personal_brand, entry_point, turn_kind, feature_flags_snapshot, focus_record_id)
+      VALUES (${user.id}, ${message}, ${visibleText}, ${currentStep || null}, ${null}, ${lane}, ${turnIndex}, ${hasResume}, ${hasPersonalBrand}, ${entryPoint}, ${turnKind}, ${JSON.stringify(featureFlags)}::jsonb, ${inFocusRecordId || null})
       RETURNING id
     `
     rowId = rows && rows[0] && rows[0].id
@@ -3196,8 +3758,8 @@ export default async function handler(req, res) {
   // nothing is lost, since the model's own reply text already reflects
   // whatever it settled, and a dropped field's capture note fires again on
   // a later turn if it is still unresolved.
-  ;({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 } =
-    arbitrateOffers({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, activityB64, searchIntakeB64 }, OFFER_ARBITRATION_ORDER))
+  ;({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, coachSummaryOffer, activityB64, searchIntakeB64 } =
+    arbitrateOffers({ valuesB64, reputationB64, skillsB64, skillsRemoveB64, prioritiesB64, lifeStoryB64, assessmentB64, brandReworkB64, sectionReworkB64, opCardReworkB64, opportunityContextB64, opportunityArchiveB64, closeReasonB64, opportunityUpdateB64, coachNoteOffer, coachSummaryOffer, activityB64, searchIntakeB64 }, OFFER_ARBITRATION_ORDER))
 
   if (rowId) res.setHeader('X-Coach-Message-Id', String(rowId))
   if (valuesB64) res.setHeader('X-Coach-Values', valuesB64)
@@ -3215,6 +3777,10 @@ export default async function handler(req, res) {
   if (closeReasonB64) res.setHeader('X-Coach-Close-Reason', closeReasonB64)
   if (opportunityUpdateB64) res.setHeader('X-Coach-Opportunity-Update', opportunityUpdateB64)
   if (coachNoteOffer) res.setHeader('X-Coach-Note-Offer', '1')
+  // 'save' (they asked) or 'offer' (Coach's own read). The client needs the
+  // kind because the two get different copy on the confirm; both still
+  // require the tap.
+  if (coachSummaryOffer) res.setHeader('X-Coach-Summary', coachSummaryOffer)
   if (distressDetected) res.setHeader('X-Coach-Distress', '1')
   if (mood === 'low') res.setHeader('X-Coach-Mood', 'low')
   if (activityB64) res.setHeader('X-Coach-Activity', activityB64)

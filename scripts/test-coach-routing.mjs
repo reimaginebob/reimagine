@@ -103,8 +103,10 @@ ok('community slugs are in the canonical set',
 // catalog, and Job Search Resources was added. The count is a tripwire for an
 // accidental edit to FEATURE_MAP, so it moves deliberately with the map and
 // never on its own; 25 when Groups for This Path shipped alongside it; 26 when
-// Pay It Forward (the always-on sidebar card) joined the catalog.
-ok('CANONICAL_FEATURE_SLUGS has 26 entries', CANONICAL_FEATURE_SLUGS.length === 26)
+// Pay It Forward (the always-on sidebar card) joined the catalog; 27 when
+// Cover Letter (previously undocumented for Coach) was added alongside its
+// new Length/Tone controls.
+ok('CANONICAL_FEATURE_SLUGS has 27 entries', CANONICAL_FEATURE_SLUGS.length === 27)
 
 // --- FEATURE_MAP is the single structured source ---
 eq('CANONICAL_FEATURE_SLUGS derives from FEATURE_MAP (same order)',

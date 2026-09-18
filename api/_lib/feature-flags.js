@@ -273,6 +273,16 @@ export function hasCorrectionActions(user) {
   return flags.includes(CORRECTION_ACTIONS_FLAG) || isInternalAccount(user)
 }
 
+// GA 2026-09-17. Was a per-account pilot gate; every signed-in account now
+// has this. isInternalAccount/feature_flags are no longer consulted for
+// this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
+export const COACH_FILE_UPLOAD_FLAG = 'coach_file_upload'
+
+export function hasCoachFileUpload(user) {
+  return !!user
+}
+
 // The flags the admin dashboard may grant and revoke by email. A flag that is
 // not in here cannot be set from the dashboard at all, so a typo in the request
 // body is a 400 rather than a row carrying a string nothing reads. `label` is
@@ -281,7 +291,39 @@ export function hasCorrectionActions(user) {
 // Adding an entry here is how a pilot becomes grantable, and it is deliberately
 // an edit to this file — see the header above for why a flag whose meaning
 // lives only in the database is the failure mode this file exists to prevent.
+// GA 2026-09-17. Was a per-account pilot gate for one afternoon; every signed-in
+// account now has this. isInternalAccount/feature_flags are no longer consulted
+// for this one -- see the header comment above CONNECTOR_BETA_FLAG for the
+// precedent (My Pipeline's own GA, 2026-08-30) this follows.
+//
+// What it gates: Coach writing a short plain-English summary of a substantive
+// conversation about one opportunity into that opportunity's notes, on request
+// at any time and on its own read that a thread reached a natural close (at
+// most once per opportunity per 24 hours). The proactive half is a narrow
+// reversal of #734's blanket "never offer to save because you judged the reply
+// worth keeping"; coach_note_agency's own on-request-only restriction is
+// untouched. The person's tap is still the only thing that writes.
+export const COACH_SUMMARY_FLAG = 'coach_summary'
+
+export function hasCoachSummary(user) {
+  return !!user
+}
+
+// PILOT -- PayPal Commerce Platform on Pay It Forward, 2026-09-17. Gates the
+// second payment section in SupportPanel (PayPal / Venmo / card, via the
+// PayPal JS SDK) that sits below the existing Stripe amount buttons. The
+// Stripe options are unaffected and ungated either way -- this only decides
+// whether the PayPal section renders. Bob QCs the Sandbox flow on Preview
+// before any named tester sees it, same as every other pilot in this file.
+export const PAYPAL_DONATE_FLAG = 'paypal_donate'
+
+export function hasPaypalDonate(user) {
+  const flags = user && Array.isArray(user.feature_flags) ? user.feature_flags : []
+  return flags.includes(PAYPAL_DONATE_FLAG) || isInternalAccount(user)
+}
+
 export const GRANTABLE_FLAGS = {
   [CONNECTOR_BETA_FLAG]: { label: 'Assistant connector' },
   [CORRECTION_ACTIONS_FLAG]: { label: 'Does this feel right?: what should happen' },
+  [PAYPAL_DONATE_FLAG]: { label: 'Pay It Forward: PayPal & Venmo' },
 }

@@ -20,7 +20,7 @@ If a term you remember is not here, check **What's Changed**. It carries former 
 
 **Convictions, Clarity, Confidence, Contagious (the 4 C's).** The internal arc of the Reimagine experience. Convictions are what is true about you. Clarity follows from convictions and lets you see options clearly. Confidence comes from evidence. Contagious is the natural result. When you believe, others do too. The framework is part of the methodology, not exposed in the tool's outputs.
 
-**Cover Letter.** A section of the Opportunity Playbook. A short draft letter tuned to the posting, in your voice, built as the sibling of your Go-to-Market outreach. It addresses the most relevant leader by first name where the About This Company research names one, and the team by function otherwise.
+**Cover Letter.** A section of the Opportunity Playbook. A short draft letter tuned to the posting, in your voice, built as the sibling of your Go-to-Market outreach. It always opens "Dear Hiring Manager" — Reimagine never names a specific person to address it to.
 
 **Demo mode.** A guided walkthrough of the tool using a fictional executive, Sarah Chen. Reaching `?demo=true` runs the tour. The entry link is hidden from the interface while the tour is brought back in line with the current flow, so some of the steps it walks through carry older screen names.
 
@@ -91,7 +91,7 @@ Your Personal Brand names what is settled about your fit and what is open. Settl
 
 **Resume Builder.** The path on the Resume screen for anyone whose resume is out of date, thin, or missing. Give it an old resume, a LinkedIn PDF, or just companies and titles, and it writes a complete draft you edit on the page. It has its own sidebar entry and your draft is saved, so you can come back and add to it.
 
-**Resume Refresh.** Section 5 of the Focus Playbook, and a section of the Opportunity Playbook. Your resume rewritten so the strongest evidence for the role you are exploring is visible in the first seven seconds, downloadable as a Word document in a Human version and an ATS version.
+**Resume Refresh.** Section 5 of the Focus Playbook, and a section of the Opportunity Playbook. Your resume rewritten so the strongest evidence for the role you are exploring is visible in the first seven seconds, downloadable as a Word document in a Human version, a Traditional version, and an ATS version.
 
 **Role Options.** The screen that lists role options for the one direction you picked. An umbrella paragraph carries the credibility case for the direction, then each option shows a title, an organization type, a vehicle, and a sector. Click any one to open its full Focus Playbook. It also holds the "Tell us where else to look" box and honest handling when only a few strong options exist.
 

@@ -32,7 +32,10 @@ check(chat.includes('<SpeechBtn ref={speechBtnRef}'),
 // Must fire on the real-send path specifically (not the silent/postCapture
 // paths, which never involve this input box), right alongside clearing the
 // input -- the same moment the person's own "done talking" action happens.
-const realSendIdx = chat.indexOf("setMessages(m => [...m, userMsg, { role: 'assistant', content: '' }])")
+// The placeholder bubble carries a turnId since 2026-09-17 (the conversation-
+// hold PR) so this turn's own writes can address it by id rather than by last
+// index -- see scripts/test-coach-conversation-hold.mjs.
+const realSendIdx = chat.indexOf("setMessages(m => [...m, userMsg, { role: 'assistant', content: '', turnId }])")
 check(realSendIdx !== -1, `${CHAT}: could not locate the real-send message-push to anchor the mic-stop check`)
 const realSendBlock = realSendIdx !== -1 ? chat.slice(Math.max(0, realSendIdx - 200), realSendIdx) : ''
 check(realSendBlock.includes('speechBtnRef.current') && realSendBlock.includes('.stop()'),

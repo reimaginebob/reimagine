@@ -1,0 +1,48 @@
+-- Keeping a shared document available to My Coach across a conversation
+-- (2026-09-17, follow-up to PR #968's 300,000-byte paste cap, #969's
+-- file-upload GA and #972's history clip).
+--
+-- #972 stopped a large paste from being re-sent to the model at full size on
+-- every later turn, which it had to: the same 250KB transcript riding along
+-- on turn after turn is cost with no benefit. But clipping it to its first
+-- 8,000 characters also meant the content was simply GONE from the model's
+-- view a turn later -- someone who pasted an interview transcript and then
+-- asked a follow-up question about it got an answer reasoned from the first
+-- few pages only, with no way to tell that was happening.
+--
+-- The fix reads the full text back out of chat_messages (where it has always
+-- been kept) once per turn and puts it in a dedicated, labeled block, rather
+-- than leaving it inline in the conversation history. Two things are needed
+-- here for that:
+--
+-- 1. focus_record_id. A document is only useful if Coach can say WHICH
+--    opportunity it belongs to -- someone working two searches at once
+--    pastes a transcript for each, and "your notes" is ambiguous and
+--    dangerous when the wrong one gets used to prep for the other. The
+--    in-focus record was already resolved per turn (buildCoachRequest
+--    returns inFocusRecordId) and then thrown away; this column keeps it, so
+--    each document can be labeled with the opportunity that was open when it
+--    was shared. Nullable and never backfilled: rows written before this
+--    migration have no record of what was on screen, and guessing one
+--    afterwards would be inventing it.
+--
+-- 2. An index for the new per-turn read, which runs on EVERY Coach turn and
+--    so must not degrade into a scan of the account's whole chat history.
+--    Deliberately a plain (user_id, created_at DESC) index rather than one
+--    partial on `length(message) > 8000`: the query compares that length
+--    against a bound parameter, and the planner can only use a partial index
+--    when it can prove the predicate holds, which it cannot do from a
+--    parameter under a generic plan. A partial index would therefore have
+--    looked like an optimization while silently not being chosen. This one
+--    is always applicable, and it also covers the existing
+--    GET /api/coach-history read (same user_id + created_at DESC + LIMIT
+--    shape), which until now had no supporting index at all.
+--
+-- Forward-only and idempotent (CLAUDE.md section 7): both statements are
+-- IF NOT EXISTS, so the auto-apply on every production deploy
+-- (scripts/deploy-migrate.mjs, before the build) is a no-op on re-run.
+-- No data is moved or deleted; chat_messages rows are untouched.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS focus_record_id text; -- saved-playbook record id in focus when this turn was sent; NULL when none
+
+CREATE INDEX IF NOT EXISTS chat_messages_user_recent
+  ON chat_messages (user_id, created_at DESC);

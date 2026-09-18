@@ -10,21 +10,35 @@ A few ways in, one conversation: the chat button in the corner of every screen o
 
 **And it never takes you anywhere.** However you open it — the sidebar, the corner button, or an **Ask My Coach about this** button — the coach opens right on the screen you're already on, with your conversation exactly as you left it. You never step away from your work to talk to it, so there's nothing to come back from.
 
+As a conversation grows, earlier questions and replies collapse into a one-line summary once something newer has been said — nothing is deleted, and a tap reopens any of them.
+
 ## What it can do
 
 Answer questions about any part of your search, grounded in what it knows about you; reflect your real experience back to you; and point you to the right Reimagine step when one fits.
+
+When you want it to work from something on paper — a job description, an old performance review, a call transcript — attach the file with the paperclip next to the message box (a PDF, a Word file, or a plain text file) and its text lands in your message automatically. Pasting the text in directly works just as well.
+
+Your coach keeps what you share available for about two weeks, so you can come back the next day and keep asking about it. It holds the three most recent things you've shared; older ones drop off, and tapping Clear removes them along with the conversation. If you ask about something it no longer has, it will say so rather than guess.
 
 It can also save a few things for you. When a conversation lands on something that belongs in your profile — your values and the causes you care about, where your work situation stands, how your search itself is going — it offers to put it in, and one tap does it. You see the exact wording before you accept, and you can edit it on the screen afterwards like anything else you typed.
 
 On your Focus Playbook, once you build one section, it often follows with a quick word on what naturally comes next and a one-tap offer to build that section too — the same build the screen's own button would start, just offered where you are.
 
+When the two of you have worked through something real about one opportunity — a decision reached, a concern talked out, an approach settled — it can write that up as a short summary and keep it in that opportunity's notes, where it sits with anything else you've saved there. Ask for it whenever you want one ("summarize this and save it"), or wait for your coach to offer when a conversation reaches a natural stopping point; it offers at most once a day per opportunity, so it won't keep asking. What it keeps is the conclusions, not a transcript: a few plain lines about what you decided and why. As with everything else, your tap is what saves it.
+
 From time to time it will also point out something that could widen your options — the companies to contact directly through Go-to-Market, groups where people in your line of work get together, free job-search groups near you, recruiters who place people into a role like yours, people you already know at a company, the Career Club Corner community, or a way to bring some money in while your search runs. Each one comes with a real choice: do it now, be reminded later, or say it's not for you right now.
+
+These come when there's room for them. While you're mid-conversation — a reply still arriving, something half-typed, or a message you sent a few minutes ago — your coach holds anything it was going to raise on its own, and it keeps to a couple of them per screen you land on rather than handing you everything at once. Nothing is queued up to arrive later; if the moment passes, it waits for the next natural one.
 
 Early on it may ask what's going well in your search and what you'd like to improve. Answer as fully or as briefly as you like: it's a conversation, so it will talk through what you say before it moves on, and it only offers to keep an answer that had something in it. Whatever you keep shows up on the Your Current Situation screen in Orientation, and your coach treats it as background on where things stood when you said it, not as a fixed read on you.
 
 ## What it won't do, and why that helps
 
-It won't change your work on its own. The only things it writes or builds are the ones you tap to accept — a profile update it offers to save, or the next Focus Playbook section it offers to build — and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
+It won't change your work on its own. The only things it writes or builds are the ones you tap to accept — a profile update it offers to save, or the next Focus Playbook section it offers to build — and everything else it points you to the step for. It won't look you up either — it has what you have given Reimagine and nothing else, so it cannot open your website or read your LinkedIn. Paste in anything you want it to see, or attach it as a file. It won't invent market data or quote your odds. And it's a coach, not a therapist; if you're carrying something heavier than an ordinary hard day, it will gently point you toward a real person.
+
+## Starting a conversation over
+
+Tap Clear at the top of the coach panel to wipe the conversation and start fresh. It clears everywhere you're signed in, not just the device you tapped it on, and it can't be undone. Nothing you've saved to your profile or a playbook is touched, and your coach still knows all of that — clearing only resets what the two of you have said to each other, not what it's read about you.
 
 ## Getting the most from it
 

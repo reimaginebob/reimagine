@@ -27,6 +27,16 @@ export const SUPPORT_EVENT_KINDS = Object.freeze([
   'coach_failed',
   'client_crash',
   'save_failed',
+  // Not a failure the person saw: a conversation summary was about to be
+  // offered for one opportunity while naming another, and the offer was
+  // suppressed rather than risk filing it on the wrong record (api/coach.js,
+  // summaryNamesOtherOpportunity). Recorded so the rate is visible -- this
+  // firing often means the scope instruction needs work, not the guard.
+  'coach_summary_scope_bleed',
+  // Also not a failure the person saw: a reply about one opportunity named
+  // somebody from a different opportunity's interview team. Measured rather
+  // than corrected -- see the comment at its call site in api/coach.js.
+  'coach_person_cross_reference',
 ])
 
 // The kinds a browser is allowed to post to api/support/client-event.js. The

@@ -55,8 +55,24 @@ check(coach.includes("import { applyOutputStrippers, ensureDistressSupport, matc
   `${COACH}: matchesDistressTrigger is not imported`)
 check(coach.includes("import { parseSelfcheck, parseMood, parseWidenSearchHint } from '../src/coach-routing.js'"),
   `${COACH}: parseMood is not imported`)
-check(coach.includes('const distressDetected = matchesDistressTrigger(message)'),
+// Still computed from the PERSON's own words and never from the model's
+// output -- that is what this guard has always been for. Narrowed 2026-09-17
+// to the part of the message they actually typed when the turn carried an
+// attachment: a suicide-prevention job posting or an interview transcript
+// discussing a hard year can carry the trigger vocabulary in someone else's
+// words, and firing the crisis pointer plus a session-long hold on Coach's
+// own offers because of it is a bad answer to an ordinary "summarize this".
+// The three checks below keep the chain intact end to end: an absent
+// typedText still falls back to the whole message, so pasted text (which
+// cannot be told apart from typing) stays covered exactly as before.
+check(coach.includes("const typedTextForSafety = typeof typedText === 'string' ? typedText : null"),
+  `${COACH}: typedText is no longer validated to a string-or-null before reaching the distress scan`)
+check(coach.includes('const distressSource = typedTextForSafety === null ? message : typedTextForSafety'),
+  `${COACH}: the distress source is no longer "what they typed, else the whole message" -- an absent typedText MUST fall back to the full message or pasted distress stops being seen`)
+check(coach.includes('const distressDetected = matchesDistressTrigger(distressSource)'),
   `${COACH}: distressDetected is not computed from the user's own message`)
+check(coach.includes('ensureDistressSupport(distressSource, strippedText)'),
+  `${COACH}: ensureDistressSupport reads a different source than matchesDistressTrigger -- both must scan the same text or the reply and the hold disagree`)
 check(coach.includes("if (distressDetected) res.setHeader('X-Coach-Distress', '1')"),
   `${COACH}: the X-Coach-Distress response header is missing or has drifted`)
 check(coach.includes('const { mood, text: moodStripped } = parseMood(selfcheckStripped)'),
@@ -130,7 +146,7 @@ const mountCount = (app.match(/onDistressDetected=\{handleCoachDistressDetected\
 check(mountCount === 2, `${APP}: expected both remaining Chat mount sites wired with onDistressDetected/onMoodLow/onSessionOpen, found ${mountCount}`)
 
 // --- Chat.jsx: reads the headers, calls the callbacks, fires onSessionOpen ---
-check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null }) {'),
+check(chat.includes('onDistressDetected = null, onMoodLow = null, onSessionOpen = null,'),
   `${CHAT}: the three new props are missing from Chat's signature`)
 check(chat.includes("const distressHeader = res.headers.get('X-Coach-Distress') || null"),
   `${CHAT}: distressHeader is not read from the response`)
@@ -146,7 +162,11 @@ check(chat.includes('if (onSessionOpen) onSessionOpen()'),
 // sessionStorage check), not on every mount -- otherwise a hold would clear
 // mid-session on a re-render.
 const sessionOpenIdx = chat.indexOf('if (onSessionOpen) onSessionOpen()')
-const alreadyGuardIdx = chat.indexOf('if (already) return', sessionOpenIdx - 450)
+// Searched from the enclosing effect rather than a fixed backward offset
+// (2026-09-17): the conversation hold added its own gate and comment between
+// the guard and this call, which a byte window could not absorb.
+const recapEffectIdx = sessionOpenIdx === -1 ? -1 : chat.lastIndexOf('useEffect(() => {', sessionOpenIdx)
+const alreadyGuardIdx = recapEffectIdx === -1 ? -1 : chat.indexOf('if (already) return', recapEffectIdx)
 check(sessionOpenIdx !== -1 && alreadyGuardIdx !== -1 && alreadyGuardIdx < sessionOpenIdx,
   `${CHAT}: onSessionOpen is not gated behind the existing once-per-session guard`)
 
