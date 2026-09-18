@@ -17980,8 +17980,8 @@ ${companyLines?`${section('Target Companies',companyLines)}`:''}
         </>}
         {!jobResourcesBusy&&_searched&&_rows.length===0&&<div style={{...S.note,background:C.input,border:`1px solid ${C.border}`,color:'#2D3748'}}>We did not find a group we could stand behind near {_city||'you'} from a source we trust. That often means the groups near you are small enough not to rank, rather than that there are none — the three places below keep their own listings and are worth checking directly.</div>}
 
-        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>Places we cannot search for you</h2>
-        <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 14px'}}>Each of these keeps its own listings, and we cannot read them from here. They open where you would land if you went looking yourself, already filled in.</p>
+        <h2 style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,color:'#1A2540',margin:'32px 0 6px'}}>More networking opportunities</h2>
+        <p style={{fontSize:16,color:C.gray,lineHeight:1.6,margin:'0 0 14px'}}>Three more ways to build your network — each one opens already filled in for you.</p>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:8}}>
           <a href={AMERICAN_JOB_CENTER_URL} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Your American Job Center.</strong> Free workshops, one-to-one help and job-search planning, publicly funded, in every part of the country.</span><ArrowUpRight size={16}/></a>
           <a href={linkedInJobSearchGroupUrl(_city)} target="_blank" rel="noopener noreferrer" style={_resLink}><span><strong style={{color:'#1A2540'}}>Job-search groups on LinkedIn.</strong> Plenty of groups run entirely there and are invisible to a normal search.</span><ArrowUpRight size={16}/></a>
