@@ -87,7 +87,7 @@ check(/angle: discouragementAngle/.test(coach),
 {
   // Validated against the real range, and stripped before the widen-search
   // parse so the number cannot survive into the reply.
-  check(/n >= 1 && n <= 7/.test(coach),
+  check(/n >= 1 && n <= \d/.test(coach),
     `${COACH}: the angle number is not range-checked, so a drifted value is stored as if it meant something`)
   // Stripped before the text that reaches the person, and placed AFTER the
   // widen-search parse so the MOOD -> WIDENSEARCH chain that
@@ -97,6 +97,49 @@ check(/angle: discouragementAngle/.test(coach),
   check(/parseWidenSearchHint\(moodStripped\)/.test(coach),
     `${COACH}: the MOOD -> WIDENSEARCH parse chain was broken to fit this in; it does not need to sit inside that chain`)
 }
+
+// --- 3a. The eighth angle: slow a decision down --------------------------
+// Different in kind from the seven above it. They sustain someone who is
+// running low; this one stops someone with plenty of fight left from spending
+// it in the wrong direction. It is the only angle that reasons about a
+// decision, which is why it needs the no-verdict rule restated inside it
+// rather than inherited from three paragraphs away.
+{
+  const i = coach.indexOf('8. SLOW THE DECISION DOWN')
+  check(i !== -1, `${COACH}: the eighth angle is missing`)
+  const j = coach.indexOf('Match the angle to the moment')
+  const a8 = i === -1 ? '' : coach.slice(i, j)
+  check(/GROUND BEFORE YOU ASSERT/.test(a8),
+    `${COACH}: angle 8 does not restate the no-verdict rule -- it is the one angle that reasons about a decision, which is exactly where a verdict would do harm`)
+  check(/you cannot see|cannot see/.test(a8) && /financial pressure/.test(a8) && /family situation/.test(a8),
+    `${COACH}: angle 8 does not name what Coach cannot see, so it can reason about a decision as though it had the whole picture`)
+  check(/not provided/.test(a8),
+    `${COACH}: angle 8 does not tell Coach to ask when a needed field is empty -- ANCHOR 1 prints "not provided" precisely so this is checkable rather than guessable`)
+  check(/ANCHOR 1/.test(a8),
+    `${COACH}: angle 8 references profile data without pointing at where it lives`)
+  check(/separate turns/.test(a8) && /Never run them together/.test(a8),
+    `${COACH}: angle 8's three beats are not marked as separate turns, so it reads as a monologue to recite`)
+  // The two constructions the repo bans that the draft wording contained.
+  check(!/worth naming/.test(a8),
+    `${COACH}: angle 8 contains "worth naming" -- insight-flagging, banned by Coach's own BANNED SHAPES item 2`)
+  check(!/pulling at you/.test(a8),
+    `${COACH}: angle 8 contains "pulling at you" -- psychotherapy pull-language, banned by CLAUDE.md section 3 and NOT caught by any runtime pattern, so only this check stands between it and the prompt`)
+}
+{
+  // The map has to route to it, and has to say it does not stack with the rest.
+  // Bounded forward from the map: "TEACH THE FRAMEWORKS" also appears much
+  // earlier in the file, so searching from 0 gives a backwards slice.
+  const mapAt = coach.indexOf('Match the angle to the moment')
+  const map = coach.slice(mapAt, coach.indexOf('TEACH THE FRAMEWORKS', mapAt))
+  check(mapAt !== -1 && map.length > 0, `${COACH}: could not locate the angle map`)
+  check(/→ 8/.test(map), `${COACH}: the angle map has no route to angle 8, so nothing tells Coach when to reach for it`)
+  check(/do not pair it with them/.test(map),
+    `${COACH}: nothing stops angle 8 being stacked onto a sustaining angle, which is the one combination that contradicts itself`)
+}
+check(/a single digit from 1 to 8/.test(coach),
+  `${COACH}: the ANGLE trailer still asks for 1-7, so angle 8 can never be logged`)
+check(/n >= 1 && n <= 8/.test(coach),
+  `${COACH}: the server still range-checks 1-7, so a correctly-emitted ANGLE: 8 is discarded as drift`)
 
 // --- 4. A wrong reflection has a stated recovery --------------------------
 {
@@ -114,5 +157,5 @@ if (failures) {
   console.error(`test-coach-discouragement-boundaries: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-discouragement-boundaries: OK (angle 6 checks the four consequential endings against CONSEQUENTIAL TOPICS before reframing, and says why, ahead of its own exemplar; the crisis floor now hands over 988 by name, after the people in the person\'s life and before the closing line; which of the seven angles fired is emitted, swept, range-checked, stripped ahead of the widen-search parse and logged beside mood; and a corrected reflection is dropped rather than guessed at twice)')
+  console.log('test-coach-discouragement-boundaries: OK (angle 6 checks the four consequential endings against CONSEQUENTIAL TOPICS before reframing, and says why, ahead of its own exemplar; the crisis floor now hands over 988 by name, after the people in the person\'s life and before the closing line; which of the seven angles fired is emitted, swept, range-checked, stripped ahead of the widen-search parse and logged beside mood; a corrected reflection is dropped rather than guessed at twice; and the eighth angle slows a decision down without rendering a verdict, names what Coach cannot see, asks rather than guesses at an empty field, is routed from the map and barred from stacking, is logged end-to-end, and carries neither of the two banned constructions the draft wording arrived with)')
 }
