@@ -29,7 +29,15 @@ check(preBlock.includes('Ask anything, anytime'),
 // --- Post-brand generic primaryItems row (shared renderer, myCoach-only) ---
 const rowIdx = app.indexOf('primaryItems.flatMap(')
 check(rowIdx !== -1, `${APP}: the primaryItems row renderer is missing`)
-const rowBlock = rowIdx !== -1 ? app.slice(rowIdx, rowIdx + 900) : ''
+// Bounded on the renderer's own next landmark -- the children loop that
+// follows the primary row's JSX -- rather than a fixed character count. A
+// fixed window broke on 2026-09-18 when an explanatory comment was added
+// inside the renderer and pushed the span past it, reporting the mark as
+// missing when it was untouched: the window's size, not the code, had gone
+// stale. Anchoring on the structure means only a real removal fails this.
+const rowEnd = rowIdx !== -1 ? app.indexOf('if(Array.isArray(children))', rowIdx) : -1
+check(rowEnd > rowIdx, `${APP}: the primaryItems row renderer's children loop is missing -- the block bound below cannot be located`)
+const rowBlock = rowIdx !== -1 && rowEnd > rowIdx ? app.slice(rowIdx, rowEnd) : ''
 check(rowBlock.includes("<span style={{flex:1,display:'flex',alignItems:'center',gap:6}}>{label}{id==='myCoach'&&<CoachMark C={C}/>}</span>"),
   `${APP}: the generic sidebar row no longer conditionally adds CoachMark for the myCoach id only`)
 // "No other sidebar change": the mark must be scoped to id==='myCoach' --
