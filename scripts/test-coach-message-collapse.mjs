@@ -8,7 +8,9 @@
 // already read. Any message collapses to a thin, one-line strip once
 // something has been said after it -- present, not deleted (nothing is
 // removed from `messages`), expandable on tap. The most recent message is
-// never collapsed, whatever it is.
+// never collapsed, whatever it is -- and while a reply is still generating,
+// "most recent" holds at the question just sent, not just its still-empty
+// placeholder (2026-09-18 live fix; see collapseFloor below).
 // Source-level for the same reason its siblings are: this needs a real
 // signed-in browser session to exercise end to end.
 import fs from 'node:fs'
@@ -25,11 +27,22 @@ check(chat.includes('const toggleMessageExpanded = i => setExpandedMessages(prev
   `${CHAT}: toggleMessageExpanded is missing`)
 
 // The collapse condition itself applies to every message now, not just
-// banner/intro: it collapses only once it is no longer the last message,
+// banner/intro: it collapses only once it is behind the collapse floor,
 // only until the person taps it open again, and never while it carries live
 // unresolved quick-reply taps.
-check(chat.includes('const isCollapsedMessage = i < messages.length - 1 && !expandedMessages.has(i) && !hasLiveTaps'),
-  `${CHAT}: isCollapsedMessage is missing or no longer requires a later message present, not already expanded, and no live taps -- any of those loosening would collapse the wrong messages (the current tail, one the person just opened, or a message with an unresolved action)`)
+check(chat.includes('const isCollapsedMessage = i < collapseFloor && !expandedMessages.has(i) && !hasLiveTaps'),
+  `${CHAT}: isCollapsedMessage is missing or no longer requires a position behind collapseFloor, not already expanded, and no live taps -- any of those loosening would collapse the wrong messages (the current tail, one the person just opened, or a message with an unresolved action)`)
+
+// The collapse floor itself (2026-09-18, reported live): send() appends the
+// question and its reply's empty placeholder in the same update, so a naive
+// "last index never collapses" rule let the person's own just-sent question
+// collapse to a strip the instant they hit Send, before any reply existed to
+// read it in. While the trailing assistant placeholder is still empty and
+// loading, the floor holds at the question two positions back, not one.
+check(chat.includes('const pendingReply = loading && lastMsg && lastMsg.role === \'assistant\' && !lastMsg.content'),
+  `${CHAT}: pendingReply detection is missing -- an in-flight reply's placeholder is empty until the whole reply arrives in one write, so this is how a just-sent question is told apart from a truly superseded one`)
+check(chat.includes('const collapseFloor = pendingReply ? messages.length - 2 : messages.length - 1'),
+  `${CHAT}: collapseFloor no longer holds two positions back during a pending reply -- the just-sent question would collapse the instant Send is tapped`)
 
 // The generic "Hi, I'm your coach" greeting (2026-09-05, reported live):
 // opted into the same collapse treatment via intro:true rather than
@@ -82,7 +95,7 @@ check(chat.includes("{!isCollapsedMessage && m.role === 'assistant' && m.id && (
 // one-line strip. isExpandableMessage is the same eligibility as
 // isCollapsedMessage with the expanded check dropped, so it stays true
 // whichever way the toggle currently sits.
-check(chat.includes('const isExpandableMessage = i < messages.length - 1 && !hasLiveTaps'),
+check(chat.includes('const isExpandableMessage = i < collapseFloor && !hasLiveTaps'),
   `${CHAT}: isExpandableMessage is missing -- there is no way to compute re-collapse eligibility once a message is expanded`)
 const recollapseIdx = chat.indexOf('{!isCollapsedMessage && isExpandableMessage && (')
 check(recollapseIdx !== -1, `${CHAT}: the expanded-message re-collapse control is missing`)
