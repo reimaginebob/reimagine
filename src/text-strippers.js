@@ -1051,6 +1051,13 @@ const DISTRESS_TRIGGER_RE = /\bkill(?:ing)? myself\b|\bend (?:my life|it all|my 
 // message that already matched DISTRESS_TRIGGER_RE -- a message a genuine
 // job-search/networking question would not -- so they do not reopen the
 // false-positive the narrowing fixed.
+// 2026-09-19: that prompt instruction now names 988 itself, rather than
+// stopping at "someone they trust" -- the divergence it had from the
+// DISTRESS_POINTER below (which has named 988 since 2026-09-18) meant the
+// person Coach answered CORRECTLY got the weaker line, because "someone you
+// trust" counts as a pointer here and suppressed the fallback. Both phrasings
+// stay in the regex: the model may still say either, and either one is a real
+// pointer that must not be doubled.
 const SUPPORT_POINTER_RE = /\b(?:counselor|therapist|therapy|a friend|your friend|loved one|professional(?: help| support)|bob@career\.club|a human in your corner)\b|\b988\b|\bsomeone (?:you|they) trust\b/i
 const DISTRESS_POINTER = " One more thing, and it matters more than any job-search tactic: what you're describing sounds heavier than a hard week of searching — please talk to someone you trust about it, a friend, someone close to you, or a counselor. If there is no one like that right now, or you would rather talk to someone outside your life, in the US you can call or text 988, the Suicide & Crisis Lifeline, any hour of any day. You're not meant to carry that alone."
 export function ensureDistressSupport(userMessage, output) {

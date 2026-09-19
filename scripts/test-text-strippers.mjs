@@ -674,6 +674,8 @@ assertTruthy('ensureDistressSupport: genuine "a friend or a counselor" pointer i
 // instructed phrasing nor a 988 mention satisfied the old, narrower guard,
 // so a reply that correctly followed the prompt still got DISTRESS_POINTER
 // appended on top of it (the double-pointer bug). Both are now recognized.
+// The instruction was widened on 2026-09-19 to name 988 as well, so the model
+// may now say either phrasing -- both cases below still have to hold.
 assertTruthy('ensureDistressSupport: the model\'s own "reach out to someone you trust" line is NOT duplicated',
   !ensureDistressSupport('Some days I just want to die.', 'That sounds heavy. Please reach out to someone you trust about it.').includes(DP))
 assertTruthy('ensureDistressSupport: a 988 mention is NOT duplicated',

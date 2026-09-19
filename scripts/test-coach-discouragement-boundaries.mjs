@@ -75,6 +75,31 @@ check(/carry that alone/.test(strippers),
     `${TS}: the number lands after the closing line, so the reply ends on a phone number rather than on them`)
 }
 
+// --- 2b. The prompt's own crisis line says what the fallback says --------
+// Until 2026-09-19 these two diverged: DISTRESS_POINTER named 988, while
+// SYSTEM_PROMPT_STABLE told the model only to suggest "someone they trust."
+// That is worse than it sounds, because "someone you trust" is itself on
+// SUPPORT_POINTER_RE -- so a reply that followed the instruction CORRECTLY
+// counted as already carrying a pointer and suppressed the fallback. The
+// better the model behaved, the less the person in crisis was handed. These
+// checks pin the two sides together; api/claude.js's own crisis rule has
+// named 988 since well before either, so this is the surface catching up.
+{
+  const crisisAt = coach.indexOf('explicit self-harm')
+  check(crisisAt !== -1, `${COACH}: the explicit-self-harm instruction is missing entirely`)
+  const crisisLine = crisisAt === -1 ? '' : coach.slice(crisisAt, crisisAt + 400)
+  check(/988/.test(crisisLine),
+    `${COACH}: the crisis instruction does not name 988, so a correctly-followed reply hands the person a weaker pointer than the automatic fallback would have`)
+  check(/Suicide & Crisis Lifeline/.test(crisisLine),
+    `${COACH}: the number is given with no name, so the person cannot tell what they would be calling`)
+  check(/someone they trust/.test(crisisLine),
+    `${COACH}: the people in the person's life were dropped from the instruction -- the number is the backstop, not the first offer`)
+  check(crisisLine.indexOf('someone they trust') < crisisLine.indexOf('988'),
+    `${COACH}: the instruction puts the number ahead of the people in their life, which reads as handing them off rather than staying with them`)
+  check(/[Tt]hen return to coaching/.test(crisisLine),
+    `${COACH}: the instruction no longer returns the model to coaching, so a crisis line risks becoming the whole reply`)
+}
+
 // --- 3. Which angle fired is recorded ------------------------------------
 check(/ANGLE: <number>/.test(coach),
   `${COACH}: the model is never asked which angle it used, so "vary which angle you reach for" stays an instruction with nothing behind it -- the same shape as the COACHSUMMARY proactive rule the model ignored on its first live test`)
@@ -157,5 +182,5 @@ if (failures) {
   console.error(`test-coach-discouragement-boundaries: ${failures} check(s) failed`)
   process.exit(1)
 } else {
-  console.log('test-coach-discouragement-boundaries: OK (angle 6 checks the four consequential endings against CONSEQUENTIAL TOPICS before reframing, and says why, ahead of its own exemplar; the crisis floor now hands over 988 by name, after the people in the person\'s life and before the closing line; which of the seven angles fired is emitted, swept, range-checked, stripped ahead of the widen-search parse and logged beside mood; a corrected reflection is dropped rather than guessed at twice; and the eighth angle slows a decision down without rendering a verdict, names what Coach cannot see, asks rather than guesses at an empty field, is routed from the map and barred from stacking, is logged end-to-end, and carries neither of the two banned constructions the draft wording arrived with)')
+  console.log('test-coach-discouragement-boundaries: OK (angle 6 checks the four consequential endings against CONSEQUENTIAL TOPICS before reframing, and says why, ahead of its own exemplar; the crisis floor now hands over 988 by name, after the people in the person\'s life and before the closing line; the prompt\'s own crisis instruction now says the same thing the fallback says, so the person Coach answers correctly is no longer handed less than the person it fails; which of the seven angles fired is emitted, swept, range-checked, stripped ahead of the widen-search parse and logged beside mood; a corrected reflection is dropped rather than guessed at twice; and the eighth angle slows a decision down without rendering a verdict, names what Coach cannot see, asks rather than guesses at an empty field, is routed from the map and barred from stacking, is logged end-to-end, and carries neither of the two banned constructions the draft wording arrived with)')
 }
